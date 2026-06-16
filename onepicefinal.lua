@@ -1,5 +1,5 @@
 -- =========================================================================
--- [ULTIMATE MASTER] YUIHUB V26 - FILTER MODELS, CATEGORY NOTES & COLORS
+-- [ULTIMATE MASTER] YUIHUB V26 - AUTO SAM, FARM NEAR, FIND BOX & FISH FIX
 -- =========================================================================
 
 local Players = game:GetService("Players")
@@ -32,22 +32,22 @@ _G.Yui = {
     AntiAFK = true, MoveMethod = "Teleport", CollectMethod = "Teleport (Continuous)", MoveSpeed = 300, HoverOnKill = true,
     AutoFarm = false, SelectedMobs = {}, SelectedWeapons = {}, FastAttack = false, 
     AutoClickFarming = false, AutoClickAlways = false, ClickPosition = "Center",
+    MobLevelFilter = "All", FarmNear = false, -- Thêm biến Farm Near và Lọc Level
     AttackDist = 5, AttackPos = "Above", AutoSpawn = false,
     AutoSkill = {E=false, R=false, T=false, Z=false, X=false, C=false, V=false, B=false, N=false, F=false}, 
     HoldSkill = {E=false, R=false, T=false, Z=false, X=false, C=false, V=false, B=false, N=false, F=false}, HoldTime = 1, SkillDelay = 0.1,
     AutoHaki = {E=false, R=false, T=false},
     SelectedNormalQuest = "", AutoNormalQuest = false,
     SelectedDailyQuest = "", AutoDailyQuest = false, AutoAcceptQuest = false, TeleportToNPC = true,
-    AutoSam = false, AutoSamAmount = "x1", AutoUpgradeCap = false,
-    CollectChest = false, CollectBarrel = false, CollectSpeed = 0.05, 
+    AutoSam = false, AutoSamAmount = "x1", AutoUpgradeCap = false, SamLoopCount = 1, AutoFindBox = false, -- Thêm biến Sam
+    CollectChest = false, CollectBarrel = false, CollectCompass = false, CollectSpeed = 0.05, 
     AutoFruit = false, AutoSpawnBox = false, CamUnderground = false,
     AutoJuice = false, JuiceDelay = 5, AutoDrink = false, DrinkDelay = 1, AutoEatApple = false, AppleDelay = 3, 
     WalkSpeed = 16, EnableWS = false, JumpPower = 50, EnableJP = false, 
     Fly = false, FlySpeed = 50, Noclip = false, WalkOnWater = false, InfJump = false, AutoSafe = false, SafeHealth = 30,
-    AutoGetRod = false, AutoFish = false, AutoPin = false,
+    AutoGetRod = false, AutoFish = false, AutoShake = false, AutoPin = false, -- Thêm Auto Shake
     TargetPlayer = "None", AutoHunt = false, HuntDist = 5, ESPPlayer = false, Spectate = false,
     ESPItems = false, SelectedESPItems = {}, TargetItemTeleport = "None",
-    AutoRejoin = false, AutoExecute = false, ExecuteScript = "", 
     CustomHue = 330, TextHue = 0
 }
 
@@ -119,7 +119,7 @@ end
 local Theme = {
     MainBg = Color3.fromRGB(15, 15, 18), HeaderBg = Color3.fromRGB(22, 22, 25), BoxBg = Color3.fromRGB(20, 20, 23), 
     Accent = Color3.fromHSV(_G.Yui.CustomHue / 360, 1, 1),
-    TextTitle = Color3.fromHSV(_G.Yui.TextHue / 360, 0, 1), -- Màu chữ mặc định là trắng
+    TextTitle = Color3.fromHSV(_G.Yui.TextHue / 360, 0, 1), 
     TextSub = Color3.fromRGB(140, 140, 140), Stroke = Color3.fromRGB(35, 35, 40), SelectedGreen = Color3.fromRGB(50, 255, 100)
 }
 local DynamicUIElements = {}
@@ -135,13 +135,9 @@ local function UpdateThemeColor(hueVal)
 end
 
 local function UpdateTextColor(hueVal)
-    _G.Yui.TextHue = hueVal
-    -- Dùng HSV để chữ có thể có màu (Saturation = 0.8 để dễ nhìn)
-    Theme.TextTitle = Color3.fromHSV(hueVal / 360, 0.8, 1)
+    _G.Yui.TextHue = hueVal Theme.TextTitle = Color3.fromHSV(hueVal / 360, 0.8, 1)
     for _, item in pairs(DynamicUIElements) do
-        if item.Obj and item.Obj.Parent and item.Type == "Text" then
-            item.Obj[item.Prop] = Theme.TextTitle
-        end
+        if item.Obj and item.Obj.Parent and item.Type == "Text" then item.Obj[item.Prop] = Theme.TextTitle end
     end
 end
 
@@ -355,9 +351,10 @@ local function SilentClick(btn)
     pcall(function() firesignal(btn.MouseButton1Click) end) pcall(function() firesignal(btn.Activated) end) pcall(function() for _, c in pairs(getconnections(btn.MouseButton1Click)) do c:Fire() end end)
 end
 
-local function FireNPC(npcName)
+local function FireNPC(npcName, teleport)
     for _, obj in pairs(Workspace:GetDescendants()) do
         if obj.Name == npcName and obj:IsA("Model") and obj:FindFirstChild("HumanoidRootPart") then
+            if teleport then MoveTo(obj.HumanoidRootPart.CFrame * CFrame.new(0,0,3)) task.wait(0.3) end
             local cd = obj.HumanoidRootPart:FindFirstChildOfClass("ClickDetector")
             if cd then fireclickdetector(cd, 0) return true end
         end
@@ -389,6 +386,11 @@ Setters.MoveSpeed = CreateSlider("Move Speed", 50, 5000, _G.Yui.MoveSpeed, FarmS
 Setters.HoverOnKill = CreateToggle("Hover In Air On Kill", _G.Yui.HoverOnKill, FarmSetBox, function(v) _G.Yui.HoverOnKill = v end)
 
 local FarmMobBox = CreateSection("Farming Mobs", MainR)
+-- THÊM LỌC LV VÀ ĐÁNH GẦN VÀO ĐÂY
+local UpdateLvlFilter, SetLvlFilter = CreateDropdown("Level Filter", "All", FarmMobBox, function(v) _G.Yui.MobLevelFilter = v end)
+UpdateLvlFilter({"All", "< 1000", "> 1000"})
+Setters.FarmNear = CreateToggle("Farm Near (Tất cả quái)", false, FarmMobBox, function(v) _G.Yui.FarmNear = v end)
+
 Setters.AutoSpawn = CreateToggle("Auto Spawn (Fix Anti-Death)", false, FarmMobBox, function(v) _G.Yui.AutoSpawn = v end)
 local UpdateMultiMob = CreateMultiDropdown("Select Mobs", FarmMobBox, _G.Yui.SelectedMobs)
 CreateButton("Refresh All Mobs & Bosses", FarmMobBox, function()
@@ -397,10 +399,12 @@ CreateButton("Refresh All Mobs & Bosses", FarmMobBox, function()
         if obj:IsA("Model") and obj ~= LocalPlayer.Character and not Players:GetPlayerFromCharacter(obj) then
             local hum = obj:FindFirstChildOfClass("Humanoid")
             if hum and hum.Health > 0 and obj:FindFirstChild("HumanoidRootPart") then
-                local rawName = obj.Name
-                local cleanName = string.gsub(rawName, "%[.-%]", "") cleanName = string.gsub(cleanName, "%d+$", "") cleanName = string.match(cleanName, "^%s*(.-)%s*$") or cleanName
-                if cleanName ~= "" and obj.Parent and not string.find(string.lower(obj.Parent.Name), "quest") then
-                    if not temp[cleanName] then temp[cleanName] = true table.insert(list, cleanName) end
+                local rawNameL = string.lower(obj.Name)
+                if string.find(rawNameL, "lv") or string.find(rawNameL, "level") then
+                    local cleanName = string.gsub(obj.Name, "%[.-%]", "") cleanName = string.gsub(cleanName, "%d+$", "") cleanName = string.match(cleanName, "^%s*(.-)%s*$") or cleanName
+                    if cleanName ~= "" and obj.Parent and not string.find(string.lower(obj.Parent.Name), "quest") then
+                        if not temp[cleanName] then temp[cleanName] = true table.insert(list, cleanName) end
+                    end
                 end
             end
         end
@@ -459,9 +463,11 @@ CreateButton("Refresh All Quests", QuestL, function()
 end)
 
 local SamBox = CreateSection("Sam NPC (Devil Fruit)", QuestR)
-Setters.AutoSam = CreateToggle("Auto Talk to Sam (Silent)", false, SamBox, function(v) _G.Yui.AutoSam = v end)
+Setters.AutoSam = CreateToggle("Auto Buy Compass (Sam)", false, SamBox, function(v) _G.Yui.AutoSam = v end)
 local UpdateSamAmount, SetSamAmount = CreateDropdown("Amount", "x1", SamBox, function(v) _G.Yui.AutoSamAmount = v end)
 UpdateSamAmount({"x1", "x10"})
+Setters.SamLoopCount = CreateSlider("Buy Loop Count", 1, 100, 1, SamBox, function(v) _G.Yui.SamLoopCount = v end)
+Setters.AutoFindBox = CreateToggle("Auto Find Box (Compass)", false, SamBox, function(v) _G.Yui.AutoFindBox = v end)
 Setters.AutoUpgradeCap = CreateToggle("Auto Upgrade Capacity", false, SamBox, function(v) _G.Yui.AutoUpgradeCap = v end)
 
 -- ESP & TELEPORT ITEMS
@@ -505,7 +511,7 @@ CreateButton("Refresh Item Lists", ItemTeleBox, function()
     table.sort(teleList) UpdateItemTeleDrop(teleList)
 end)
 
--- BẢNG NOTE CATEGORY RICHTEXT
+-- NOTE Ở DƯỚI CÙNG (GIỮ NGUYÊN)
 local TrackerContainer = Instance.new("Frame", ScannerBox)
 TrackerContainer.Size = UDim2.new(1, 0, 0, 20)
 TrackerContainer.BackgroundTransparency = 1
@@ -513,7 +519,7 @@ TrackerContainer.AutomaticSize = Enum.AutomaticSize.Y
 
 local ItemTrackerLabel = Instance.new("TextLabel", TrackerContainer)
 ItemTrackerLabel.Size = UDim2.new(1, -10, 1, 0) ItemTrackerLabel.Position = UDim2.new(0, 5, 0, 0) ItemTrackerLabel.BackgroundTransparency = 1 ItemTrackerLabel.TextColor3 = Theme.TextSub ItemTrackerLabel.TextXAlignment = Enum.TextXAlignment.Left ItemTrackerLabel.TextYAlignment = Enum.TextYAlignment.Top ItemTrackerLabel.Font = Enum.Font.Gotham ItemTrackerLabel.TextSize = 10 ItemTrackerLabel.TextWrapped = true ItemTrackerLabel.AutomaticSize = Enum.AutomaticSize.Y
-ItemTrackerLabel.RichText = true -- Bật RichText để chỉnh màu từng cụm
+ItemTrackerLabel.RichText = true 
 ItemTrackerLabel.Text = "Scanning map for items..."
 
 local FBox = CreateSection("Devil Fruits", FruitR)
@@ -573,11 +579,13 @@ Setters.CollectSpeed = CreateSlider("Sweep Delay (s)", 0.01, 1, 0.05, SkyBaseBox
 local CrateBox = CreateSection("Chest & Barrel Sweep", ResL)
 Setters.CollectChest = CreateToggle("Auto Chests (Liên Tục)", false, CrateBox, function(v) _G.Yui.CollectChest = v end)
 Setters.CollectBarrel = CreateToggle("Auto Barrels/Crates (Liên Tục)", false, CrateBox, function(v) _G.Yui.CollectBarrel = v end)
+Setters.CollectCompass = CreateToggle("Auto Collect Compass", false, CrateBox, function(v) _G.Yui.CollectCompass = v end) -- Gom Compass rớt
 
 local JuiceBox = CreateSection("Juice & Drinks", ResR)
 Setters.AutoJuice = CreateToggle("Auto Make Juice", false, JuiceBox, function(v) _G.Yui.AutoJuice = v end)
 Setters.JuiceDelay = CreateSlider("Make Delay (s)", 1, 30, 5, JuiceBox, function(v) _G.Yui.JuiceDelay = v end)
 Setters.AutoDrink = CreateToggle("Auto Drink All (Uống Cùng Lúc)", false, JuiceBox, function(v) _G.Yui.AutoDrink = v end)
+Setters.DrinkDelay = CreateSlider("Drink Delay (s)", 1, 10, 1, JuiceBox, function(v) _G.Yui.DrinkDelay = v end)
 
 local AppleBox = CreateSection("Auto Golden Apple", ResR)
 Setters.AutoEatApple = CreateToggle("Auto Eat All Apples", false, AppleBox, function(v) _G.Yui.AutoEatApple = v end)
@@ -642,8 +650,9 @@ end)
 local FishBox = CreateSection("Fishing System", FishL)
 Setters.AutoGetRod = CreateToggle("Auto Get Rod", false, FishBox, function(v) _G.Yui.AutoGetRod = v end)
 Setters.AutoFish = CreateToggle("Auto Fish", false, FishBox, function(v) _G.Yui.AutoFish = v end)
+Setters.AutoShake = CreateToggle("Auto Shake (Tự Giật Cá)", false, FishBox, function(v) _G.Yui.AutoShake = v end)
 
-local TeleBox = CreateSection("Teleports (Mới)", FishR)
+local TeleBox = CreateSection("Teleports", FishR)
 local UpdateIsland1, SetIsland1 = CreateDropdown("Select Island", "None", TeleBox, function(v) if _G.Yui.iMap1 and _G.Yui.iMap1[v] then MoveTo(_G.Yui.iMap1[v]) end end)
 local UpdateNPC1, SetNPC1 = CreateDropdown("Select Normal NPC", "None", TeleBox, function(v) if _G.Yui.nMap1 and _G.Yui.nMap1[v] then MoveTo(_G.Yui.nMap1[v] * CFrame.new(0,0,3)) end end)
 local UpdateSpecialNPC, SetSpecialNPC = CreateDropdown("Special NPCs (Shop, Secret...)", "None", TeleBox, function(v) if _G.Yui.SpecialNPCMap and _G.Yui.SpecialNPCMap[v] then MoveTo(_G.Yui.SpecialNPCMap[v] * CFrame.new(0,0,3)) end end)
@@ -731,7 +740,7 @@ CreateButton("Delete Map (Only Terrain)", OptBox, function()
     end
 end)
 
--- SETTINGS (ĐÃ XÓA SAVE/LOAD - THÊM DUAL COLOR BAR)
+-- SETTINGS
 local SysBox = CreateSection("System Core", SetL)
 Setters.AntiAFK = CreateToggle("Anti AFK (No Kick)", _G.Yui.AntiAFK, SysBox, function(v) _G.Yui.AntiAFK = v end)
 CreateButton("Reset All Toggles", SysBox, function() for _, func in pairs(Setters) do pcall(function() func(false) end) end end)
@@ -884,6 +893,38 @@ local function SmartClickDialog(opts)
     return false
 end
 
+-- THREAD TÌM BOX BẰNG COMPASS (Cây)
+task.spawn(function()
+    while task.wait(0.5) do
+        if _G.Yui.AutoFindBox then
+            local char = LocalPlayer.Character
+            if not char then continue end
+            local compass = LocalPlayer.Backpack:FindFirstChild("Compass") or char:FindFirstChild("Compass")
+            if compass then
+                char.Humanoid:EquipTool(compass)
+                for _, tree in pairs(Workspace:GetDescendants()) do
+                    if not _G.Yui.AutoFindBox then break end
+                    if not (char:FindFirstChild("Compass") or LocalPlayer.Backpack:FindFirstChild("Compass")) then break end
+                    
+                    if tree:IsA("Model") and (string.find(string.lower(tree.Name), "tree") or string.find(string.lower(tree.Name), "wood") or string.find(string.lower(tree.Name), "pine")) then
+                        local tpPart = tree:FindFirstChildWhichIsA("BasePart")
+                        if tpPart then
+                            MoveTo(tpPart.CFrame * CFrame.new(0, 3, 0))
+                            task.wait(0.3)
+                            for i = 1, 8 do
+                                VirtualUser:CaptureController()
+                                local cam = workspace.CurrentCamera
+                                VirtualUser:ClickButton1(Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2))
+                                task.wait(0.1)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
 task.spawn(function()
     while task.wait(0.5) do
         local pGui = LocalPlayer:FindFirstChild("PlayerGui")
@@ -966,8 +1007,9 @@ task.spawn(function()
         local questGui = pGui:FindFirstChild("QuestGui")
         local dialogue = questGui and questGui:FindFirstChild("Dialogue")
         
+        -- AUTO SAM ĐƯỢC CHẠY THEO VÒNG LẶP DO NGƯỜI DÙNG CHỌN
         if not (dialogue and dialogue.Visible) and _G.Yui.AutoSam then
-            FireNPC("Sam")
+            local sam = FireNPC("Sam", true)
         end
 
         if dialogue and dialogue.Visible then
@@ -982,7 +1024,9 @@ task.spawn(function()
                             local txt = string.lower(GetButtonText(btn))
                             if string.find(txt, "compasses") and not string.find(txt, "buy") then SilentClick(btn) task.wait(0.1)
                             elseif string.find(txt, "compasses") then SilentClick(btn) task.wait(0.1)
-                            elseif string.find(txt, string.lower(_G.Yui.AutoSamAmount)) then SilentClick(btn) task.wait(0.1) end
+                            elseif string.find(txt, string.lower(_G.Yui.AutoSamAmount)) then SilentClick(btn) task.wait(0.1)
+                            elseif string.find(txt, "option") then SilentClick(btn) task.wait(0.1)
+                            elseif string.find(txt, "leave") then SilentClick(btn) task.wait(0.1) end
                         end
                     end
                 elseif _G.Yui.AutoAcceptQuest then
@@ -1157,6 +1201,32 @@ task.spawn(function()
             end
             if didAction and anchor and _G.Yui.CollectMethod == "Teleport (Return)" then MoveTo(anchor) end
         end
+        
+        if _G.Yui.CollectCompass and not didAction then
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                if obj:IsA("Tool") and string.find(string.lower(obj.Name), "compass") then 
+                    local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildWhichIsA("BasePart")
+                    if handle then
+                        MoveTo(handle.CFrame)
+                        for _, cd in pairs(obj:GetDescendants()) do if cd:IsA("ClickDetector") then fireclickdetector(cd, 1) end end
+                        task.wait(_G.Yui.CollectSpeed) didAction = true
+                    end
+                end 
+            end
+            if didAction and anchor and _G.Yui.CollectMethod == "Teleport (Return)" then MoveTo(anchor) end
+        end
+
+        if _G.Yui.AutoSpawnBox and not didAction then
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                local pN = string.lower(obj.Parent and obj.Parent.Name or "")
+                if (string.find(pN, "spawnbox") or string.find(pN, "spawns")) and obj:IsA("BasePart") then
+                    MoveTo(obj.CFrame * CFrame.new(0, 2, 0))
+                    local cd = obj:FindFirstChildOfClass("ClickDetector") if cd then fireclickdetector(cd, 1) end
+                    task.wait(_G.Yui.CollectSpeed) didAction = true
+                end
+            end
+            if didAction and anchor and _G.Yui.CollectMethod == "Teleport (Return)" then MoveTo(anchor) end
+        end
 
         if _G.Yui.AutoJuice and not didAction then
             local bowls = {}
@@ -1254,10 +1324,17 @@ task.spawn(function()
                 if obj:IsA("Model") and obj.Parent and not string.find(string.lower(obj.Parent.Name), "quest") and obj:FindFirstChildOfClass("Humanoid") and obj:FindFirstChildOfClass("Humanoid").Health > 0 then
                     local rawNameL = string.lower(obj.Name)
                     if string.find(rawNameL, "lv") or string.find(rawNameL, "level") then
-                        local cleanName = string.gsub(obj.Name, "%[.-%]", "") cleanName = string.gsub(cleanName, "%d+$", "") cleanName = string.match(cleanName, "^%s*(.-)%s*$") or cleanName
-                        if (_G.Yui.SelectedMobs[cleanName] or (targetMobName~="" and string.find(obj.Name, targetMobName, 1, true))) and obj:FindFirstChild("HumanoidRootPart") then
-                            local dist = (root.Position - obj.HumanoidRootPart.Position).Magnitude
-                            if dist < shortest then shortest = dist target = obj end
+                        local lvl = tonumber(string.match(rawNameL, "%d+")) or 0
+                        local validLvl = true
+                        if _G.Yui.MobLevelFilter == "< 1000" and lvl >= 1000 then validLvl = false end
+                        if _G.Yui.MobLevelFilter == "> 1000" and lvl < 1000 then validLvl = false end
+                        
+                        if validLvl then
+                            local cleanName = string.gsub(obj.Name, "%[.-%]", "") cleanName = string.gsub(cleanName, "%d+$", "") cleanName = string.match(cleanName, "^%s*(.-)%s*$") or cleanName
+                            if (_G.Yui.FarmNear or _G.Yui.SelectedMobs[cleanName] or (targetMobName~="" and string.find(obj.Name, targetMobName, 1, true))) and obj:FindFirstChild("HumanoidRootPart") then
+                                local dist = (root.Position - obj.HumanoidRootPart.Position).Magnitude
+                                if dist < shortest then shortest = dist target = obj end
+                            end
                         end
                     end
                 end
@@ -1384,6 +1461,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
+-- AUTO FISH (ĐÃ FIX CHECK VÀ THÊM LẮC CÁ)
 task.spawn(function()
     while task.wait(0.5) do
         local char = LocalPlayer.Character if not char or not char:FindFirstChild("HumanoidRootPart") then continue end
@@ -1425,9 +1503,19 @@ task.spawn(function()
                 if backpack then for _, tool in ipairs(backpack:GetChildren()) do local tName = string.lower(tool.Name) if tool:IsA("Tool") and (string.find(tName, "rod") or string.find(tName, "fish") or string.find(tName, "pole")) then char.Humanoid:EquipTool(tool) rod = tool task.wait(1) break end end end
             end
             if rod then
-                local ropeName = "FishingRope_" .. tostring(LocalPlayer.UserId)
-                local isCast = Workspace:FindFirstChild(ropeName, true) ~= nil
-                if not isCast then VirtualUser:CaptureController() VirtualUser:ClickButton1(Vector2.new(0, 0)) task.wait(1.5) end
+                local bobber = Workspace:FindFirstChild("Bobber") or Workspace:FindFirstChild("FishingRope_" .. tostring(LocalPlayer.UserId), true)
+                if not bobber then 
+                    VirtualUser:CaptureController() VirtualUser:ClickButton1(Vector2.new(0, 0)) task.wait(1.5) 
+                end
+                
+                if _G.Yui.AutoShake then
+                    local pGui = LocalPlayer.PlayerGui
+                    for _, v in pairs(pGui:GetDescendants()) do
+                        if (v:IsA("TextButton") or v:IsA("ImageButton")) and (string.find(string.lower(v.Name), "shake") or (v:IsA("TextButton") and string.find(string.lower(v.Text), "shake"))) then
+                            if v.Visible then SilentClick(v) end
+                        end
+                    end
+                end
             end
         end
     end
