@@ -1,5 +1,5 @@
 -- =========================================================================
--- [ULTIMATE MASTER] YUIHUB V26 - FIX FLY, MULTI-WEAPON, ITEM TELEPORT & ESP
+-- [ULTIMATE MASTER] YUIHUB V26 - FIX MOB FILTER, ITEM REFRESH, SPECIAL NPCs
 -- =========================================================================
 
 local Players = game:GetService("Players")
@@ -94,7 +94,6 @@ local HakiStates = {E = false, R = false}
 
 LocalPlayer.CharacterAdded:Connect(function(char) 
     HakiStates.E = false HakiStates.R = false 
-    -- Khôi phục Fly nếu lỡ chết
     task.delay(1, function()
         if _G.Yui.Fly and char:FindFirstChild("HumanoidRootPart") then
             local root = char.HumanoidRootPart
@@ -268,9 +267,39 @@ local function CreateSlider(labelText, min, max, default, parentBox, callback, a
     return function(val) val = math.clamp(val, min, max) Fill.Size = UDim2.new((val - min) / (max - min), 0, 1, 0) ValLabel.Text = tostring(val) callback(val) end
 end
 
+local function CreateColorPicker(labelText, defaultHue, parentBox, callback)
+    local Frame = Instance.new("Frame", parentBox) Frame.Size = UDim2.new(1, 0, 0, 35) Frame.BackgroundTransparency = 1
+    local Label = Instance.new("TextLabel", Frame) Label.Size = UDim2.new(1, 0, 0, 15) Label.BackgroundTransparency = 1 Label.Text = labelText Label.TextColor3 = Theme.TextTitle Label.Font = Enum.Font.GothamBold Label.TextSize = 10 Label.TextXAlignment = Enum.TextXAlignment.Left
+    local Track = Instance.new("Frame", Frame) Track.Size = UDim2.new(1, 0, 0, 6) Track.Position = UDim2.new(0, 0, 0, 22) Track.BackgroundColor3 = Color3.fromRGB(255, 255, 255) Instance.new("UICorner", Track).CornerRadius = UDim.new(1, 0) Instance.new("UIStroke", Track).Color = Theme.Stroke
+    local UIGradient = Instance.new("UIGradient", Track)
+    UIGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)), ColorSequenceKeypoint.new(0.167, Color3.fromRGB(255, 255, 0)),
+        ColorSequenceKeypoint.new(0.333, Color3.fromRGB(0, 255, 0)), ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
+        ColorSequenceKeypoint.new(0.667, Color3.fromRGB(0, 0, 255)), ColorSequenceKeypoint.new(0.833, Color3.fromRGB(255, 0, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+    })
+    local Knob = Instance.new("TextButton", Track) Knob.Size = UDim2.new(0, 12, 0, 12) Knob.Position = UDim2.new(defaultHue/360, -6, 0.5, -6) Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255) Knob.Text = "" Instance.new("UICorner", Knob).CornerRadius = UDim.new(1, 0) Instance.new("UIStroke", Knob).Color = Color3.fromRGB(0,0,0)
+
+    local drag = false
+    local function update(input)
+        local rel = math.clamp((input.Position.X - Track.AbsolutePosition.X) / Track.AbsoluteSize.X, 0, 1)
+        Knob.Position = UDim2.new(rel, -6, 0.5, -6) callback(math.floor(rel * 360))
+    end
+    Knob.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then drag = true end end)
+    Track.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then drag = true update(inp) end end)
+    UserInputService.InputEnded:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then drag = false end end)
+    UserInputService.InputChanged:Connect(function(inp) if drag and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then update(inp) end end)
+end
+
 local function CreateButton(text, parentBox, callback)
     local Btn = Instance.new("TextButton", parentBox) Btn.Size = UDim2.new(1, 0, 0, 24) Btn.BackgroundColor3 = Theme.MainBg Btn.TextColor3 = Theme.TextTitle Btn.Font = Enum.Font.GothamBold Btn.TextSize = 10 Btn.Text = text Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 4) Instance.new("UIStroke", Btn).Color = Theme.Stroke
     BindTap(Btn, callback) return Btn
+end
+
+local function CreateTextBox(placeholder, parentBox, defaultText, callback)
+    local Frame = Instance.new("Frame", parentBox) Frame.Size = UDim2.new(1, 0, 0, 24) Frame.BackgroundTransparency = 1
+    local Box = Instance.new("TextBox", Frame) Box.Size = UDim2.new(1, 0, 1, 0) Box.BackgroundColor3 = Theme.MainBg Box.TextColor3 = Theme.TextTitle Box.Font = Enum.Font.Gotham Box.TextSize = 10 Box.PlaceholderText = placeholder Box.Text = defaultText or "" Instance.new("UICorner", Box).CornerRadius = UDim.new(0, 4) Instance.new("UIStroke", Box).Color = Theme.Stroke
+    Box.FocusLost:Connect(function() callback(Box.Text) end) return function(str) Box.Text = str end
 end
 
 local function CreateDropdown(labelStr, defaultStr, parentBox, callback)
@@ -385,16 +414,19 @@ Setters.HoverOnKill = CreateToggle("Hover In Air On Kill", _G.Yui.HoverOnKill, F
 local FarmMobBox = CreateSection("Farming Mobs", MainR)
 Setters.AutoSpawn = CreateToggle("Auto Spawn (Fix Anti-Death)", false, FarmMobBox, function(v) _G.Yui.AutoSpawn = v end)
 local UpdateMultiMob = CreateMultiDropdown("Select Mobs", FarmMobBox, _G.Yui.SelectedMobs)
-CreateButton("Refresh All Mobs & Bosses", FarmMobBox, function()
+CreateButton("Refresh Mobs (Only Level/Lv)", FarmMobBox, function()
     local temp, list = {}, {}
     for _, obj in pairs(Workspace:GetDescendants()) do
         if obj:IsA("Model") and obj ~= LocalPlayer.Character and not Players:GetPlayerFromCharacter(obj) then
             local hum = obj:FindFirstChildOfClass("Humanoid")
             if hum and hum.Health > 0 and obj:FindFirstChild("HumanoidRootPart") then
-                local rawName = obj.Name
-                local cleanName = string.gsub(rawName, "%[.-%]", "") cleanName = string.gsub(cleanName, "%d+$", "") cleanName = string.match(cleanName, "^%s*(.-)%s*$") or cleanName
-                if cleanName ~= "" and obj.Parent and not string.find(string.lower(obj.Parent.Name), "quest") then
-                    if not temp[cleanName] then temp[cleanName] = true table.insert(list, cleanName) end
+                -- FIX: Chỉ quét quái có Lv hoặc Level
+                local rawNameL = string.lower(obj.Name)
+                if string.find(rawNameL, "lv") or string.find(rawNameL, "level") then
+                    local cleanName = string.gsub(obj.Name, "%[.-%]", "") cleanName = string.gsub(cleanName, "%d+$", "") cleanName = string.match(cleanName, "^%s*(.-)%s*$") or cleanName
+                    if cleanName ~= "" and obj.Parent and not string.find(string.lower(obj.Parent.Name), "quest") then
+                        if not temp[cleanName] then temp[cleanName] = true table.insert(list, cleanName) end
+                    end
                 end
             end
         end
@@ -464,9 +496,19 @@ local ScannerBox = CreateSection("Map Items Scanner & ESP", FruitL)
 Setters.ESPItems = CreateToggle("ESP Selected Items", false, ScannerBox, function(v) _G.Yui.ESPItems = v end)
 local UpdateESPItemsDrop = CreateMultiDropdown("Select ESP Items", ScannerBox, _G.Yui.SelectedESPItems)
 
-local ItemTrackerLabel = Instance.new("TextLabel", ScannerBox)
-ItemTrackerLabel.Size = UDim2.new(1, -10, 0, 30) ItemTrackerLabel.Position = UDim2.new(0, 5, 0, 0) ItemTrackerLabel.BackgroundTransparency = 1 ItemTrackerLabel.TextColor3 = Theme.TextSub ItemTrackerLabel.TextXAlignment = Enum.TextXAlignment.Left ItemTrackerLabel.TextYAlignment = Enum.TextYAlignment.Top ItemTrackerLabel.Font = Enum.Font.Gotham ItemTrackerLabel.TextSize = 10 ItemTrackerLabel.TextWrapped = true ItemTrackerLabel.AutomaticSize = Enum.AutomaticSize.Y
-ItemTrackerLabel.Text = "Scanning map for items..."
+-- NÚT REFRESH ESP (THÊM MỚI THEO YÊU CẦU)
+CreateButton("Refresh ESP Items List", ScannerBox, function()
+    local list = {}
+    local seen = {}
+    for _, itemData in ipairs(ScannedItems) do
+        if not seen[itemData.Name] then
+            seen[itemData.Name] = true
+            table.insert(list, itemData.Name)
+        end
+    end
+    table.sort(list)
+    UpdateESPItemsDrop(list)
+end)
 
 local ItemTeleBox = CreateSection("Item Teleport", FruitL)
 local UpdateItemTeleDrop, SetItemTeleDrop = CreateDropdown("Select Item to Teleport", "None", ItemTeleBox, function(v) _G.Yui.TargetItemTeleport = v end)
@@ -480,16 +522,25 @@ CreateButton("Teleport to Selected Item", ItemTeleBox, function()
     end
 end)
 CreateButton("Refresh Item Lists", ItemTeleBox, function()
-    local espList, teleList, seenESP, seenTele = {}, {}, {}, {}
+    local teleList, seenTele = {}, {}
     for _, itemData in ipairs(ScannedItems) do
-        if not seenESP[itemData.Name] then seenESP[itemData.Name] = true table.insert(espList, itemData.Name) end
         local lName = string.lower(itemData.Name)
         if not (string.find(lName, "chest") or string.find(lName, "barrel") or string.find(lName, "crate")) then
             if not seenTele[itemData.Name] then seenTele[itemData.Name] = true table.insert(teleList, itemData.Name) end
         end
     end
-    table.sort(espList) table.sort(teleList) UpdateESPItemsDrop(espList) UpdateItemTeleDrop(teleList)
+    table.sort(teleList) UpdateItemTeleDrop(teleList)
 end)
+
+-- NOTE Ở DƯỚI CÙNG (GIỮ NGUYÊN)
+local TrackerContainer = Instance.new("Frame", ScannerBox)
+TrackerContainer.Size = UDim2.new(1, 0, 0, 20)
+TrackerContainer.BackgroundTransparency = 1
+TrackerContainer.AutomaticSize = Enum.AutomaticSize.Y
+
+local ItemTrackerLabel = Instance.new("TextLabel", TrackerContainer)
+ItemTrackerLabel.Size = UDim2.new(1, -10, 1, 0) ItemTrackerLabel.Position = UDim2.new(0, 5, 0, 0) ItemTrackerLabel.BackgroundTransparency = 1 ItemTrackerLabel.TextColor3 = Theme.TextSub ItemTrackerLabel.TextXAlignment = Enum.TextXAlignment.Left ItemTrackerLabel.TextYAlignment = Enum.TextYAlignment.Top ItemTrackerLabel.Font = Enum.Font.Gotham ItemTrackerLabel.TextSize = 10 ItemTrackerLabel.TextWrapped = true ItemTrackerLabel.AutomaticSize = Enum.AutomaticSize.Y
+ItemTrackerLabel.Text = "Scanning map for items..."
 
 local FBox = CreateSection("Devil Fruits", FruitR)
 Setters.AutoFruit = CreateToggle("Auto Collect Fruit", false, FBox, function(v) _G.Yui.AutoFruit = v end)
@@ -560,7 +611,6 @@ Setters.AppleDelay = CreateSlider("Eat Delay (s)", 1, 10, 3, AppleBox, function(
 
 -- PLAYER
 local MoveBox = CreateSection("Movement", PlayerL)
--- ĐÃ FIX: Toggle Fly hoàn chỉnh
 local FlyBV, FlyBG = nil, nil
 Setters.Fly = CreateToggle("Enable Fly", false, MoveBox, function(v)
     _G.Yui.Fly = v
@@ -619,20 +669,23 @@ local FishBox = CreateSection("Fishing System", FishL)
 Setters.AutoGetRod = CreateToggle("Auto Get Rod", false, FishBox, function(v) _G.Yui.AutoGetRod = v end)
 Setters.AutoFish = CreateToggle("Auto Fish", false, FishBox, function(v) _G.Yui.AutoFish = v end)
 
-local TeleBox = CreateSection("Teleports", FishR)
--- ĐÃ FIX: Xóa phần tử trùng lặp
+local TeleBox = CreateSection("Teleports (Mới)", FishR)
+-- ĐÃ FIX BẢNG TELEPORT: Gọn gàng và thêm phần NPC Đặc Biệt
 local UpdateIsland1, SetIsland1 = CreateDropdown("Select Island", "None", TeleBox, function(v) if _G.Yui.iMap1 and _G.Yui.iMap1[v] then MoveTo(_G.Yui.iMap1[v]) end end)
-local UpdateNPC1, SetNPC1 = CreateDropdown("Select NPC", "None", TeleBox, function(v) if _G.Yui.nMap1 and _G.Yui.nMap1[v] then MoveTo(_G.Yui.nMap1[v] * CFrame.new(0,0,3)) end end)
+local UpdateNPC1, SetNPC1 = CreateDropdown("Select Normal NPC", "None", TeleBox, function(v) if _G.Yui.nMap1 and _G.Yui.nMap1[v] then MoveTo(_G.Yui.nMap1[v] * CFrame.new(0,0,3)) end end)
+local UpdateSpecialNPC, SetSpecialNPC = CreateDropdown("Special NPCs (Shop, Secret...)", "None", TeleBox, function(v) if _G.Yui.SpecialNPCMap and _G.Yui.SpecialNPCMap[v] then MoveTo(_G.Yui.SpecialNPCMap[v] * CFrame.new(0,0,3)) end end)
 
-CreateButton("Scan Map & NPCs", TeleBox, function()
-    local tIsland, tNPC, iMap, nMap = {}, {}, {}, {}
+CreateButton("Scan Map & All NPCs", TeleBox, function()
+    local tIsland, tNPC, sNPCs, iMap, nMap, sMap = {}, {}, {}, {}, {}, {}
     for _, obj in pairs(Workspace:GetDescendants()) do
+        -- Normal NPCs
         if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") and not Players:GetPlayerFromCharacter(obj) then
             local nName = string.lower(obj.Name)
             if not string.find(nName, "lv") and not string.find(nName, "level") then
                 if not nMap[obj.Name] then nMap[obj.Name] = obj.HumanoidRootPart.CFrame table.insert(tNPC, obj.Name) end
             end
         end
+        -- Islands
         if obj:IsA("Model") or obj:IsA("Folder") then
             local pName = string.lower(obj.Name)
             if string.find(pName, "island") or string.find(pName, "town") or string.find(pName, "location") then
@@ -640,10 +693,16 @@ CreateButton("Scan Map & NPCs", TeleBox, function()
                 if spawnPart and not iMap[obj.Name] then iMap[obj.Name] = spawnPart.CFrame * CFrame.new(0, 10, 0) table.insert(tIsland, obj.Name) end
             end
         end
+        -- Special NPCs (Shop, Secret, Information) dựa trên cấu trúc Ignore -> NPCs
+        local p = obj.Parent
+        if p and (string.lower(p.Name) == "shop" or string.lower(p.Name) == "secret" or string.lower(p.Name) == "information") and obj:IsA("Model") and obj:FindFirstChild("HumanoidRootPart") then
+            local formatName = obj.Name .. " [" .. p.Name .. "]"
+            if not sMap[formatName] then sMap[formatName] = obj.HumanoidRootPart.CFrame table.insert(sNPCs, formatName) end
+        end
     end
-    table.sort(tIsland) table.sort(tNPC)
-    _G.Yui.iMap1 = iMap _G.Yui.nMap1 = nMap
-    UpdateIsland1(tIsland) UpdateNPC1(tNPC)
+    table.sort(tIsland) table.sort(tNPC) table.sort(sNPCs)
+    _G.Yui.iMap1 = iMap _G.Yui.nMap1 = nMap _G.Yui.SpecialNPCMap = sMap
+    UpdateIsland1(tIsland) UpdateNPC1(tNPC) UpdateSpecialNPC(sNPCs)
 end)
 
 local PinBox = CreateSection("Location Pins", FishL)
@@ -805,7 +864,6 @@ RunService.RenderStepped:Connect(function()
         local root = char and char:FindFirstChild("HumanoidRootPart")
 
         for _, itemData in ipairs(ScannedItems) do
-            -- Chỉ hiện ESP những món được chọn trong Dropdown
             if itemData.Obj and itemData.Obj.Parent and itemData.Part and _G.Yui.SelectedESPItems[itemData.Name] then
                 local espId = "ItemESP_" .. tostring(itemData.Obj:GetDebugId())
                 currentESP[espId] = true
@@ -1018,7 +1076,7 @@ RunService.Heartbeat:Connect(function()
     else WOWPad.Position = Vector3.new(0, 99999, 0) WOWPad.CanCollide = false end
 end)
 
--- ĐÃ SỬA: BỘ NÃO FLY BỊ THIẾU Ở BẢN CŨ
+-- FLY THREAD
 RunService.RenderStepped:Connect(function()
     if _G.Yui.Fly then
         local char = LocalPlayer.Character
@@ -1227,14 +1285,19 @@ task.spawn(function()
     end
 end)
 
--- BỘ NÃO ĐÁNH QUÁI (ĐÃ FIX: NHẬN DIỆN MỌI QUÁI TRÊN ĐẢO/HANG, SỬ DỤNG VŨ KHÍ XOAY VÒNG)
+-- BỘ NÃO ĐÁNH QUÁI
 local LastAttack = tick()
 local WepCycleIndex = 1
 local LastWepSwap = tick()
 local LastSkillTick = tick()
 
 task.spawn(function()
-    while task.wait() do
+    while task.wait(0.2) do
+        if not _G.Yui.AutoFarm then CurrentTarget = nil continue end
+        if CurrentTarget and CurrentTarget.Parent and CurrentTarget:FindFirstChild("Humanoid") and CurrentTarget.Humanoid.Health > 0 then
+            continue
+        end
+
         local char = LocalPlayer.Character local root = char and char:FindFirstChild("HumanoidRootPart") if not root then continue end
 
         local targetMobName = ""
@@ -1244,42 +1307,52 @@ task.spawn(function()
             if obj and obj.Text ~= "" then targetMobName = string.gsub(obj.Text, "%s*%d+/%d+$", "") end
         end
 
-        if _G.Yui.AutoFarm and not _G.Yui.AutoHunt then
-            pcall(function()
-                local shortest = math.huge local target = nil
-                for _, obj in pairs(Workspace:GetDescendants()) do
-                    if obj:IsA("Model") and obj.Parent and not string.find(string.lower(obj.Parent.Name), "quest") and obj:FindFirstChildOfClass("Humanoid") and obj:FindFirstChildOfClass("Humanoid").Health > 0 then
-                        local rawName = obj.Name
-                        local cleanName = string.gsub(rawName, "%[.-%]", "") cleanName = string.gsub(cleanName, "%d+$", "") cleanName = string.match(cleanName, "^%s*(.-)%s*$") or cleanName
-                        if (_G.Yui.SelectedMobs[cleanName] or _G.Yui.SelectedMobs[rawName] or (targetMobName~="" and string.find(rawName, targetMobName, 1, true))) and obj:FindFirstChild("HumanoidRootPart") then
+        pcall(function()
+            local shortest = math.huge local target = nil
+            for _, obj in pairs(Workspace:GetDescendants()) do
+                if obj:IsA("Model") and obj.Parent and not string.find(string.lower(obj.Parent.Name), "quest") and obj:FindFirstChildOfClass("Humanoid") and obj:FindFirstChildOfClass("Humanoid").Health > 0 then
+                    -- KHÔI PHỤC LỌC LV
+                    local rawNameL = string.lower(obj.Name)
+                    if string.find(rawNameL, "lv") or string.find(rawNameL, "level") then
+                        local cleanName = string.gsub(obj.Name, "%[.-%]", "") cleanName = string.gsub(cleanName, "%d+$", "") cleanName = string.match(cleanName, "^%s*(.-)%s*$") or cleanName
+                        if (_G.Yui.SelectedMobs[cleanName] or (targetMobName~="" and string.find(obj.Name, targetMobName, 1, true))) and obj:FindFirstChild("HumanoidRootPart") then
                             local dist = (root.Position - obj.HumanoidRootPart.Position).Magnitude
                             if dist < shortest then shortest = dist target = obj end
                         end
                     end
                 end
-                
-                CurrentTarget = target
-                if target and target:FindFirstChild("HumanoidRootPart") then
-                    local offset = CFrame.new(0, _G.Yui.AttackDist, 0) * CFrame.Angles(math.rad(-90), 0, 0)
-                    if _G.Yui.AttackPos == "Below" then offset = CFrame.new(0, -_G.Yui.AttackDist, 0) * CFrame.Angles(math.rad(90), 0, 0)
-                    elseif _G.Yui.AttackPos == "Behind" then offset = CFrame.new(0, 0, _G.Yui.AttackDist)
-                    elseif _G.Yui.AttackPos == "Front" then offset = CFrame.new(0, 0, -_G.Yui.AttackDist) * CFrame.Angles(0, math.rad(180), 0) end
-                    
-                    MoveTo(target.HumanoidRootPart.CFrame * offset)
-                    for _, part in ipairs(char:GetDescendants()) do if part:IsA("BasePart") then part.CanCollide = false end end
-                end
-            end)
-        else
-            CurrentTarget = nil
-        end
+            end
+            CurrentTarget = target
+        end)
+    end
+end)
 
+RunService.Heartbeat:Connect(function()
+    if _G.Yui.AutoFarm and CurrentTarget and CurrentTarget:FindFirstChild("HumanoidRootPart") then
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if root then
+            local offset = CFrame.new(0, _G.Yui.AttackDist, 0) * CFrame.Angles(math.rad(-90), 0, 0)
+            if _G.Yui.AttackPos == "Below" then offset = CFrame.new(0, -_G.Yui.AttackDist, 0) * CFrame.Angles(math.rad(90), 0, 0)
+            elseif _G.Yui.AttackPos == "Behind" then offset = CFrame.new(0, 0, _G.Yui.AttackDist)
+            elseif _G.Yui.AttackPos == "Front" then offset = CFrame.new(0, 0, -_G.Yui.AttackDist) * CFrame.Angles(0, math.rad(180), 0) end
+            
+            MoveTo(CurrentTarget.HumanoidRootPart.CFrame * offset)
+            for _, part in ipairs(char:GetDescendants()) do if part:IsA("BasePart") then part.CanCollide = false end end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait() do
         local wantsAttack = _G.Yui.AutoClickAlways or (_G.Yui.AutoClickFarming and CurrentTarget) or _G.Yui.FastAttack
         
-        -- ĐÃ SỬA: Đổi vũ khí xoay vòng
         local activeWeps = {}
         for wName, active in pairs(_G.Yui.SelectedWeapons) do if active then table.insert(activeWeps, wName) end end
         
         local currentToolName = nil
+        local char = LocalPlayer.Character
+        
         if #activeWeps > 0 then
             if #activeWeps > 1 then
                 if tick() - LastWepSwap >= 1.5 then 
@@ -1292,7 +1365,7 @@ task.spawn(function()
             currentToolName = activeWeps[WepCycleIndex]
         end
 
-        if wantsAttack and currentToolName then
+        if wantsAttack and currentToolName and char then
             pcall(function()
                 local toolToEquip = LocalPlayer.Backpack:FindFirstChild(currentToolName) or char:FindFirstChild(currentToolName)
                 if toolToEquip and toolToEquip.Parent ~= char then char.Humanoid:EquipTool(toolToEquip) end
@@ -1317,7 +1390,6 @@ task.spawn(function()
         end
         
         if CurrentTarget and CurrentTarget:FindFirstChild("HumanoidRootPart") then
-            -- ĐÃ SỬA: Thêm Delay xả Skill
             if tick() - LastSkillTick >= _G.Yui.SkillDelay then
                 for key, isEnabled in pairs(_G.Yui.AutoSkill) do 
                     if isEnabled then pcall(function() VirtualInputManager:SendKeyEvent(true, Enum.KeyCode[key], false, game) end) end 
@@ -1332,7 +1404,7 @@ task.spawn(function()
     end
 end)
 
--- BỘ NÃO UỐNG NƯỚC (MASS DRINK - LỖ ĐEN)
+-- BỘ NÃO UỐNG NƯỚC MASS DRINK
 local LastDrinkTick = tick()
 task.spawn(function()
     while task.wait(0.1) do
