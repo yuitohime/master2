@@ -1,5 +1,5 @@
 -- =========================================================================
--- [ULTIMATE MASTER] YUIHUB V26 - STRICT ORIGINAL + REQUESTED FIXES ONLY
+-- [ULTIMATE MASTER] YUIHUB V26 - STRICT ORIGINAL + ITEM SCANNER & ESP
 -- =========================================================================
 
 local Players = game:GetService("Players")
@@ -30,25 +30,26 @@ LocalPlayer.Idled:Connect(function()
     end
 end)
 
--- Global Settings (GIỮ NGUYÊN GỐC + THÊM BIẾN MỚI)
+-- Global Settings (GIỮ NGUYÊN GỐC + THÊM BIẾN ESPItems)
 _G.Yui = {
     AntiAFK = true, MoveMethod = "Teleport", CollectMethod = "Teleport (Continuous)", MoveSpeed = 300, HoverOnKill = true,
     AutoFarm = false, SelectedMobs = {}, SelectedWeapon = "None", FastAttack = false, 
-    AutoClickFarming = false, AutoClickAlways = false, ClickPosition = "Center", -- Thêm biến Attack mới
+    AutoClickFarming = false, AutoClickAlways = false, ClickPosition = "Center",
     AttackDist = 5, AttackPos = "Above", AutoSpawn = false,
-    AutoSkill = {E=false, R=false, T=false, Z=false, X=false, C=false, V=false, B=false, N=false, F=false}, -- Thêm ERT
-    HoldSkill = {E=false, R=false, T=false, Z=false, X=false, C=false, V=false, B=false, N=false, F=false}, HoldTime = 1, -- Thêm ERT
+    AutoSkill = {E=false, R=false, T=false, Z=false, X=false, C=false, V=false, B=false, N=false, F=false}, 
+    HoldSkill = {E=false, R=false, T=false, Z=false, X=false, C=false, V=false, B=false, N=false, F=false}, HoldTime = 1, 
     AutoHaki = {E=false, R=false, T=false},
     SelectedNormalQuest = "", AutoNormalQuest = false,
     SelectedDailyQuest = "", AutoDailyQuest = false, AutoAcceptQuest = false, TeleportToNPC = true,
     AutoSam = false, AutoSamAmount = "x1", AutoUpgradeCap = false,
-    CollectChest = false, CollectBarrel = false, CollectSpeed = 0.05, -- Tốc độ siêu nhanh
+    CollectChest = false, CollectBarrel = false, CollectSpeed = 0.05, 
     AutoFruit = false, AutoSpawnBox = false, CamUnderground = false,
     AutoJuice = false, JuiceDelay = 5, AutoDrink = false, DrinkDelay = 1, AutoEatApple = false, AppleDelay = 3, 
     WalkSpeed = 16, EnableWS = false, JumpPower = 50, EnableJP = false, 
     Fly = false, FlySpeed = 50, Noclip = false, WalkOnWater = false, InfJump = false, AutoSafe = false, SafeHealth = 30,
     AutoGetRod = false, AutoFish = false, AutoPin = false,
     TargetPlayer = "None", AutoHunt = false, HuntDist = 5, ESPPlayer = false, Spectate = false,
+    ESPItems = false, -- Biến mới cho ESP Vật phẩm
     AutoRejoin = false, AutoExecute = false, ExecuteScript = "", 
     AutoLoadConfig = false, AutoLoadName = "", ConfigName = "Default", AutoHop = false, HopDelay = 3, 
     CustomHue = 330
@@ -155,19 +156,18 @@ local Theme = {
 local DynamicUIElements = {}
 
 local function UpdateThemeColor(hueVal)
-    _G.Yui.CustomHue = hueVal
-    Theme.Accent = Color3.fromHSV(hueVal / 360, 1, 1)
+    _G.Yui.CustomHue = hueVal Theme.Accent = Color3.fromHSV(hueVal / 360, 1, 1)
     for _, item in pairs(DynamicUIElements) do
         if item.Obj and item.Obj.Parent then
-            if item.IsToggle then
-                if item.Obj.BackgroundColor3 ~= Theme.MainBg then item.Obj[item.Prop] = Theme.Accent end
-            else item.Obj[item.Prop] = Theme.Accent end
+            if item.IsToggle then if item.Obj.BackgroundColor3 ~= Theme.MainBg then item.Obj[item.Prop] = Theme.Accent end else item.Obj[item.Prop] = Theme.Accent end
         end
     end
 end
 
 local ScreenGui = Instance.new("ScreenGui") ScreenGui.Name = "YuiHub" ScreenGui.Parent = TargetGui ScreenGui.ResetOnSpawn = false
 local ESPFolder = Instance.new("Folder") ESPFolder.Name = "YuiESPFolder" ESPFolder.Parent = CoreGui
+-- FOLDER ESP VẬT PHẨM MỚI
+local ItemESPFolder = Instance.new("Folder") ItemESPFolder.Name = "YuiItemESPFolder" ItemESPFolder.Parent = CoreGui
 
 -- =========================================================================
 -- MAIN GUI CONSTRUCTION
@@ -195,7 +195,7 @@ local MinBtn = Instance.new("TextButton", Header) MinBtn.Size = UDim2.new(0, 30,
 BindTap(MinBtn, function() MainFrame.Visible = false OpenIconBtn.Visible = true for _, dd in ipairs(AllDropdowns) do dd.Visible = false end end)
 
 local CloseBtn = Instance.new("TextButton", Header) CloseBtn.Size = UDim2.new(0, 30, 0, 30) CloseBtn.Position = UDim2.new(1, -35, 0, 15) CloseBtn.BackgroundTransparency = 1 CloseBtn.Text = "✕" CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80) CloseBtn.Font = Enum.Font.GothamBold CloseBtn.TextSize = 14
-BindTap(CloseBtn, function() ScreenGui:Destroy() ESPFolder:Destroy() for _, line in pairs(ESPTracers) do if line then line.Visible = false line:Remove() end end ESPTracers = {} end)
+BindTap(CloseBtn, function() ScreenGui:Destroy() ESPFolder:Destroy() ItemESPFolder:Destroy() for _, line in pairs(ESPTracers) do if line then line.Visible = false line:Remove() end end ESPTracers = {} end)
 
 local Sidebar = Instance.new("ScrollingFrame", MainFrame) Sidebar.Size = UDim2.new(0, 130, 1, -85) Sidebar.Position = UDim2.new(0, 10, 0, 75) Sidebar.BackgroundTransparency = 1 Sidebar.ScrollBarThickness = 0 local SidebarLayout = Instance.new("UIListLayout", Sidebar) SidebarLayout.Padding = UDim.new(0, 5)
 local ContentArea = Instance.new("Frame", MainFrame) ContentArea.Size = UDim2.new(1, -155, 1, -85) ContentArea.Position = UDim2.new(0, 145, 0, 75) ContentArea.BackgroundTransparency = 1
@@ -265,7 +265,6 @@ local function CreateSlider(labelText, min, max, default, parentBox, callback, a
     return function(val) val = math.clamp(val, min, max) Fill.Size = UDim2.new((val - min) / (max - min), 0, 1, 0) ValLabel.Text = tostring(val) callback(val) end
 end
 
--- Rainbow Color Picker
 local function CreateColorPicker(labelText, defaultHue, parentBox, callback)
     local Frame = Instance.new("Frame", parentBox) Frame.Size = UDim2.new(1, 0, 0, 35) Frame.BackgroundTransparency = 1
     local Label = Instance.new("TextLabel", Frame) Label.Size = UDim2.new(1, 0, 0, 15) Label.BackgroundTransparency = 1 Label.Text = labelText Label.TextColor3 = Theme.TextTitle Label.Font = Enum.Font.GothamBold Label.TextSize = 10 Label.TextXAlignment = Enum.TextXAlignment.Left
@@ -413,8 +412,6 @@ Setters.HoverOnKill = CreateToggle("Hover In Air On Kill", _G.Yui.HoverOnKill, F
 local FarmMobBox = CreateSection("Farming Mobs", MainR)
 Setters.AutoSpawn = CreateToggle("Auto Spawn (Fix Anti-Death)", false, FarmMobBox, function(v) _G.Yui.AutoSpawn = v end)
 local UpdateMultiMob = CreateMultiDropdown("Select Mobs", FarmMobBox, _G.Yui.SelectedMobs)
-
--- ĐÃ FIX BỘ QUÉT QUÁI: Quét tất cả (hang động, boss, thức tỉnh)
 CreateButton("Refresh All Mobs & Bosses", FarmMobBox, function()
     local temp, list = {}, {}
     for _, obj in pairs(Workspace:GetDescendants()) do
@@ -443,8 +440,6 @@ CreateButton("Refresh Weapons", AtkBox, function()
     UpdateWepDrop(t)
 end)
 Setters.FastAttack = CreateToggle("Auto Fast Attack (Silent)", false, AtkBox, function(v) _G.Yui.FastAttack = v end)
-
--- ĐÃ FIX AUTO CLICK: Tách 2 chế độ và Tọa độ Click
 local UpdateClickPos, SetClickPos = CreateDropdown("Click Position", "Center", AtkBox, function(v) _G.Yui.ClickPosition = v end)
 UpdateClickPos({"Center", "Edge", "Off-Screen"})
 Setters.AutoClickFarming = CreateToggle("Auto Click (Khi Bật Farm)", false, AtkBox, function(v) _G.Yui.AutoClickFarming = v end)
@@ -490,7 +485,28 @@ local UpdateSamAmount, SetSamAmount = CreateDropdown("Amount", "x1", SamBox, fun
 UpdateSamAmount({"x1", "x10"})
 Setters.AutoUpgradeCap = CreateToggle("Auto Upgrade Capacity", false, SamBox, function(v) _G.Yui.AutoUpgradeCap = v end)
 
--- FRUITS & SPAWNS
+-- FRUITS & SPAWNS (CẬP NHẬT TÍNH NĂNG SCANNER VÀO ĐÂY)
+local ScannerBox = CreateSection("Map Items Scanner & ESP", FruitL)
+Setters.ESPItems = CreateToggle("ESP Items (Map Drops)", false, ScannerBox, function(v) _G.Yui.ESPItems = v end)
+
+local TrackerContainer = Instance.new("Frame", ScannerBox)
+TrackerContainer.Size = UDim2.new(1, 0, 0, 20)
+TrackerContainer.BackgroundTransparency = 1
+TrackerContainer.AutomaticSize = Enum.AutomaticSize.Y
+
+local ItemTrackerLabel = Instance.new("TextLabel", TrackerContainer)
+ItemTrackerLabel.Size = UDim2.new(1, -10, 1, 0)
+ItemTrackerLabel.Position = UDim2.new(0, 5, 0, 0)
+ItemTrackerLabel.BackgroundTransparency = 1
+ItemTrackerLabel.TextColor3 = Theme.TextSub
+ItemTrackerLabel.TextXAlignment = Enum.TextXAlignment.Left
+ItemTrackerLabel.TextYAlignment = Enum.TextYAlignment.Top
+ItemTrackerLabel.Font = Enum.Font.Gotham
+ItemTrackerLabel.TextSize = 10
+ItemTrackerLabel.TextWrapped = true
+ItemTrackerLabel.AutomaticSize = Enum.AutomaticSize.Y
+ItemTrackerLabel.Text = "Scanning map for items..."
+
 local FBox = CreateSection("Devil Fruits", FruitL)
 Setters.AutoFruit = CreateToggle("Auto Collect Fruit", false, FBox, function(v) _G.Yui.AutoFruit = v end)
 CreateButton("Drop All Fruits", FBox, function()
@@ -522,14 +538,12 @@ end)
 
 -- SKILLS & HAKI
 local WepSkillBox = CreateSection("Normal Skills", SkillL)
--- ĐÃ FIX THÊM: E, R, T
 for _, key in ipairs({"E", "R", "T", "Z", "X", "C", "V", "B", "N", "F"}) do
     Setters["Skill"..key] = CreateToggle("Auto Skill ["..key.."]", false, WepSkillBox, function(v) _G.Yui.AutoSkill[key] = v end) 
 end
 
 local HoldSkillBox = CreateSection("Hold Skills", SkillR)
 Setters.HoldTime = CreateSlider("Hold Time (s)", 1, 5, 1, HoldSkillBox, function(v) _G.Yui.HoldTime = v end)
--- ĐÃ FIX THÊM: E, R, T
 for _, key in ipairs({"E", "R", "T", "Z", "X", "C", "V", "B", "N", "F"}) do
     Setters["Hold"..key] = CreateToggle("Hold Skill ["..key.."]", false, HoldSkillBox, function(v) _G.Yui.HoldSkill[key] = v end) 
 end
@@ -544,18 +558,15 @@ local SkyBaseBox = CreateSection("Collection Modes", ResL)
 local UpdateColDrop, SetColDrop = CreateDropdown("Collect Method", _G.Yui.CollectMethod, SkyBaseBox, function(v) _G.Yui.CollectMethod = v end)
 UpdateColDrop({"Teleport (Return)", "Teleport (Continuous)", "Fly"})
 Setters.CamUnderground = CreateToggle("Hide Camera Underground", false, SkyBaseBox, function(v) _G.Yui.CamUnderground = v end)
--- Đã hạ mặc định xuống 0.05
 Setters.CollectSpeed = CreateSlider("Sweep Delay (s)", 0.01, 1, 0.05, SkyBaseBox, function(v) _G.Yui.CollectSpeed = v end, true)
 
 local CrateBox = CreateSection("Chest & Barrel Sweep", ResL)
--- ĐÃ FIX: Chữ Liên Tục
 Setters.CollectChest = CreateToggle("Auto Chests (Liên Tục)", false, CrateBox, function(v) _G.Yui.CollectChest = v end)
 Setters.CollectBarrel = CreateToggle("Auto Barrels/Crates (Liên Tục)", false, CrateBox, function(v) _G.Yui.CollectBarrel = v end)
 
 local JuiceBox = CreateSection("Juice & Drinks", ResR)
 Setters.AutoJuice = CreateToggle("Auto Make Juice", false, JuiceBox, function(v) _G.Yui.AutoJuice = v end)
 Setters.JuiceDelay = CreateSlider("Make Delay (s)", 1, 30, 5, JuiceBox, function(v) _G.Yui.JuiceDelay = v end)
--- ĐÃ FIX: Chữ Uống Cùng Lúc
 Setters.AutoDrink = CreateToggle("Auto Drink All (Uống Cùng Lúc)", false, JuiceBox, function(v) _G.Yui.AutoDrink = v end)
 Setters.DrinkDelay = CreateSlider("Drink Delay (s)", 1, 10, 1, JuiceBox, function(v) _G.Yui.DrinkDelay = v end)
 
@@ -774,6 +785,92 @@ local function SmartClickDialog(opts)
     if btnLeave and btnLeave.Visible and HasActiveQuest() then SilentClick(btnLeave) return true end
     return false
 end
+
+-- =========================================================================
+-- ITEM SCANNER & ESP THREAD (CODE MỚI - KHÔNG CHẠM VÀO GỐC)
+-- =========================================================================
+local ScannedItems = {}
+
+task.spawn(function()
+    while task.wait(1.5) do
+        local counts = {}
+        local tempItems = {}
+
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj:IsA("Tool") or obj:IsA("Model") or obj:IsA("BasePart") then
+                local n = string.lower(obj.Name)
+                if string.find(n, "fruit") or string.find(n, "box") or string.find(n, "book") or string.find(n, "compass") or string.find(n, "chest") or string.find(n, "barrel") or string.find(n, "crate") or string.find(n, "scroll") then
+                    
+                    -- Lọc để tránh nhầm với body parts của Player hoặc Quái
+                    local isChar = false
+                    if obj.Parent and obj.Parent:FindFirstChild("Humanoid") then isChar = true end
+                    if obj:FindFirstChild("Humanoid") then isChar = true end
+                    
+                    if not isChar then
+                        local posPart = obj:IsA("BasePart") and obj or obj:FindFirstChild("Handle") or obj:FindFirstChildOfClass("Part") or obj:FindFirstChildOfClass("MeshPart")
+                        if posPart and not Players:GetPlayerFromCharacter(obj.Parent) then
+                            local rawName = obj.Name
+                            counts[rawName] = (counts[rawName] or 0) + 1
+                            table.insert(tempItems, {Obj = obj, Part = posPart, Name = rawName})
+                        end
+                    end
+                end
+            end
+        end
+
+        ScannedItems = tempItems
+
+        local text = ""
+        for name, amount in pairs(counts) do
+            text = text .. "• " .. name .. " x" .. amount .. "\n"
+        end
+        
+        if text == "" then text = "No matching items found on map." end
+        if ItemTrackerLabel then ItemTrackerLabel.Text = text end
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if _G.Yui.ESPItems then
+        local currentESP = {}
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+
+        for _, itemData in ipairs(ScannedItems) do
+            if itemData.Obj and itemData.Obj.Parent and itemData.Part then
+                local espId = "ItemESP_" .. tostring(itemData.Obj:GetDebugId())
+                currentESP[espId] = true
+
+                local bg = ItemESPFolder:FindFirstChild(espId)
+                if not bg then
+                    bg = Instance.new("BillboardGui", ItemESPFolder)
+                    bg.Name = espId
+                    bg.AlwaysOnTop = true
+                    bg.Size = UDim2.new(0, 100, 0, 40)
+                    bg.StudsOffset = Vector3.new(0, 1.5, 0)
+                    
+                    local txt = Instance.new("TextLabel", bg)
+                    txt.Size = UDim2.new(1, 0, 1, 0)
+                    txt.BackgroundTransparency = 1
+                    txt.TextColor3 = Color3.fromRGB(255, 255, 0) -- Màu vàng cho vật phẩm
+                    txt.Font = Enum.Font.GothamBold
+                    txt.TextSize = 10
+                    txt.TextStrokeTransparency = 0
+                end
+                
+                local dist = root and math.floor((root.Position - itemData.Part.Position).Magnitude) or 0
+                bg.Adornee = itemData.Part
+                bg.TextLabel.Text = itemData.Name .. " [" .. dist .. "m]"
+            end
+        end
+
+        for _, bg in pairs(ItemESPFolder:GetChildren()) do
+            if not currentESP[bg.Name] then bg:Destroy() end
+        end
+    else
+        ItemESPFolder:ClearAllChildren()
+    end
+end)
 
 -- =========================================================================
 -- BỘ NÃO ĐỐI THOẠI & NHẬN QUEST (ĐÃ CÀI ĐỨNG CHỜ QUEST VÀO ĐÂY)
@@ -1002,7 +1099,7 @@ task.spawn(function()
     end
 end)
 
--- SWEEP COLLECTION LOOP (ĐÃ FIX: LẶP LIÊN TỤC CHỈ SAU 1 GIÂY)
+-- SWEEP COLLECTION LOOP
 task.spawn(function()
     while task.wait(0.1) do
         local char = LocalPlayer.Character local root = char and char:FindFirstChild("HumanoidRootPart") if not root then continue end
@@ -1104,7 +1201,6 @@ task.spawn(function()
     end
 end)
 
--- BỘ NÃO ĐÁNH QUÁI (ĐÃ FIX: NHẬN DIỆN MỌI QUÁI TRÊN ĐẢO/HANG)
 local LastAttack = tick()
 task.spawn(function()
     while task.wait() do
@@ -1146,7 +1242,6 @@ task.spawn(function()
             CurrentTarget = nil
         end
 
-        -- ĐÃ FIX BỘ NÃO CLICK CHUỘT
         local wantsAttack = _G.Yui.AutoClickAlways or (_G.Yui.AutoClickFarming and CurrentTarget) or _G.Yui.FastAttack
         if wantsAttack and _G.Yui.SelectedWeapon ~= "None" then
             pcall(function()
@@ -1182,7 +1277,6 @@ task.spawn(function()
     end
 end)
 
--- BỘ NÃO UỐNG NƯỚC (MASS DRINK - LỖ ĐEN)
 local LastDrinkTick = tick()
 task.spawn(function()
     while task.wait(0.1) do
