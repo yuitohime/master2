@@ -1,5 +1,5 @@
 -- =========================================================================
--- [ULTIMATE MASTER] YUIHUB V26 - FIX FISH, SKILLS, FARM NEAR & TOKEN ESP
+-- [ULTIMATE MASTER] YUIHUB V26 - FIX FISH, SKILLS SEPARATE DELAY & TOKEN ESP
 -- =========================================================================
 
 local Players = game:GetService("Players")
@@ -36,8 +36,9 @@ _G.Yui = {
     MobLevelFilter = "All", FarmNear = false,
     AttackDist = 5, AttackPos = "Above", AutoSpawn = false,
     AutoSkill = {E=false, R=false, T=false, Z=false, X=false, C=false, V=false, B=false, N=false, F=false}, 
-    HoldSkill = {E=false, R=false, T=false, Z=false, X=false, C=false, V=false, B=false, N=false, F=false}, HoldTime = 1, SkillDelay = 0.1,
-    AutoAimSkillPlayer = false, -- TÍNH NĂNG MỚI: GHIM SKILL NGƯỜI
+    HoldSkill = {E=false, R=false, T=false, Z=false, X=false, C=false, V=false, B=false, N=false, F=false}, HoldTime = 1, 
+    SkillDelay = {E=0.1, R=0.1, T=0.1, Z=0.1, X=0.1, C=0.1, V=0.1, B=0.1, N=0.1, F=0.1}, -- DELAY RIÊNG CHO TỪNG SKILL
+    AutoAimSkillPlayer = false,
     AutoHaki = {E=false, R=false, T=false},
     SelectedNormalQuest = "", AutoNormalQuest = false,
     SelectedDailyQuest = "", AutoDailyQuest = false, AutoAcceptQuest = false, TeleportToNPC = true,
@@ -729,12 +730,12 @@ CreateButton("Refresh Spawns", SBox, function()
     SendNotification("Refreshed Spawns List", Theme.Accent, "System")
 end)
 
--- SKILLS & HAKI
+-- SKILLS & HAKI (ĐÃ LÀM LẠI: MỖI SKILL 1 THANH DELAY RIÊNG BIỆT)
 local WepSkillBox = CreateSection("Normal Skills", SkillL)
-Setters.SkillDelay = CreateSlider("Skill Delay (s)", 0, 5, 0.1, WepSkillBox, function(v) _G.Yui.SkillDelay = v end, true)
 Setters.AutoAimSkillPlayer = CreateToggle("Aim Skill Nearest Player", false, WepSkillBox, function(v) _G.Yui.AutoAimSkillPlayer = v end)
 for _, key in ipairs({"E", "R", "T", "Z", "X", "C", "V", "B", "N", "F"}) do
     Setters["Skill"..key] = CreateToggle("Auto Skill ["..key.."]", false, WepSkillBox, function(v) _G.Yui.AutoSkill[key] = v end) 
+    Setters["SkillDelay"..key] = CreateSlider("Delay ["..key.."] (s)", 0, 10, _G.Yui.SkillDelay[key], WepSkillBox, function(v) _G.Yui.SkillDelay[key] = v end, true)
 end
 
 local HoldSkillBox = CreateSection("Hold Skills", SkillR)
@@ -1422,7 +1423,6 @@ task.spawn(function()
                 end
             end
 
-            -- FIX BARREL KHÔNG KẸT
             if _G.Yui.CollectBarrel and (n == "Barrel" or n == "Crate") and not didAction then
                 local tPart = obj:IsA("BasePart") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChildOfClass("MeshPart")
                 local cd = obj:FindFirstChildOfClass("ClickDetector")
@@ -1430,7 +1430,7 @@ task.spawn(function()
                     local posKey = tostring(obj:GetDebugId())
                     if not TimedBlacklist[posKey] or tick() - TimedBlacklist[posKey] > 1.5 then 
                         root.CFrame = tPart.CFrame * CFrame.new(0, 2, 0) root.Velocity = Vector3.zero
-                        task.wait(0.2) -- Tăng thời gian đứng yên xíu cho chắc
+                        task.wait(0.2) 
                         if fireclickdetector then for i=1,5 do fireclickdetector(cd, 1) end end
                         SendNotification("Collected: " .. n, Theme.SelectedGreen, "Barrel")
                         TimedBlacklist[posKey] = tick() didAction = true
@@ -1443,11 +1443,11 @@ task.spawn(function()
     end
 end)
 
--- BỘ NÃO ĐÁNH QUÁI (ĐÃ FIX: FARM NEAR MẶC KỆ DANH SÁCH + CHUẨN LEVEL)
+-- BỘ NÃO ĐÁNH QUÁI
 local LastAttack = tick()
 local WepCycleIndex = 1
 local LastWepSwap = tick()
-local LastSkillTick = tick()
+local LastSkillTicks = {E=0, R=0, T=0, Z=0, X=0, C=0, V=0, B=0, N=0, F=0} -- BIẾN ĐẾM DELAY RIÊNG CHO TỪNG SKILL
 
 local CachedMobs = {}
 task.spawn(function()
@@ -1495,7 +1495,6 @@ task.spawn(function()
                     if validLvl then
                         local cleanName = string.gsub(obj.Name, "%[.-%]", "") cleanName = string.gsub(cleanName, "%d+$", "") cleanName = string.match(cleanName, "^%s*(.-)%s*$") or cleanName
                         
-                        -- FIX: Nếu bật FarmNear thì không cần check SelectedMobs
                         local isTarget = false
                         if _G.Yui.FarmNear then
                             isTarget = true
@@ -1611,29 +1610,28 @@ task.spawn(function()
             end)
         end
         
-        -- FIX TỐI ƯU SKILL MƯỢT
-        if tick() - LastSkillTick >= _G.Yui.SkillDelay then
-            local shouldSkill = (CurrentTarget and CurrentTarget:FindFirstChild("HumanoidRootPart")) or _G.Yui.AutoAimSkillPlayer
-            if shouldSkill then
-                -- AIMBOT SKILL VÀO PLAYER NẾU BẬT
-                if _G.Yui.AutoAimSkillPlayer then
-                    local targetP = getClosestPlayer()
-                    if targetP and targetP:FindFirstChild("HumanoidRootPart") and char and char:FindFirstChild("HumanoidRootPart") then
-                        local root = char.HumanoidRootPart
-                        root.CFrame = CFrame.lookAt(root.Position, Vector3.new(targetP.HumanoidRootPart.Position.X, root.Position.Y, targetP.HumanoidRootPart.Position.Z))
-                    end
+        -- LOGIC SKILL MỚI (DELAY RIÊNG BIỆT CHO TỪNG SKILL)
+        local shouldSkill = (CurrentTarget and CurrentTarget:FindFirstChild("HumanoidRootPart")) or _G.Yui.AutoAimSkillPlayer
+        if shouldSkill then
+            -- AIMBOT SKILL VÀO PLAYER NẾU BẬT
+            if _G.Yui.AutoAimSkillPlayer then
+                local targetP = getClosestPlayer()
+                if targetP and targetP:FindFirstChild("HumanoidRootPart") and char and char:FindFirstChild("HumanoidRootPart") then
+                    local root = char.HumanoidRootPart
+                    root.CFrame = CFrame.lookAt(root.Position, Vector3.new(targetP.HumanoidRootPart.Position.X, root.Position.Y, targetP.HumanoidRootPart.Position.Z))
                 end
+            end
 
-                for key, isEnabled in pairs(_G.Yui.AutoSkill) do 
-                    if isEnabled then 
-                        task.spawn(function()
-                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode[key], false, game) 
-                            task.wait(0.05) -- Delay siêu nhỏ để server nhận lệnh
-                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode[key], false, game) 
-                        end)
-                    end 
-                end
-                LastSkillTick = tick()
+            for key, isEnabled in pairs(_G.Yui.AutoSkill) do 
+                -- Đọc delay riêng của từng skill từ _G.Yui.SkillDelay[key]
+                if isEnabled and (tick() - LastSkillTicks[key] >= _G.Yui.SkillDelay[key]) then 
+                    task.spawn(function()
+                        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode[key], false, game) 
+                        task.wait(0.05)
+                        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode[key], false, game) 
+                    end)
+                    LastSkillTicks[key] = tick()
+                end 
             end
         end
 
@@ -1715,7 +1713,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- AUTO FISH (ĐÃ LÀM LẠI HOÀN TOÀN THEO CẤU TRÚC FishingRope_[UserId])
+-- AUTO FISH (ĐÃ LÀM LẠI HOÀN TOÀN THEO CẤU TRÚC FishingRope_[UserId] & FIX MINIGAME)
 task.spawn(function()
     while task.wait(0.2) do
         local char = LocalPlayer.Character if not char or not char:FindFirstChild("HumanoidRootPart") then continue end
@@ -1758,7 +1756,7 @@ task.spawn(function()
             end
             
             if rod then
-                -- FIX THEO ẢNH: Bắt buộc dùng FishingRope_ID
+                -- Bắt buộc dùng FishingRope_ID
                 local ropeName = "FishingRope_" .. tostring(LocalPlayer.UserId)
                 local isCast = Workspace:FindFirstChild(ropeName, true) ~= nil
                 
@@ -1768,9 +1766,37 @@ task.spawn(function()
                     task.wait(1) -- Chờ thả dây xong
                 end
                 
-                if _G.Yui.AutoShake then
-                    local pGui = LocalPlayer.PlayerGui
-                    if pGui then
+                local pGui = LocalPlayer:FindFirstChild("PlayerGui")
+                if pGui then
+                    -- TỰ ĐỘNG BẤM MINIGAME (Xử lý bảng PULL IT! theo 3 ảnh đầu & ảnh 4)
+                    local minigame = pGui:FindFirstChild("FishingMinigame")
+                    if minigame then
+                        for _, v in pairs(minigame:GetDescendants()) do
+                            -- Lọc các phần tử là Nút bấm (TextButton, ImageButton...)
+                            if v:IsA("GuiButton") and v.Visible then
+                                local isHighlighted = false
+                                
+                                -- Điều kiện 1: Nền của nút sáng lên màu trắng hoàn toàn
+                                if v.BackgroundColor3 == Color3.fromRGB(255, 255, 255) then
+                                    isHighlighted = true
+                                end
+                                
+                                -- Điều kiện 2: Hoặc có viền (UIStroke) màu trắng xuất hiện
+                                local stroke = v:FindFirstChildOfClass("UIStroke")
+                                if stroke and stroke.Enabled and stroke.Color == Color3.fromRGB(255, 255, 255) then
+                                    isHighlighted = true
+                                end
+                                
+                                -- Nếu nút bấm đang được đánh dấu sáng lên -> Thực hiện Click
+                                if isHighlighted then
+                                    SilentClick(v)
+                                end
+                            end
+                        end
+                    end
+
+                    -- AUTO SHAKE
+                    if _G.Yui.AutoShake then
                         for _, v in pairs(pGui:GetDescendants()) do
                             if (v:IsA("TextButton") or v:IsA("ImageButton")) and (string.find(string.lower(v.Name), "shake") or (v:IsA("TextButton") and string.find(string.lower(v.Text), "shake"))) then
                                 if v.Visible then SilentClick(v) end
