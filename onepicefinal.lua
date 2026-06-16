@@ -1,5 +1,5 @@
 -- =========================================================================
--- [ULTIMATE MASTER] YUIHUB V26 - STRICT ORIGINAL + ITEM SCANNER & ESP
+-- [ULTIMATE MASTER] YUIHUB V26 - FIX FLY, MULTI-WEAPON, ITEM TELEPORT & ESP
 -- =========================================================================
 
 local Players = game:GetService("Players")
@@ -30,14 +30,14 @@ LocalPlayer.Idled:Connect(function()
     end
 end)
 
--- Global Settings (GIỮ NGUYÊN GỐC + THÊM BIẾN ESPItems)
+-- Global Settings
 _G.Yui = {
     AntiAFK = true, MoveMethod = "Teleport", CollectMethod = "Teleport (Continuous)", MoveSpeed = 300, HoverOnKill = true,
-    AutoFarm = false, SelectedMobs = {}, SelectedWeapon = "None", FastAttack = false, 
+    AutoFarm = false, SelectedMobs = {}, SelectedWeapons = {}, FastAttack = false, 
     AutoClickFarming = false, AutoClickAlways = false, ClickPosition = "Center",
     AttackDist = 5, AttackPos = "Above", AutoSpawn = false,
     AutoSkill = {E=false, R=false, T=false, Z=false, X=false, C=false, V=false, B=false, N=false, F=false}, 
-    HoldSkill = {E=false, R=false, T=false, Z=false, X=false, C=false, V=false, B=false, N=false, F=false}, HoldTime = 1, 
+    HoldSkill = {E=false, R=false, T=false, Z=false, X=false, C=false, V=false, B=false, N=false, F=false}, HoldTime = 1, SkillDelay = 0.1,
     AutoHaki = {E=false, R=false, T=false},
     SelectedNormalQuest = "", AutoNormalQuest = false,
     SelectedDailyQuest = "", AutoDailyQuest = false, AutoAcceptQuest = false, TeleportToNPC = true,
@@ -49,7 +49,7 @@ _G.Yui = {
     Fly = false, FlySpeed = 50, Noclip = false, WalkOnWater = false, InfJump = false, AutoSafe = false, SafeHealth = 30,
     AutoGetRod = false, AutoFish = false, AutoPin = false,
     TargetPlayer = "None", AutoHunt = false, HuntDist = 5, ESPPlayer = false, Spectate = false,
-    ESPItems = false, -- Biến mới cho ESP Vật phẩm
+    ESPItems = false, SelectedESPItems = {}, TargetItemTeleport = "None",
     AutoRejoin = false, AutoExecute = false, ExecuteScript = "", 
     AutoLoadConfig = false, AutoLoadName = "", ConfigName = "Default", AutoHop = false, HopDelay = 3, 
     CustomHue = 330
@@ -92,7 +92,17 @@ local ActiveTween = nil
 _G.PinnedCFrame = nil _G.SavedLocations = {} _G.SavedCount = 0 _G.SelectedSavedCFrame = nil
 local HakiStates = {E = false, R = false}
 
-LocalPlayer.CharacterAdded:Connect(function() HakiStates.E = false HakiStates.R = false end)
+LocalPlayer.CharacterAdded:Connect(function(char) 
+    HakiStates.E = false HakiStates.R = false 
+    -- Khôi phục Fly nếu lỡ chết
+    task.delay(1, function()
+        if _G.Yui.Fly and char:FindFirstChild("HumanoidRootPart") then
+            local root = char.HumanoidRootPart
+            local bv = Instance.new("BodyVelocity") bv.Name = "YuiFlyBV" bv.MaxForce = Vector3.new(1e5, 1e5, 1e5) bv.Parent = root
+            local bg = Instance.new("BodyGyro") bg.Name = "YuiFlyBG" bg.MaxTorque = Vector3.new(1e5, 1e5, 1e5) bg.P = 1e4 bg.Parent = root
+        end
+    end)
+end)
 
 local function MoveTo(targetCFrame, speedOverride)
     local char = LocalPlayer.Character local root = char and char:FindFirstChild("HumanoidRootPart") if not root then return end
@@ -117,32 +127,24 @@ RunService.Heartbeat:Connect(function()
 end)
 
 local function BindTap(element, callback)
-    local touchStart, startPos = 0, Vector2.new(0,0)
-    element.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then 
-            touchStart = tick() startPos = Vector2.new(input.Position.X, input.Position.Y)
-        end
-    end)
-    element.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-            local endPos = Vector2.new(input.Position.X, input.Position.Y)
-            if tick() - touchStart < 0.5 and (endPos - startPos).Magnitude < 10 then callback() end
-        end
+    local debounce = false
+    element.Activated:Connect(function()
+        if not debounce then debounce = true callback() task.wait(0.1) debounce = false end
     end)
 end
 
 local function MakeDraggable(dragArea, targetFrame)
-    local dragging, dragInput, dragStart, startPos
+    local dragToggle = false local dragStart = nil local startPos = nil
     dragArea.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true dragStart = input.Position startPos = targetFrame.Position
-            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+            dragToggle = true dragStart = input.Position startPos = targetFrame.Position
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragToggle = false end end)
         end
     end)
-    dragArea.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end end)
     UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart targetFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        if dragToggle and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            targetFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
 end
@@ -166,7 +168,6 @@ end
 
 local ScreenGui = Instance.new("ScreenGui") ScreenGui.Name = "YuiHub" ScreenGui.Parent = TargetGui ScreenGui.ResetOnSpawn = false
 local ESPFolder = Instance.new("Folder") ESPFolder.Name = "YuiESPFolder" ESPFolder.Parent = CoreGui
--- FOLDER ESP VẬT PHẨM MỚI
 local ItemESPFolder = Instance.new("Folder") ItemESPFolder.Name = "YuiItemESPFolder" ItemESPFolder.Parent = CoreGui
 
 -- =========================================================================
@@ -187,6 +188,8 @@ MakeDraggable(MainFrame, MainFrame)
 BindTap(OpenIconBtn, function() MainFrame.Visible = true OpenIconBtn.Visible = false end)
 
 local Header = Instance.new("Frame", MainFrame) Header.Size = UDim2.new(1, -20, 0, 60) Header.Position = UDim2.new(0, 10, 0, 10) Header.BackgroundColor3 = Theme.HeaderBg Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 8) Instance.new("UIStroke", Header).Color = Theme.Stroke
+MakeDraggable(Header, MainFrame)
+
 local BlueLine = Instance.new("Frame", Header) BlueLine.Size = UDim2.new(0, 3, 0, 30) BlueLine.Position = UDim2.new(0, 15, 0, 15) BlueLine.BackgroundColor3 = Theme.Accent Instance.new("UICorner", BlueLine).CornerRadius = UDim.new(1, 0) table.insert(DynamicUIElements, {Obj = BlueLine, Prop = "BackgroundColor3"})
 local WelcomeText = Instance.new("TextLabel", Header) WelcomeText.Size = UDim2.new(0, 150, 0, 15) WelcomeText.Position = UDim2.new(0, 25, 0, 15) WelcomeText.BackgroundTransparency = 1 WelcomeText.Text = "Ultimate Script Hub" WelcomeText.TextColor3 = Theme.TextSub WelcomeText.Font = Enum.Font.Gotham WelcomeText.TextSize = 10 WelcomeText.TextXAlignment = Enum.TextXAlignment.Left
 local HubName = Instance.new("TextLabel", Header) HubName.Size = UDim2.new(0, 200, 0, 25) HubName.Position = UDim2.new(0, 25, 0, 25) HubName.BackgroundTransparency = 1 HubName.Text = "Yui HUB V26" HubName.TextColor3 = Theme.Accent HubName.Font = Enum.Font.GothamBold HubName.TextSize = 20 HubName.TextXAlignment = Enum.TextXAlignment.Left table.insert(DynamicUIElements, {Obj = HubName, Prop = "TextColor3"})
@@ -265,39 +268,9 @@ local function CreateSlider(labelText, min, max, default, parentBox, callback, a
     return function(val) val = math.clamp(val, min, max) Fill.Size = UDim2.new((val - min) / (max - min), 0, 1, 0) ValLabel.Text = tostring(val) callback(val) end
 end
 
-local function CreateColorPicker(labelText, defaultHue, parentBox, callback)
-    local Frame = Instance.new("Frame", parentBox) Frame.Size = UDim2.new(1, 0, 0, 35) Frame.BackgroundTransparency = 1
-    local Label = Instance.new("TextLabel", Frame) Label.Size = UDim2.new(1, 0, 0, 15) Label.BackgroundTransparency = 1 Label.Text = labelText Label.TextColor3 = Theme.TextTitle Label.Font = Enum.Font.GothamBold Label.TextSize = 10 Label.TextXAlignment = Enum.TextXAlignment.Left
-    local Track = Instance.new("Frame", Frame) Track.Size = UDim2.new(1, 0, 0, 6) Track.Position = UDim2.new(0, 0, 0, 22) Track.BackgroundColor3 = Color3.fromRGB(255, 255, 255) Instance.new("UICorner", Track).CornerRadius = UDim.new(1, 0) Instance.new("UIStroke", Track).Color = Theme.Stroke
-    local UIGradient = Instance.new("UIGradient", Track)
-    UIGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)), ColorSequenceKeypoint.new(0.167, Color3.fromRGB(255, 255, 0)),
-        ColorSequenceKeypoint.new(0.333, Color3.fromRGB(0, 255, 0)), ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
-        ColorSequenceKeypoint.new(0.667, Color3.fromRGB(0, 0, 255)), ColorSequenceKeypoint.new(0.833, Color3.fromRGB(255, 0, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
-    })
-    local Knob = Instance.new("TextButton", Track) Knob.Size = UDim2.new(0, 12, 0, 12) Knob.Position = UDim2.new(defaultHue/360, -6, 0.5, -6) Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255) Knob.Text = "" Instance.new("UICorner", Knob).CornerRadius = UDim.new(1, 0) Instance.new("UIStroke", Knob).Color = Color3.fromRGB(0,0,0)
-
-    local drag = false
-    local function update(input)
-        local rel = math.clamp((input.Position.X - Track.AbsolutePosition.X) / Track.AbsoluteSize.X, 0, 1)
-        Knob.Position = UDim2.new(rel, -6, 0.5, -6) callback(math.floor(rel * 360))
-    end
-    Knob.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then drag = true end end)
-    Track.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then drag = true update(inp) end end)
-    UserInputService.InputEnded:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then drag = false end end)
-    UserInputService.InputChanged:Connect(function(inp) if drag and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then update(inp) end end)
-end
-
 local function CreateButton(text, parentBox, callback)
     local Btn = Instance.new("TextButton", parentBox) Btn.Size = UDim2.new(1, 0, 0, 24) Btn.BackgroundColor3 = Theme.MainBg Btn.TextColor3 = Theme.TextTitle Btn.Font = Enum.Font.GothamBold Btn.TextSize = 10 Btn.Text = text Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 4) Instance.new("UIStroke", Btn).Color = Theme.Stroke
     BindTap(Btn, callback) return Btn
-end
-
-local function CreateTextBox(placeholder, parentBox, defaultText, callback)
-    local Frame = Instance.new("Frame", parentBox) Frame.Size = UDim2.new(1, 0, 0, 24) Frame.BackgroundTransparency = 1
-    local Box = Instance.new("TextBox", Frame) Box.Size = UDim2.new(1, 0, 1, 0) Box.BackgroundColor3 = Theme.MainBg Box.TextColor3 = Theme.TextTitle Box.Font = Enum.Font.Gotham Box.TextSize = 10 Box.PlaceholderText = placeholder Box.Text = defaultText or "" Instance.new("UICorner", Box).CornerRadius = UDim.new(0, 4) Instance.new("UIStroke", Box).Color = Theme.Stroke
-    Box.FocusLost:Connect(function() callback(Box.Text) end) return function(str) Box.Text = str end
 end
 
 local function CreateDropdown(labelStr, defaultStr, parentBox, callback)
@@ -432,9 +405,9 @@ Setters.AutoFarm = CreateToggle("Auto Farm Mobs", false, FarmMobBox, function(v)
 Setters.AutoHopMain = CreateToggle("Auto Hop Server (Min 3s)", false, FarmMobBox, function(v) _G.Yui.AutoHop = v if Setters.AutoHopServer then Setters.AutoHopServer(v) end end)
 
 local AtkBox = CreateSection("Attack Setting", MainL)
-local UpdateWepDrop, SetWepDrop = CreateDropdown("Weapon", "None", AtkBox, function(v) _G.Yui.SelectedWeapon = v end)
+local UpdateWepDrop = CreateMultiDropdown("Select Weapons", AtkBox, _G.Yui.SelectedWeapons)
 CreateButton("Refresh Weapons", AtkBox, function()
-    local t = {"None"} 
+    local t = {} 
     for _, v in pairs(LocalPlayer.Backpack:GetChildren()) do if v:IsA("Tool") then table.insert(t, v.Name) end end
     for _, v in pairs(LocalPlayer.Character:GetChildren()) do if v:IsA("Tool") then table.insert(t, v.Name) end end
     UpdateWepDrop(t)
@@ -485,29 +458,40 @@ local UpdateSamAmount, SetSamAmount = CreateDropdown("Amount", "x1", SamBox, fun
 UpdateSamAmount({"x1", "x10"})
 Setters.AutoUpgradeCap = CreateToggle("Auto Upgrade Capacity", false, SamBox, function(v) _G.Yui.AutoUpgradeCap = v end)
 
--- FRUITS & SPAWNS (CẬP NHẬT TÍNH NĂNG SCANNER VÀO ĐÂY)
+-- ESP & TELEPORT ITEMS
+local ScannedItems = {}
 local ScannerBox = CreateSection("Map Items Scanner & ESP", FruitL)
-Setters.ESPItems = CreateToggle("ESP Items (Map Drops)", false, ScannerBox, function(v) _G.Yui.ESPItems = v end)
+Setters.ESPItems = CreateToggle("ESP Selected Items", false, ScannerBox, function(v) _G.Yui.ESPItems = v end)
+local UpdateESPItemsDrop = CreateMultiDropdown("Select ESP Items", ScannerBox, _G.Yui.SelectedESPItems)
 
-local TrackerContainer = Instance.new("Frame", ScannerBox)
-TrackerContainer.Size = UDim2.new(1, 0, 0, 20)
-TrackerContainer.BackgroundTransparency = 1
-TrackerContainer.AutomaticSize = Enum.AutomaticSize.Y
-
-local ItemTrackerLabel = Instance.new("TextLabel", TrackerContainer)
-ItemTrackerLabel.Size = UDim2.new(1, -10, 1, 0)
-ItemTrackerLabel.Position = UDim2.new(0, 5, 0, 0)
-ItemTrackerLabel.BackgroundTransparency = 1
-ItemTrackerLabel.TextColor3 = Theme.TextSub
-ItemTrackerLabel.TextXAlignment = Enum.TextXAlignment.Left
-ItemTrackerLabel.TextYAlignment = Enum.TextYAlignment.Top
-ItemTrackerLabel.Font = Enum.Font.Gotham
-ItemTrackerLabel.TextSize = 10
-ItemTrackerLabel.TextWrapped = true
-ItemTrackerLabel.AutomaticSize = Enum.AutomaticSize.Y
+local ItemTrackerLabel = Instance.new("TextLabel", ScannerBox)
+ItemTrackerLabel.Size = UDim2.new(1, -10, 0, 30) ItemTrackerLabel.Position = UDim2.new(0, 5, 0, 0) ItemTrackerLabel.BackgroundTransparency = 1 ItemTrackerLabel.TextColor3 = Theme.TextSub ItemTrackerLabel.TextXAlignment = Enum.TextXAlignment.Left ItemTrackerLabel.TextYAlignment = Enum.TextYAlignment.Top ItemTrackerLabel.Font = Enum.Font.Gotham ItemTrackerLabel.TextSize = 10 ItemTrackerLabel.TextWrapped = true ItemTrackerLabel.AutomaticSize = Enum.AutomaticSize.Y
 ItemTrackerLabel.Text = "Scanning map for items..."
 
-local FBox = CreateSection("Devil Fruits", FruitL)
+local ItemTeleBox = CreateSection("Item Teleport", FruitL)
+local UpdateItemTeleDrop, SetItemTeleDrop = CreateDropdown("Select Item to Teleport", "None", ItemTeleBox, function(v) _G.Yui.TargetItemTeleport = v end)
+CreateButton("Teleport to Selected Item", ItemTeleBox, function()
+    if _G.Yui.TargetItemTeleport and _G.Yui.TargetItemTeleport ~= "None" then
+        for _, itemData in ipairs(ScannedItems) do
+            if itemData.Name == _G.Yui.TargetItemTeleport and itemData.Part then
+                MoveTo(itemData.Part.CFrame * CFrame.new(0, 2, 0)) break
+            end
+        end
+    end
+end)
+CreateButton("Refresh Item Lists", ItemTeleBox, function()
+    local espList, teleList, seenESP, seenTele = {}, {}, {}, {}
+    for _, itemData in ipairs(ScannedItems) do
+        if not seenESP[itemData.Name] then seenESP[itemData.Name] = true table.insert(espList, itemData.Name) end
+        local lName = string.lower(itemData.Name)
+        if not (string.find(lName, "chest") or string.find(lName, "barrel") or string.find(lName, "crate")) then
+            if not seenTele[itemData.Name] then seenTele[itemData.Name] = true table.insert(teleList, itemData.Name) end
+        end
+    end
+    table.sort(espList) table.sort(teleList) UpdateESPItemsDrop(espList) UpdateItemTeleDrop(teleList)
+end)
+
+local FBox = CreateSection("Devil Fruits", FruitR)
 Setters.AutoFruit = CreateToggle("Auto Collect Fruit", false, FBox, function(v) _G.Yui.AutoFruit = v end)
 CreateButton("Drop All Fruits", FBox, function()
     for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
@@ -538,6 +522,7 @@ end)
 
 -- SKILLS & HAKI
 local WepSkillBox = CreateSection("Normal Skills", SkillL)
+Setters.SkillDelay = CreateSlider("Skill Delay (s)", 0, 5, 0.1, WepSkillBox, function(v) _G.Yui.SkillDelay = v end, true)
 for _, key in ipairs({"E", "R", "T", "Z", "X", "C", "V", "B", "N", "F"}) do
     Setters["Skill"..key] = CreateToggle("Auto Skill ["..key.."]", false, WepSkillBox, function(v) _G.Yui.AutoSkill[key] = v end) 
 end
@@ -568,7 +553,6 @@ local JuiceBox = CreateSection("Juice & Drinks", ResR)
 Setters.AutoJuice = CreateToggle("Auto Make Juice", false, JuiceBox, function(v) _G.Yui.AutoJuice = v end)
 Setters.JuiceDelay = CreateSlider("Make Delay (s)", 1, 30, 5, JuiceBox, function(v) _G.Yui.JuiceDelay = v end)
 Setters.AutoDrink = CreateToggle("Auto Drink All (Uống Cùng Lúc)", false, JuiceBox, function(v) _G.Yui.AutoDrink = v end)
-Setters.DrinkDelay = CreateSlider("Drink Delay (s)", 1, 10, 1, JuiceBox, function(v) _G.Yui.DrinkDelay = v end)
 
 local AppleBox = CreateSection("Auto Golden Apple", ResR)
 Setters.AutoEatApple = CreateToggle("Auto Eat All Apples", false, AppleBox, function(v) _G.Yui.AutoEatApple = v end)
@@ -576,6 +560,21 @@ Setters.AppleDelay = CreateSlider("Eat Delay (s)", 1, 10, 3, AppleBox, function(
 
 -- PLAYER
 local MoveBox = CreateSection("Movement", PlayerL)
+-- ĐÃ FIX: Toggle Fly hoàn chỉnh
+local FlyBV, FlyBG = nil, nil
+Setters.Fly = CreateToggle("Enable Fly", false, MoveBox, function(v)
+    _G.Yui.Fly = v
+    local char = LocalPlayer.Character local root = char and char:FindFirstChild("HumanoidRootPart")
+    if root then
+        if v then
+            FlyBV = Instance.new("BodyVelocity") FlyBV.Name = "YuiFlyBV" FlyBV.MaxForce = Vector3.new(1e5, 1e5, 1e5) FlyBV.Parent = root
+            FlyBG = Instance.new("BodyGyro") FlyBG.Name = "YuiFlyBG" FlyBG.MaxTorque = Vector3.new(1e5, 1e5, 1e5) FlyBG.P = 1e4 FlyBG.Parent = root
+        else
+            if root:FindFirstChild("YuiFlyBV") then root.YuiFlyBV:Destroy() end
+            if root:FindFirstChild("YuiFlyBG") then root.YuiFlyBG:Destroy() end
+        end
+    end
+end)
 Setters.FlySpeed = CreateSlider("Fly Speed", 10, 5000, 50, MoveBox, function(v) _G.Yui.FlySpeed = v end)
 Setters.EnableWS = CreateToggle("WalkSpeed", false, MoveBox, function(v) _G.Yui.EnableWS = v end)
 Setters.WalkSpeed = CreateSlider("Speed", 16, 5000, 100, MoveBox, function(v) _G.Yui.WalkSpeed = v end)
@@ -621,10 +620,9 @@ Setters.AutoGetRod = CreateToggle("Auto Get Rod", false, FishBox, function(v) _G
 Setters.AutoFish = CreateToggle("Auto Fish", false, FishBox, function(v) _G.Yui.AutoFish = v end)
 
 local TeleBox = CreateSection("Teleports", FishR)
-local UpdateIsland1, SetIsland1 = CreateDropdown("Select Island 1", "None", TeleBox, function(v) if _G.Yui.iMap1 and _G.Yui.iMap1[v] then MoveTo(_G.Yui.iMap1[v]) end end)
-local UpdateNPC1, SetNPC1 = CreateDropdown("Select NPC 1", "None", TeleBox, function(v) if _G.Yui.nMap1 and _G.Yui.nMap1[v] then MoveTo(_G.Yui.nMap1[v] * CFrame.new(0,0,3)) end end)
-local UpdateIsland2, SetIsland2 = CreateDropdown("Select Island 2", "None", TeleBox, function(v) if _G.Yui.iMap1 and _G.Yui.iMap1[v] then MoveTo(_G.Yui.iMap1[v]) end end)
-local UpdateNPC2, SetNPC2 = CreateDropdown("Select NPC 2", "None", TeleBox, function(v) if _G.Yui.nMap1 and _G.Yui.nMap1[v] then MoveTo(_G.Yui.nMap1[v] * CFrame.new(0,0,3)) end end)
+-- ĐÃ FIX: Xóa phần tử trùng lặp
+local UpdateIsland1, SetIsland1 = CreateDropdown("Select Island", "None", TeleBox, function(v) if _G.Yui.iMap1 and _G.Yui.iMap1[v] then MoveTo(_G.Yui.iMap1[v]) end end)
+local UpdateNPC1, SetNPC1 = CreateDropdown("Select NPC", "None", TeleBox, function(v) if _G.Yui.nMap1 and _G.Yui.nMap1[v] then MoveTo(_G.Yui.nMap1[v] * CFrame.new(0,0,3)) end end)
 
 CreateButton("Scan Map & NPCs", TeleBox, function()
     local tIsland, tNPC, iMap, nMap = {}, {}, {}, {}
@@ -645,7 +643,7 @@ CreateButton("Scan Map & NPCs", TeleBox, function()
     end
     table.sort(tIsland) table.sort(tNPC)
     _G.Yui.iMap1 = iMap _G.Yui.nMap1 = nMap
-    UpdateIsland1(tIsland) UpdateNPC1(tNPC) UpdateIsland2(tIsland) UpdateNPC2(tNPC)
+    UpdateIsland1(tIsland) UpdateNPC1(tNPC)
 end)
 
 local PinBox = CreateSection("Location Pins", FishL)
@@ -758,39 +756,10 @@ CreateButton("Remove Auto Load", ConfigBox2, function()
     _G.Yui.AutoLoadConfig = false _G.Yui.AutoLoadName = "" AutoLoadStatus.Text = "Auto Load: OFF" SaveCoreSettings()
 end)
 
-local function HasActiveQuest()
-    local pGui = LocalPlayer:FindFirstChild("PlayerGui")
-    local questGui = pGui and pGui:FindFirstChild("QuestGui")
-    if questGui then
-        local qFrame = questGui:FindFirstChild("QuestsFrame")
-        if qFrame and qFrame.Visible then
-            local scroll = qFrame:FindFirstChild("QuestsScroll")
-            if scroll and (scroll:FindFirstChild("QuestName") or scroll:FindFirstChild("Objective")) then
-                return true
-            end
-        end
-    end
-    return false
-end
-
-local function SmartClickDialog(opts)
-    local btnNext = opts:FindFirstChild("Next")
-    local btnOption = opts:FindFirstChild("Option")
-    local btnOption2 = opts:FindFirstChild("Option2")
-    local btnLeave = opts:FindFirstChild("Leave")
-
-    if btnNext and btnNext.Visible then SilentClick(btnNext) return true end
-    if btnOption and btnOption.Visible then SilentClick(btnOption) return true end
-    if btnOption2 and btnOption2.Visible then SilentClick(btnOption2) return true end
-    if btnLeave and btnLeave.Visible and HasActiveQuest() then SilentClick(btnLeave) return true end
-    return false
-end
 
 -- =========================================================================
--- ITEM SCANNER & ESP THREAD (CODE MỚI - KHÔNG CHẠM VÀO GỐC)
+-- ITEM SCANNER & ESP THREAD 
 -- =========================================================================
-local ScannedItems = {}
-
 task.spawn(function()
     while task.wait(1.5) do
         local counts = {}
@@ -801,7 +770,6 @@ task.spawn(function()
                 local n = string.lower(obj.Name)
                 if string.find(n, "fruit") or string.find(n, "box") or string.find(n, "book") or string.find(n, "compass") or string.find(n, "chest") or string.find(n, "barrel") or string.find(n, "crate") or string.find(n, "scroll") then
                     
-                    -- Lọc để tránh nhầm với body parts của Player hoặc Quái
                     local isChar = false
                     if obj.Parent and obj.Parent:FindFirstChild("Humanoid") then isChar = true end
                     if obj:FindFirstChild("Humanoid") then isChar = true end
@@ -837,7 +805,8 @@ RunService.RenderStepped:Connect(function()
         local root = char and char:FindFirstChild("HumanoidRootPart")
 
         for _, itemData in ipairs(ScannedItems) do
-            if itemData.Obj and itemData.Obj.Parent and itemData.Part then
+            -- Chỉ hiện ESP những món được chọn trong Dropdown
+            if itemData.Obj and itemData.Obj.Parent and itemData.Part and _G.Yui.SelectedESPItems[itemData.Name] then
                 local espId = "ItemESP_" .. tostring(itemData.Obj:GetDebugId())
                 currentESP[espId] = true
 
@@ -852,7 +821,7 @@ RunService.RenderStepped:Connect(function()
                     local txt = Instance.new("TextLabel", bg)
                     txt.Size = UDim2.new(1, 0, 1, 0)
                     txt.BackgroundTransparency = 1
-                    txt.TextColor3 = Color3.fromRGB(255, 255, 0) -- Màu vàng cho vật phẩm
+                    txt.TextColor3 = Color3.fromRGB(255, 255, 0) 
                     txt.Font = Enum.Font.GothamBold
                     txt.TextSize = 10
                     txt.TextStrokeTransparency = 0
@@ -872,9 +841,38 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+
 -- =========================================================================
--- BỘ NÃO ĐỐI THOẠI & NHẬN QUEST (ĐÃ CÀI ĐỨNG CHỜ QUEST VÀO ĐÂY)
+-- BỘ NÃO ĐỐI THOẠI & NHẬN QUEST
 -- =========================================================================
+local function HasActiveQuest()
+    local pGui = LocalPlayer:FindFirstChild("PlayerGui")
+    local questGui = pGui and pGui:FindFirstChild("QuestGui")
+    if questGui then
+        local qFrame = questGui:FindFirstChild("QuestsFrame")
+        if qFrame and qFrame.Visible then
+            local scroll = qFrame:FindFirstChild("QuestsScroll")
+            if scroll and (scroll:FindFirstChild("QuestName") or scroll:FindFirstChild("Objective")) then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function SmartClickDialog(opts)
+    local btnNext = opts:FindFirstChild("Next")
+    local btnOption = opts:FindFirstChild("Option")
+    local btnOption2 = opts:FindFirstChild("Option2")
+    local btnLeave = opts:FindFirstChild("Leave")
+
+    if btnNext and btnNext.Visible then SilentClick(btnNext) return true end
+    if btnOption and btnOption.Visible then SilentClick(btnOption) return true end
+    if btnOption2 and btnOption2.Visible then SilentClick(btnOption2) return true end
+    if btnLeave and btnLeave.Visible and HasActiveQuest() then SilentClick(btnLeave) return true end
+    return false
+end
+
 task.spawn(function()
     while task.wait(0.5) do
         local pGui = LocalPlayer:FindFirstChild("PlayerGui")
@@ -1018,6 +1016,34 @@ RunService.Heartbeat:Connect(function()
         if result and result.Material == Enum.Material.Water then WOWPad.Position = result.Position WOWPad.CanCollide = true
         else WOWPad.Position = Vector3.new(0, 99999, 0) WOWPad.CanCollide = false end
     else WOWPad.Position = Vector3.new(0, 99999, 0) WOWPad.CanCollide = false end
+end)
+
+-- ĐÃ SỬA: BỘ NÃO FLY BỊ THIẾU Ở BẢN CŨ
+RunService.RenderStepped:Connect(function()
+    if _G.Yui.Fly then
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        local hum = char and char:FindFirstChild("Humanoid")
+        local cam = workspace.CurrentCamera
+        
+        if root and hum then
+            local bv = root:FindFirstChild("YuiFlyBV")
+            local bg = root:FindFirstChild("YuiFlyBG")
+            if bv and bg then
+                local moveDir = hum.MoveDirection
+                if moveDir.Magnitude > 0 then
+                    local dot = moveDir:Dot(cam.CFrame.LookVector)
+                    local y_vel = 0
+                    if dot > 0.3 then y_vel = cam.CFrame.LookVector.Y * _G.Yui.FlySpeed 
+                    elseif dot < -0.3 then y_vel = -cam.CFrame.LookVector.Y * _G.Yui.FlySpeed end 
+                    bv.Velocity = Vector3.new(moveDir.X * _G.Yui.FlySpeed, y_vel, moveDir.Z * _G.Yui.FlySpeed)
+                else
+                    bv.Velocity = Vector3.zero
+                end
+                bg.CFrame = cam.CFrame
+            end
+        end
+    end
 end)
 
 RunService.RenderStepped:Connect(function()
@@ -1201,7 +1227,12 @@ task.spawn(function()
     end
 end)
 
+-- BỘ NÃO ĐÁNH QUÁI (ĐÃ FIX: NHẬN DIỆN MỌI QUÁI TRÊN ĐẢO/HANG, SỬ DỤNG VŨ KHÍ XOAY VÒNG)
 local LastAttack = tick()
+local WepCycleIndex = 1
+local LastWepSwap = tick()
+local LastSkillTick = tick()
+
 task.spawn(function()
     while task.wait() do
         local char = LocalPlayer.Character local root = char and char:FindFirstChild("HumanoidRootPart") if not root then continue end
@@ -1243,13 +1274,31 @@ task.spawn(function()
         end
 
         local wantsAttack = _G.Yui.AutoClickAlways or (_G.Yui.AutoClickFarming and CurrentTarget) or _G.Yui.FastAttack
-        if wantsAttack and _G.Yui.SelectedWeapon ~= "None" then
+        
+        -- ĐÃ SỬA: Đổi vũ khí xoay vòng
+        local activeWeps = {}
+        for wName, active in pairs(_G.Yui.SelectedWeapons) do if active then table.insert(activeWeps, wName) end end
+        
+        local currentToolName = nil
+        if #activeWeps > 0 then
+            if #activeWeps > 1 then
+                if tick() - LastWepSwap >= 1.5 then 
+                    WepCycleIndex = WepCycleIndex + 1 if WepCycleIndex > #activeWeps then WepCycleIndex = 1 end
+                    LastWepSwap = tick()
+                end
+            else
+                WepCycleIndex = 1
+            end
+            currentToolName = activeWeps[WepCycleIndex]
+        end
+
+        if wantsAttack and currentToolName then
             pcall(function()
-                local toolToEquip = LocalPlayer.Backpack:FindFirstChild(_G.Yui.SelectedWeapon) or char:FindFirstChild(_G.Yui.SelectedWeapon)
+                local toolToEquip = LocalPlayer.Backpack:FindFirstChild(currentToolName) or char:FindFirstChild(currentToolName)
                 if toolToEquip and toolToEquip.Parent ~= char then char.Humanoid:EquipTool(toolToEquip) end
                 
                 local equippedTool = char:FindFirstChildOfClass("Tool")
-                if equippedTool and equippedTool.Name == _G.Yui.SelectedWeapon then
+                if equippedTool and equippedTool.Name == currentToolName then
                     equippedTool:Activate()
                     if _G.Yui.AutoClickFarming or _G.Yui.AutoClickAlways or _G.Yui.FastAttack then
                         if tick() - LastAttack >= 0.1 then
@@ -1268,7 +1317,13 @@ task.spawn(function()
         end
         
         if CurrentTarget and CurrentTarget:FindFirstChild("HumanoidRootPart") then
-            for key, isEnabled in pairs(_G.Yui.AutoSkill) do if isEnabled then pcall(function() VirtualInputManager:SendKeyEvent(true, Enum.KeyCode[key], false, game) end) end end
+            -- ĐÃ SỬA: Thêm Delay xả Skill
+            if tick() - LastSkillTick >= _G.Yui.SkillDelay then
+                for key, isEnabled in pairs(_G.Yui.AutoSkill) do 
+                    if isEnabled then pcall(function() VirtualInputManager:SendKeyEvent(true, Enum.KeyCode[key], false, game) end) end 
+                end
+                LastSkillTick = tick()
+            end
         end
 
         if _G.Yui.AutoHaki.E and not HakiStates.E then VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game) task.wait(0.1) VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game) HakiStates.E = true end
@@ -1277,6 +1332,7 @@ task.spawn(function()
     end
 end)
 
+-- BỘ NÃO UỐNG NƯỚC (MASS DRINK - LỖ ĐEN)
 local LastDrinkTick = tick()
 task.spawn(function()
     while task.wait(0.1) do
