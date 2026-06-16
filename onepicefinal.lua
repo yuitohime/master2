@@ -1,5 +1,5 @@
 -- =========================================================================
--- [ULTIMATE MASTER] YUIHUB V26 - GUN AIMBOT, COLOR WHEEL, MASS APPLE/JUICE
+-- [ULTIMATE MASTER] YUIHUB V26 - FIX FISH, SKILLS, FARM NEAR & TOKEN ESP
 -- =========================================================================
 
 local Players = game:GetService("Players")
@@ -11,6 +11,7 @@ local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
 local VirtualUser = game:GetService("VirtualUser")
 local TeleportService = game:GetService("TeleportService")
+local GuiService = game:GetService("GuiService")
 local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
@@ -18,7 +19,7 @@ local TargetGui = (gethui and pcall(gethui) and gethui()) or CoreGui
 if not pcall(function() local _ = TargetGui.Name end) then TargetGui = LocalPlayer:WaitForChild("PlayerGui") end
 
 for _, gui in pairs(TargetGui:GetChildren()) do 
-    if gui.Name == "YuiHub" or gui.Name == "YuiIntro" or gui.Name == "YuiNotif" then gui:Destroy() end 
+    if gui.Name == "YuiHub" or gui.Name == "YuiIntro" or gui.Name == "YuiNotif" or gui.Name == "YuiGunDot" then gui:Destroy() end 
 end
 
 LocalPlayer.Idled:Connect(function()
@@ -31,11 +32,12 @@ end)
 _G.Yui = {
     AntiAFK = true, MoveMethod = "Teleport", CollectMethod = "Teleport (Continuous)", MoveSpeed = 300, HoverOnKill = true,
     AutoFarm = false, SelectedMobs = {}, SelectedWeapons = {}, FastAttack = false, 
-    AutoClickFarming = false, AutoClickAlways = false, ClickPosition = "Center", AutoGunFarm = false, GunAttackDist = 25,
+    AutoClickFarming = false, AutoClickAlways = false, ClickPosition = "Center", AutoGunFarm = false,
     MobLevelFilter = "All", FarmNear = false,
     AttackDist = 5, AttackPos = "Above", AutoSpawn = false,
     AutoSkill = {E=false, R=false, T=false, Z=false, X=false, C=false, V=false, B=false, N=false, F=false}, 
     HoldSkill = {E=false, R=false, T=false, Z=false, X=false, C=false, V=false, B=false, N=false, F=false}, HoldTime = 1, SkillDelay = 0.1,
+    AutoAimSkillPlayer = false, -- TÍNH NĂNG MỚI: GHIM SKILL NGƯỜI
     AutoHaki = {E=false, R=false, T=false},
     SelectedNormalQuest = "", AutoNormalQuest = false,
     SelectedDailyQuest = "", AutoDailyQuest = false, AutoAcceptQuest = false, TeleportToNPC = true,
@@ -48,7 +50,9 @@ _G.Yui = {
     AutoGetRod = false, AutoFish = false, AutoShake = false, AutoPin = false,
     TargetPlayer = "None", AutoHunt = false, HuntDist = 5, ESPPlayer = false, Spectate = false,
     ESPItems = false, SelectedESPItems = {}, TargetItemTeleport = "None",
-    CustomHue = 330, CustomSat = 1, TextHue = 0
+    AutoRejoin = false, AutoExecute = false, ExecuteScript = "", 
+    AutoLoadConfig = false, AutoLoadName = "", ConfigName = "Default", AutoHop = false, HopDelay = 3,
+    CustomHue = 330, TextHue = 0, BgHue = 240
 }
 
 local CurrentTarget = nil
@@ -70,16 +74,11 @@ LocalPlayer.CharacterAdded:Connect(function(char)
     end)
 end)
 
--- =========================================================================
--- HỆ THỐNG ÂM THANH UI (UI SOUND EFFECTS)
--- =========================================================================
 local function PlayUISound()
     pcall(function()
         local s = Instance.new("Sound", CoreGui)
         s.SoundId = "rbxassetid://6895079853" 
-        s.Volume = 1
-        s:Play()
-        game.Debris:AddItem(s, 2)
+        s.Volume = 1 s:Play() game.Debris:AddItem(s, 2)
     end)
 end
 
@@ -110,13 +109,7 @@ end)
 local function BindTap(element, callback)
     local debounce = false
     element.Activated:Connect(function()
-        if not debounce then 
-            debounce = true 
-            PlayUISound()
-            callback() 
-            task.wait(0.1) 
-            debounce = false 
-        end
+        if not debounce then debounce = true PlayUISound() callback() task.wait(0.1) debounce = false end
     end)
 end
 
@@ -136,19 +129,51 @@ local function MakeDraggable(dragArea, targetFrame)
     end)
 end
 
--- Theme Logic
+-- =========================================================================
+-- CONFIG SYSTEM
+-- =========================================================================
+local ConfigFolder = "YuiHub_Configs"
+if isfolder and not isfolder(ConfigFolder) then makefolder(ConfigFolder) end
+local CoreFile = ConfigFolder .. "/CoreSettings.json"
+
+local function SaveCoreSettings()
+    if writefile and HttpService then
+        writefile(CoreFile, HttpService:JSONEncode({
+            AutoRejoin = _G.Yui.AutoRejoin, AutoExecute = _G.Yui.AutoExecute, ExecuteScript = _G.Yui.ExecuteScript,
+            AutoLoadConfig = _G.Yui.AutoLoadConfig, AutoLoadName = _G.Yui.AutoLoadName, LastConfig = _G.Yui.ConfigName,
+            CustomHue = _G.Yui.CustomHue, TextHue = _G.Yui.TextHue, BgHue = _G.Yui.BgHue
+        }))
+    end
+end
+
+if isfile and isfile(CoreFile) then
+    local s, data = pcall(function() return HttpService:JSONDecode(readfile(CoreFile)) end)
+    if s and data then
+        if data.AutoRejoin ~= nil then _G.Yui.AutoRejoin = data.AutoRejoin end
+        if data.AutoExecute ~= nil then _G.Yui.AutoExecute = data.AutoExecute end
+        if data.ExecuteScript ~= nil then _G.Yui.ExecuteScript = data.ExecuteScript end
+        if data.AutoLoadConfig ~= nil then _G.Yui.AutoLoadConfig = data.AutoLoadConfig end
+        if data.AutoLoadName ~= nil then _G.Yui.AutoLoadName = data.AutoLoadName end
+        if data.LastConfig ~= nil then _G.Yui.ConfigName = data.LastConfig end
+        if data.CustomHue ~= nil then _G.Yui.CustomHue = data.CustomHue end
+        if data.TextHue ~= nil then _G.Yui.TextHue = data.TextHue end
+        if data.BgHue ~= nil then _G.Yui.BgHue = data.BgHue end
+    end
+end
+
+-- =========================================================================
+-- THEME LOGIC
+-- =========================================================================
 local Theme = {
-    MainBg = Color3.fromRGB(15, 15, 18), HeaderBg = Color3.fromRGB(22, 22, 25), BoxBg = Color3.fromRGB(20, 20, 23), 
-    Accent = Color3.fromHSV(_G.Yui.CustomHue / 360, _G.Yui.CustomSat, 1),
+    MainBg = Color3.fromHSV(_G.Yui.BgHue / 360, 0.4, 0.1), HeaderBg = Color3.fromHSV(_G.Yui.BgHue / 360, 0.4, 0.15), BoxBg = Color3.fromHSV(_G.Yui.BgHue / 360, 0.4, 0.13), 
+    Accent = Color3.fromHSV(_G.Yui.CustomHue / 360, 1, 1),
     TextTitle = Color3.fromHSV(_G.Yui.TextHue / 360, 0.8, 1), 
     TextSub = Color3.fromRGB(140, 140, 140), Stroke = Color3.fromRGB(35, 35, 40), SelectedGreen = Color3.fromRGB(50, 255, 100)
 }
 local DynamicUIElements = {}
 
-local function UpdateThemeColor(hueVal, satVal)
-    _G.Yui.CustomHue = hueVal
-    _G.Yui.CustomSat = satVal
-    Theme.Accent = Color3.fromHSV(hueVal, satVal, 1)
+local function UpdateThemeColor(hueVal)
+    _G.Yui.CustomHue = hueVal Theme.Accent = Color3.fromHSV(hueVal / 360, 1, 1)
     for _, item in pairs(DynamicUIElements) do
         if item.Obj and item.Obj.Parent then
             if item.IsToggle then if item.Obj.BackgroundColor3 ~= Theme.MainBg then item.Obj[item.Prop] = Theme.Accent end 
@@ -164,8 +189,23 @@ local function UpdateTextColor(hueVal)
     end
 end
 
+local function UpdateBgColor(hueVal)
+    _G.Yui.BgHue = hueVal 
+    Theme.MainBg = Color3.fromHSV(hueVal / 360, 0.4, 0.1)
+    Theme.HeaderBg = Color3.fromHSV(hueVal / 360, 0.4, 0.15)
+    Theme.BoxBg = Color3.fromHSV(hueVal / 360, 0.4, 0.13)
+    for _, item in pairs(DynamicUIElements) do
+        if item.Obj and item.Obj.Parent then
+            if item.Type == "MainBg" then item.Obj[item.Prop] = Theme.MainBg
+            elseif item.Type == "HeaderBg" then item.Obj[item.Prop] = Theme.HeaderBg
+            elseif item.Type == "BoxBg" then item.Obj[item.Prop] = Theme.BoxBg
+            elseif item.IsToggle and item.Obj.BackgroundColor3 ~= Theme.Accent then item.Obj[item.Prop] = Theme.MainBg end
+        end
+    end
+end
+
 -- =========================================================================
--- HỆ THỐNG THÔNG BÁO GỘP (STACKING NOTIFICATION SYSTEM)
+-- HỆ THỐNG THÔNG BÁO GỘP (STACKING NOTIFICATION)
 -- =========================================================================
 local NotifGui = Instance.new("ScreenGui") NotifGui.Name = "YuiNotif" NotifGui.Parent = TargetGui NotifGui.ResetOnSpawn = false
 
@@ -191,9 +231,7 @@ local function SendNotification(text, color, stackId)
         
         local sizeTween = TweenService:Create(ActiveNotifs[stackId].Frame, TweenInfo.new(0.1, Enum.EasingStyle.Bounce), {Size = UDim2.new(1, 10, 0, 35)})
         sizeTween:Play()
-        sizeTween.Completed:Connect(function()
-            TweenService:Create(ActiveNotifs[stackId].Frame, TweenInfo.new(0.1), {Size = UDim2.new(1, 0, 0, 35)}):Play()
-        end)
+        sizeTween.Completed:Connect(function() TweenService:Create(ActiveNotifs[stackId].Frame, TweenInfo.new(0.1), {Size = UDim2.new(1, 0, 0, 35)}):Play() end)
         return
     end
     
@@ -242,6 +280,23 @@ local function SendNotification(text, color, stackId)
     end)
 end
 
+-- =========================================================================
+-- GUN DOT (AIMBOT MỤC TIÊU)
+-- =========================================================================
+local GunDotGui = Instance.new("ScreenGui", TargetGui) GunDotGui.Name = "YuiGunDot" GunDotGui.ResetOnSpawn = false
+local GunDot = Instance.new("Frame", GunDotGui)
+GunDot.Size = UDim2.new(0, 20, 0, 20)
+GunDot.Position = UDim2.new(0.5, -10, 0.5, -10)
+GunDot.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+GunDot.Visible = _G.Yui.AutoGunFarm
+Instance.new("UICorner", GunDot).CornerRadius = UDim.new(1, 0)
+local GunDotStroke = Instance.new("UIStroke", GunDot) GunDotStroke.Color = Color3.fromRGB(255,255,255) GunDotStroke.Thickness = 2
+local GunDotCenter = Instance.new("Frame", GunDot)
+GunDotCenter.Size = UDim2.new(0, 4, 0, 4) GunDotCenter.Position = UDim2.new(0.5, -2, 0.5, -2) GunDotCenter.BackgroundColor3 = Color3.fromRGB(255,255,255)
+Instance.new("UICorner", GunDotCenter).CornerRadius = UDim.new(1,0)
+MakeDraggable(GunDot, GunDot)
+
+
 local ScreenGui = Instance.new("ScreenGui") ScreenGui.Name = "YuiHub" ScreenGui.Parent = TargetGui ScreenGui.ResetOnSpawn = false
 local ESPFolder = Instance.new("Folder") ESPFolder.Name = "YuiESPFolder" ESPFolder.Parent = CoreGui
 local ItemESPFolder = Instance.new("Folder") ItemESPFolder.Name = "YuiItemESPFolder" ItemESPFolder.Parent = CoreGui
@@ -250,20 +305,22 @@ local ItemESPFolder = Instance.new("Folder") ItemESPFolder.Name = "YuiItemESPFol
 -- MAIN GUI CONSTRUCTION
 -- =========================================================================
 local OpenIconBtn = Instance.new("ImageButton", ScreenGui) OpenIconBtn.Name = "OpenIconBtn"
-OpenIconBtn.Size = UDim2.new(0, 45, 0, 45) OpenIconBtn.Position = UDim2.new(0, 15, 0.5, -22) OpenIconBtn.BackgroundColor3 = Theme.HeaderBg
+OpenIconBtn.Size = UDim2.new(0, 45, 0, 45) OpenIconBtn.Position = UDim2.new(0, 15, 0.5, -22) OpenIconBtn.BackgroundColor3 = Theme.HeaderBg table.insert(DynamicUIElements, {Obj = OpenIconBtn, Prop = "BackgroundColor3", Type = "HeaderBg"})
 OpenIconBtn.Image = "rbxassetid://14457317772" OpenIconBtn.Visible = true OpenIconBtn.Active = true
 Instance.new("UICorner", OpenIconBtn).CornerRadius = UDim.new(0, 8) 
 local OpenStroke = Instance.new("UIStroke", OpenIconBtn) OpenStroke.Color = Theme.Accent table.insert(DynamicUIElements, {Obj = OpenStroke, Prop = "Color", Type = "Accent"})
 MakeDraggable(OpenIconBtn, OpenIconBtn)
 
 local MainFrame = Instance.new("Frame", ScreenGui) MainFrame.Name = "YuiMainFrame"
-MainFrame.Size = UDim2.new(0, 560, 0, 380) MainFrame.Position = UDim2.new(0.5, -280, 0.5, -190) MainFrame.BackgroundColor3 = Theme.MainBg MainFrame.BorderSizePixel = 0 MainFrame.Active = true MainFrame.Visible = false
+MainFrame.Size = UDim2.new(0, 560, 0, 380) MainFrame.Position = UDim2.new(0.5, -280, 0.5, -190) MainFrame.BackgroundColor3 = Theme.MainBg table.insert(DynamicUIElements, {Obj = MainFrame, Prop = "BackgroundColor3", Type = "MainBg"})
+MainFrame.BorderSizePixel = 0 MainFrame.Active = true MainFrame.Visible = false
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8) Instance.new("UIStroke", MainFrame).Color = Theme.Stroke
 MakeDraggable(MainFrame, MainFrame)
 
 BindTap(OpenIconBtn, function() MainFrame.Visible = true OpenIconBtn.Visible = false end)
 
-local Header = Instance.new("Frame", MainFrame) Header.Size = UDim2.new(1, -20, 0, 60) Header.Position = UDim2.new(0, 10, 0, 10) Header.BackgroundColor3 = Theme.HeaderBg Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 8) Instance.new("UIStroke", Header).Color = Theme.Stroke
+local Header = Instance.new("Frame", MainFrame) Header.Size = UDim2.new(1, -20, 0, 60) Header.Position = UDim2.new(0, 10, 0, 10) Header.BackgroundColor3 = Theme.HeaderBg table.insert(DynamicUIElements, {Obj = Header, Prop = "BackgroundColor3", Type = "HeaderBg"})
+Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 8) Instance.new("UIStroke", Header).Color = Theme.Stroke
 MakeDraggable(Header, MainFrame)
 
 local BlueLine = Instance.new("Frame", Header) BlueLine.Size = UDim2.new(0, 3, 0, 30) BlueLine.Position = UDim2.new(0, 15, 0, 15) BlueLine.BackgroundColor3 = Theme.Accent Instance.new("UICorner", BlueLine).CornerRadius = UDim.new(1, 0) table.insert(DynamicUIElements, {Obj = BlueLine, Prop = "BackgroundColor3", Type = "Accent"})
@@ -274,7 +331,7 @@ local MinBtn = Instance.new("TextButton", Header) MinBtn.Size = UDim2.new(0, 30,
 BindTap(MinBtn, function() MainFrame.Visible = false OpenIconBtn.Visible = true for _, dd in ipairs(AllDropdowns) do dd.Visible = false end end)
 
 local CloseBtn = Instance.new("TextButton", Header) CloseBtn.Size = UDim2.new(0, 30, 0, 30) CloseBtn.Position = UDim2.new(1, -35, 0, 15) CloseBtn.BackgroundTransparency = 1 CloseBtn.Text = "✕" CloseBtn.TextColor3 = Color3.fromRGB(255, 80, 80) CloseBtn.Font = Enum.Font.GothamBold CloseBtn.TextSize = 14
-BindTap(CloseBtn, function() ScreenGui:Destroy() NotifGui:Destroy() ESPFolder:Destroy() ItemESPFolder:Destroy() for _, line in pairs(ESPTracers) do if line then line.Visible = false line:Remove() end end ESPTracers = {} end)
+BindTap(CloseBtn, function() ScreenGui:Destroy() NotifGui:Destroy() GunDotGui:Destroy() ESPFolder:Destroy() ItemESPFolder:Destroy() for _, line in pairs(ESPTracers) do if line then line.Visible = false line:Remove() end end ESPTracers = {} end)
 
 local Sidebar = Instance.new("ScrollingFrame", MainFrame) Sidebar.Size = UDim2.new(0, 130, 1, -85) Sidebar.Position = UDim2.new(0, 10, 0, 75) Sidebar.BackgroundTransparency = 1 Sidebar.ScrollBarThickness = 0 local SidebarLayout = Instance.new("UIListLayout", Sidebar) SidebarLayout.Padding = UDim.new(0, 5)
 local ContentArea = Instance.new("Frame", MainFrame) ContentArea.Size = UDim2.new(1, -155, 1, -85) ContentArea.Position = UDim2.new(0, 145, 0, 75) ContentArea.BackgroundTransparency = 1
@@ -282,6 +339,7 @@ local ContentArea = Instance.new("Frame", MainFrame) ContentArea.Size = UDim2.ne
 local Tabs = {}
 local function CreateTab(name, isActive)
     local TabBtn = Instance.new("TextButton", Sidebar) TabBtn.Size = UDim2.new(1, 0, 0, 30) TabBtn.BackgroundColor3 = isActive and Theme.BoxBg or Theme.MainBg TabBtn.Text = "  " .. name TabBtn.TextColor3 = isActive and Theme.TextTitle or Theme.TextSub TabBtn.Font = Enum.Font.GothamBold TabBtn.TextSize = 11 TabBtn.TextXAlignment = Enum.TextXAlignment.Left Instance.new("UICorner", TabBtn).CornerRadius = UDim.new(0, 6)
+    table.insert(DynamicUIElements, {Obj = TabBtn, Prop = "BackgroundColor3", Type = isActive and "BoxBg" or "MainBg"})
     table.insert(DynamicUIElements, {Obj = TabBtn, Prop = "TextColor3", Type = "Text"})
     
     local ActiveLine = Instance.new("Frame", TabBtn) ActiveLine.Size = UDim2.new(0, 3, 0.6, 0) ActiveLine.Position = UDim2.new(0, 0, 0.2, 0) ActiveLine.BackgroundColor3 = Theme.Accent ActiveLine.Visible = isActive Instance.new("UICorner", ActiveLine).CornerRadius = UDim.new(1, 0) table.insert(DynamicUIElements, {Obj = ActiveLine, Prop = "BackgroundColor3", Type = "Accent"})
@@ -304,7 +362,7 @@ local function CreateTab(name, isActive)
 end
 
 local function CreateSection(titleText, parentCol)
-    local Box = Instance.new("Frame", parentCol) Box.BackgroundColor3 = Theme.BoxBg Box.Size = UDim2.new(1, 0, 0, 50) Instance.new("UICorner", Box).CornerRadius = UDim.new(0, 6) Instance.new("UIStroke", Box).Color = Theme.Stroke
+    local Box = Instance.new("Frame", parentCol) Box.BackgroundColor3 = Theme.BoxBg Box.Size = UDim2.new(1, 0, 0, 50) Instance.new("UICorner", Box).CornerRadius = UDim.new(0, 6) Instance.new("UIStroke", Box).Color = Theme.Stroke table.insert(DynamicUIElements, {Obj = Box, Prop = "BackgroundColor3", Type = "BoxBg"})
     local Title = Instance.new("TextLabel", Box) Title.Size = UDim2.new(1, -20, 0, 20) Title.Position = UDim2.new(0, 10, 0, 5) Title.BackgroundTransparency = 1 Title.Text = titleText Title.TextColor3 = Theme.Accent Title.Font = Enum.Font.GothamBold Title.TextSize = 10 Title.TextXAlignment = Enum.TextXAlignment.Left table.insert(DynamicUIElements, {Obj = Title, Prop = "TextColor3", Type = "Accent"})
     local Container = Instance.new("Frame", Box) Container.Size = UDim2.new(1, -20, 1, -30) Container.Position = UDim2.new(0, 10, 0, 25) Container.BackgroundTransparency = 1 local Layout = Instance.new("UIListLayout", Container) Layout.Padding = UDim.new(0, 6)
     Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function() Box.Size = UDim2.new(1, 0, 0, Layout.AbsoluteContentSize.Y + 35) end)
@@ -331,7 +389,7 @@ local function CreateSlider(labelText, min, max, default, parentBox, callback, a
     local Frame = Instance.new("Frame", parentBox) Frame.Size = UDim2.new(1, 0, 0, 35) Frame.BackgroundTransparency = 1
     local Label = Instance.new("TextLabel", Frame) Label.Size = UDim2.new(1, 0, 0, 15) Label.BackgroundTransparency = 1 Label.Text = labelText Label.TextColor3 = Theme.TextTitle Label.Font = Enum.Font.GothamBold Label.TextSize = 10 Label.TextXAlignment = Enum.TextXAlignment.Left table.insert(DynamicUIElements, {Obj = Label, Prop = "TextColor3", Type = "Text"})
     local ValLabel = Instance.new("TextLabel", Frame) ValLabel.Size = UDim2.new(1, 0, 0, 15) ValLabel.BackgroundTransparency = 1 ValLabel.Text = tostring(default) ValLabel.TextColor3 = Theme.TextSub ValLabel.Font = Enum.Font.Gotham ValLabel.TextSize = 10 ValLabel.TextXAlignment = Enum.TextXAlignment.Right
-    local Track = Instance.new("Frame", Frame) Track.Size = UDim2.new(1, 0, 0, 4) Track.Position = UDim2.new(0, 0, 0, 22) Track.BackgroundColor3 = Theme.MainBg Instance.new("UICorner", Track).CornerRadius = UDim.new(1, 0) Instance.new("UIStroke", Track).Color = Theme.Stroke
+    local Track = Instance.new("Frame", Frame) Track.Size = UDim2.new(1, 0, 0, 4) Track.Position = UDim2.new(0, 0, 0, 22) Track.BackgroundColor3 = Theme.MainBg table.insert(DynamicUIElements, {Obj = Track, Prop = "BackgroundColor3", Type = "MainBg"}) Instance.new("UICorner", Track).CornerRadius = UDim.new(1, 0) Instance.new("UIStroke", Track).Color = Theme.Stroke
     local Fill = Instance.new("Frame", Track) Fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0) Fill.BackgroundColor3 = Theme.Accent Instance.new("UICorner", Fill).CornerRadius = UDim.new(1, 0) table.insert(DynamicUIElements, {Obj = Fill, Prop = "BackgroundColor3", Type = "Accent"})
     local Knob = Instance.new("TextButton", Fill) Knob.Size = UDim2.new(0, 10, 0, 10) Knob.Position = UDim2.new(1, -5, 0.5, -5) Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255) Knob.Text = "" Instance.new("UICorner", Knob).CornerRadius = UDim.new(1, 0)
 
@@ -348,77 +406,11 @@ local function CreateSlider(labelText, min, max, default, parentBox, callback, a
     return function(val) val = math.clamp(val, min, max) Fill.Size = UDim2.new((val - min) / (max - min), 0, 1, 0) ValLabel.Text = tostring(val) callback(val) end
 end
 
--- COLOR WHEEL MỚI (CHO MENU ACCENT)
-local function CreateCircularColorPicker(labelText, parentBox, callback)
-    local Frame = Instance.new("Frame", parentBox) 
-    Frame.Size = UDim2.new(1, 0, 0, 130) 
-    Frame.BackgroundTransparency = 1
-    
-    local Label = Instance.new("TextLabel", Frame) 
-    Label.Size = UDim2.new(1, 0, 0, 15) 
-    Label.BackgroundTransparency = 1 
-    Label.Text = labelText 
-    Label.TextColor3 = Theme.TextTitle 
-    Label.Font = Enum.Font.GothamBold 
-    Label.TextSize = 10 
-    Label.TextXAlignment = Enum.TextXAlignment.Left 
-    table.insert(DynamicUIElements, {Obj = Label, Prop = "TextColor3", Type = "Text"})
-
-    local WheelContainer = Instance.new("Frame", Frame)
-    WheelContainer.Size = UDim2.new(0, 100, 0, 100)
-    WheelContainer.Position = UDim2.new(0.5, -50, 0, 20)
-    WheelContainer.BackgroundTransparency = 1
-    
-    local Wheel = Instance.new("ImageLabel", WheelContainer)
-    Wheel.Size = UDim2.new(1, 0, 1, 0)
-    Wheel.BackgroundTransparency = 1
-    Wheel.Image = "rbxassetid://6022668888" 
-
-    local Knob = Instance.new("Frame", Wheel) 
-    Knob.Size = UDim2.new(0, 12, 0, 12) 
-    Knob.AnchorPoint = Vector2.new(0.5, 0.5)
-    Knob.Position = UDim2.new(0.5, 0, 0.5, 0) 
-    Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255) 
-    Instance.new("UICorner", Knob).CornerRadius = UDim.new(1, 0)
-    local Stroke = Instance.new("UIStroke", Knob)
-    Stroke.Color = Color3.fromRGB(0,0,0)
-    Stroke.Thickness = 1
-
-    local drag = false
-    local function update(input)
-        local center = Wheel.AbsolutePosition + (Wheel.AbsoluteSize / 2)
-        local mousePos = Vector2.new(input.Position.X, input.Position.Y)
-        local vec = mousePos - center
-        local radius = Wheel.AbsoluteSize.X / 2
-        
-        local dist = math.clamp(vec.Magnitude, 0, radius)
-        local dir = vec.Magnitude > 0 and vec.Unit or Vector2.new(0,0)
-        local pos = dir * dist
-        
-        Knob.Position = UDim2.new(0.5, pos.X / radius * 0.5, 0.5, pos.Y / radius * 0.5)
-        
-        local hue = (math.atan2(vec.Y, vec.X) + math.pi) / (math.pi * 2)
-        local sat = dist / radius
-        callback(hue * 360, sat)
-    end
-    
-    Wheel.InputBegan:Connect(function(inp) 
-        if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then 
-            drag = true update(inp) 
-        end 
-    end)
-    UserInputService.InputEnded:Connect(function(inp) 
-        if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then drag = false end 
-    end)
-    UserInputService.InputChanged:Connect(function(inp) 
-        if drag and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then update(inp) end 
-    end)
-end
-
-local function CreateColorPicker(labelText, defaultHue, parentBox, callback)
-    local Frame = Instance.new("Frame", parentBox) Frame.Size = UDim2.new(1, 0, 0, 35) Frame.BackgroundTransparency = 1
+local function CreateThickColorPicker(labelText, defaultHue, parentBox, callback)
+    local Frame = Instance.new("Frame", parentBox) Frame.Size = UDim2.new(1, 0, 0, 45) Frame.BackgroundTransparency = 1
     local Label = Instance.new("TextLabel", Frame) Label.Size = UDim2.new(1, 0, 0, 15) Label.BackgroundTransparency = 1 Label.Text = labelText Label.TextColor3 = Theme.TextTitle Label.Font = Enum.Font.GothamBold Label.TextSize = 10 Label.TextXAlignment = Enum.TextXAlignment.Left table.insert(DynamicUIElements, {Obj = Label, Prop = "TextColor3", Type = "Text"})
-    local Track = Instance.new("Frame", Frame) Track.Size = UDim2.new(1, 0, 0, 6) Track.Position = UDim2.new(0, 0, 0, 22) Track.BackgroundColor3 = Color3.fromRGB(255, 255, 255) Instance.new("UICorner", Track).CornerRadius = UDim.new(1, 0) Instance.new("UIStroke", Track).Color = Theme.Stroke
+    
+    local Track = Instance.new("Frame", Frame) Track.Size = UDim2.new(1, 0, 0, 16) Track.Position = UDim2.new(0, 0, 0, 22) Track.BackgroundColor3 = Color3.fromRGB(255, 255, 255) Instance.new("UICorner", Track).CornerRadius = UDim.new(0, 4) Instance.new("UIStroke", Track).Color = Theme.Stroke
     local UIGradient = Instance.new("UIGradient", Track)
     UIGradient.Color = ColorSequence.new({
         ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)), ColorSequenceKeypoint.new(0.167, Color3.fromRGB(255, 255, 0)),
@@ -426,12 +418,13 @@ local function CreateColorPicker(labelText, defaultHue, parentBox, callback)
         ColorSequenceKeypoint.new(0.667, Color3.fromRGB(0, 0, 255)), ColorSequenceKeypoint.new(0.833, Color3.fromRGB(255, 0, 255)),
         ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
     })
-    local Knob = Instance.new("TextButton", Track) Knob.Size = UDim2.new(0, 12, 0, 12) Knob.Position = UDim2.new(defaultHue/360, -6, 0.5, -6) Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255) Knob.Text = "" Instance.new("UICorner", Knob).CornerRadius = UDim.new(1, 0) Instance.new("UIStroke", Knob).Color = Color3.fromRGB(0,0,0)
+    
+    local Knob = Instance.new("TextButton", Track) Knob.Size = UDim2.new(0, 16, 0, 20) Knob.Position = UDim2.new(defaultHue/360, -8, 0.5, -10) Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255) Knob.Text = "" Instance.new("UICorner", Knob).CornerRadius = UDim.new(0, 4) Instance.new("UIStroke", Knob).Color = Color3.fromRGB(0,0,0)
 
     local drag = false
     local function update(input)
         local rel = math.clamp((input.Position.X - Track.AbsolutePosition.X) / Track.AbsoluteSize.X, 0, 1)
-        Knob.Position = UDim2.new(rel, -6, 0.5, -6) callback(math.floor(rel * 360))
+        Knob.Position = UDim2.new(rel, -8, 0.5, -10) callback(math.floor(rel * 360))
     end
     Knob.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then drag = true end end)
     Track.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then drag = true update(inp) end end)
@@ -440,16 +433,22 @@ local function CreateColorPicker(labelText, defaultHue, parentBox, callback)
 end
 
 local function CreateButton(text, parentBox, callback)
-    local Btn = Instance.new("TextButton", parentBox) Btn.Size = UDim2.new(1, 0, 0, 24) Btn.BackgroundColor3 = Theme.MainBg Btn.TextColor3 = Theme.TextTitle Btn.Font = Enum.Font.GothamBold Btn.TextSize = 10 Btn.Text = text Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 4) Instance.new("UIStroke", Btn).Color = Theme.Stroke table.insert(DynamicUIElements, {Obj = Btn, Prop = "TextColor3", Type = "Text"})
+    local Btn = Instance.new("TextButton", parentBox) Btn.Size = UDim2.new(1, 0, 0, 24) Btn.BackgroundColor3 = Theme.MainBg table.insert(DynamicUIElements, {Obj = Btn, Prop = "BackgroundColor3", Type = "MainBg"}) Btn.TextColor3 = Theme.TextTitle Btn.Font = Enum.Font.GothamBold Btn.TextSize = 10 Btn.Text = text Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 4) Instance.new("UIStroke", Btn).Color = Theme.Stroke table.insert(DynamicUIElements, {Obj = Btn, Prop = "TextColor3", Type = "Text"})
     BindTap(Btn, callback) return Btn
+end
+
+local function CreateTextBox(placeholder, parentBox, defaultText, callback)
+    local Frame = Instance.new("Frame", parentBox) Frame.Size = UDim2.new(1, 0, 0, 24) Frame.BackgroundTransparency = 1
+    local Box = Instance.new("TextBox", Frame) Box.Size = UDim2.new(1, 0, 1, 0) Box.BackgroundColor3 = Theme.MainBg table.insert(DynamicUIElements, {Obj = Box, Prop = "BackgroundColor3", Type = "MainBg"}) Box.TextColor3 = Theme.TextTitle Box.Font = Enum.Font.Gotham Box.TextSize = 10 Box.PlaceholderText = placeholder Box.Text = defaultText or "" Instance.new("UICorner", Box).CornerRadius = UDim.new(0, 4) Instance.new("UIStroke", Box).Color = Theme.Stroke
+    Box.FocusLost:Connect(function() callback(Box.Text) end) return function(str) Box.Text = str end
 end
 
 local function CreateDropdown(labelStr, defaultStr, parentBox, callback)
     local Frame = Instance.new("Frame", parentBox) Frame.Size = UDim2.new(1, 0, 0, 26) Frame.BackgroundTransparency = 1
     local Label = Instance.new("TextLabel", Frame) Label.Size = UDim2.new(0.4, 0, 1, 0) Label.BackgroundTransparency = 1 Label.Text = labelStr Label.TextColor3 = Theme.TextTitle Label.Font = Enum.Font.GothamBold Label.TextSize = 9 Label.TextXAlignment = Enum.TextXAlignment.Left table.insert(DynamicUIElements, {Obj = Label, Prop = "TextColor3", Type = "Text"})
-    local Btn = Instance.new("TextButton", Frame) Btn.Size = UDim2.new(0.6, 0, 1, 0) Btn.Position = UDim2.new(0.4, 0, 0, 0) Btn.BackgroundColor3 = Theme.MainBg Btn.TextColor3 = Theme.TextSub Btn.Font = Enum.Font.Gotham Btn.TextSize = 9 Btn.Text = defaultStr .. " ▼" Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 4) Instance.new("UIStroke", Btn).Color = Theme.Stroke
+    local Btn = Instance.new("TextButton", Frame) Btn.Size = UDim2.new(0.6, 0, 1, 0) Btn.Position = UDim2.new(0.4, 0, 0, 0) Btn.BackgroundColor3 = Theme.MainBg table.insert(DynamicUIElements, {Obj = Btn, Prop = "BackgroundColor3", Type = "MainBg"}) Btn.TextColor3 = Theme.TextSub Btn.Font = Enum.Font.Gotham Btn.TextSize = 9 Btn.Text = defaultStr .. " ▼" Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 4) Instance.new("UIStroke", Btn).Color = Theme.Stroke
     
-    local FloatFrame = Instance.new("ScrollingFrame", ScreenGui) FloatFrame.Size = UDim2.new(0, 160, 0, 130) FloatFrame.BackgroundColor3 = Theme.HeaderBg FloatFrame.ZIndex = 999 FloatFrame.Visible = false FloatFrame.ScrollBarThickness = 2 Instance.new("UICorner", FloatFrame).CornerRadius = UDim.new(0, 4) 
+    local FloatFrame = Instance.new("ScrollingFrame", ScreenGui) FloatFrame.Size = UDim2.new(0, 160, 0, 130) FloatFrame.BackgroundColor3 = Theme.HeaderBg table.insert(DynamicUIElements, {Obj = FloatFrame, Prop = "BackgroundColor3", Type = "HeaderBg"}) FloatFrame.ZIndex = 999 FloatFrame.Visible = false FloatFrame.ScrollBarThickness = 2 Instance.new("UICorner", FloatFrame).CornerRadius = UDim.new(0, 4) 
     local Stroke = Instance.new("UIStroke", FloatFrame) Stroke.Color = Theme.Accent table.insert(DynamicUIElements, {Obj = Stroke, Prop = "Color", Type = "Accent"})
     local listLayout = Instance.new("UIListLayout", FloatFrame) table.insert(AllDropdowns, FloatFrame)
     RunService.RenderStepped:Connect(function() if FloatFrame.Visible then FloatFrame.Position = UDim2.new(0, Btn.AbsolutePosition.X - (160 - Btn.AbsoluteSize.X), 0, Btn.AbsolutePosition.Y + Btn.AbsoluteSize.Y + 2) end end)
@@ -457,7 +456,7 @@ local function CreateDropdown(labelStr, defaultStr, parentBox, callback)
     local isOpen = false
     BindTap(Btn, function() for _, dd in ipairs(AllDropdowns) do if dd~=FloatFrame then dd.Visible = false end end isOpen = not isOpen FloatFrame.Visible = isOpen end)
 
-    local SearchBox = Instance.new("TextBox", FloatFrame) SearchBox.Size = UDim2.new(1, -10, 0, 25) SearchBox.BackgroundColor3 = Theme.MainBg SearchBox.TextColor3 = Theme.TextTitle SearchBox.PlaceholderText = "Search..." SearchBox.Text = "" SearchBox.Font = Enum.Font.Gotham SearchBox.TextSize = 10 Instance.new("UICorner", SearchBox).CornerRadius = UDim.new(0,4)
+    local SearchBox = Instance.new("TextBox", FloatFrame) SearchBox.Size = UDim2.new(1, -10, 0, 25) SearchBox.BackgroundColor3 = Theme.MainBg table.insert(DynamicUIElements, {Obj = SearchBox, Prop = "BackgroundColor3", Type = "MainBg"}) SearchBox.TextColor3 = Theme.TextTitle SearchBox.PlaceholderText = "Search..." SearchBox.Text = "" SearchBox.Font = Enum.Font.Gotham SearchBox.TextSize = 10 Instance.new("UICorner", SearchBox).CornerRadius = UDim.new(0,4)
     SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
         local q = string.lower(SearchBox.Text) for _, v in pairs(FloatFrame:GetChildren()) do if v:IsA("TextButton") then if q == "" or string.find(string.lower(v.Text), q) then v.Visible = true else v.Visible = false end end end
     end)
@@ -466,7 +465,7 @@ local function CreateDropdown(labelStr, defaultStr, parentBox, callback)
         for _, v in pairs(FloatFrame:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
         local h = 30
         for _, item in ipairs(itemList) do
-            local b = Instance.new("TextButton", FloatFrame) b.Size = UDim2.new(1, 0, 0, 25) b.BackgroundColor3 = Theme.HeaderBg b.TextColor3 = Theme.TextTitle b.Text = "  " .. item b.Font = Enum.Font.Gotham b.TextSize = 9 b.TextXAlignment = Enum.TextXAlignment.Left b.ZIndex = 1000
+            local b = Instance.new("TextButton", FloatFrame) b.Size = UDim2.new(1, 0, 0, 25) b.BackgroundColor3 = Theme.HeaderBg table.insert(DynamicUIElements, {Obj = b, Prop = "BackgroundColor3", Type = "HeaderBg"}) b.TextColor3 = Theme.TextTitle b.Text = "  " .. item b.Font = Enum.Font.Gotham b.TextSize = 9 b.TextXAlignment = Enum.TextXAlignment.Left b.ZIndex = 1000
             table.insert(DynamicUIElements, {Obj = b, Prop = "TextColor3", Type = "Text"})
             h = h + 25 BindTap(b, function() Btn.Text = item .. " ▼" isOpen = false FloatFrame.Visible = false callback(item) end)
         end
@@ -478,9 +477,9 @@ end
 local function CreateMultiDropdown(labelStr, parentBox, globalList)
     local Frame = Instance.new("Frame", parentBox) Frame.Size = UDim2.new(1, 0, 0, 26) Frame.BackgroundTransparency = 1
     local Label = Instance.new("TextLabel", Frame) Label.Size = UDim2.new(0.4, 0, 1, 0) Label.BackgroundTransparency = 1 Label.Text = labelStr Label.TextColor3 = Theme.TextTitle Label.Font = Enum.Font.GothamBold Label.TextSize = 9 Label.TextXAlignment = Enum.TextXAlignment.Left table.insert(DynamicUIElements, {Obj = Label, Prop = "TextColor3", Type = "Text"})
-    local Btn = Instance.new("TextButton", Frame) Btn.Size = UDim2.new(0.6, 0, 1, 0) Btn.Position = UDim2.new(0.4, 0, 0, 0) Btn.BackgroundColor3 = Theme.MainBg Btn.TextColor3 = Theme.TextSub Btn.Font = Enum.Font.Gotham Btn.TextSize = 9 Btn.Text = "Select Multi ▼" Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 4) Instance.new("UIStroke", Btn).Color = Theme.Stroke
+    local Btn = Instance.new("TextButton", Frame) Btn.Size = UDim2.new(0.6, 0, 1, 0) Btn.Position = UDim2.new(0.4, 0, 0, 0) Btn.BackgroundColor3 = Theme.MainBg table.insert(DynamicUIElements, {Obj = Btn, Prop = "BackgroundColor3", Type = "MainBg"}) Btn.TextColor3 = Theme.TextSub Btn.Font = Enum.Font.Gotham Btn.TextSize = 9 Btn.Text = "Select Multi ▼" Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 4) Instance.new("UIStroke", Btn).Color = Theme.Stroke
     
-    local FloatFrame = Instance.new("ScrollingFrame", ScreenGui) FloatFrame.Size = UDim2.new(0, 160, 0, 150) FloatFrame.BackgroundColor3 = Theme.HeaderBg FloatFrame.ZIndex = 999 FloatFrame.Visible = false FloatFrame.ScrollBarThickness = 2 Instance.new("UICorner", FloatFrame).CornerRadius = UDim.new(0, 4) 
+    local FloatFrame = Instance.new("ScrollingFrame", ScreenGui) FloatFrame.Size = UDim2.new(0, 160, 0, 150) FloatFrame.BackgroundColor3 = Theme.HeaderBg table.insert(DynamicUIElements, {Obj = FloatFrame, Prop = "BackgroundColor3", Type = "HeaderBg"}) FloatFrame.ZIndex = 999 FloatFrame.Visible = false FloatFrame.ScrollBarThickness = 2 Instance.new("UICorner", FloatFrame).CornerRadius = UDim.new(0, 4) 
     local Stroke = Instance.new("UIStroke", FloatFrame) Stroke.Color = Theme.Accent table.insert(DynamicUIElements, {Obj = Stroke, Prop = "Color", Type = "Accent"})
     local listLayout = Instance.new("UIListLayout", FloatFrame) table.insert(AllDropdowns, FloatFrame)
     RunService.RenderStepped:Connect(function() if FloatFrame.Visible then FloatFrame.Position = UDim2.new(0, Btn.AbsolutePosition.X - (160 - Btn.AbsoluteSize.X), 0, Btn.AbsolutePosition.Y + Btn.AbsoluteSize.Y + 2) end end)
@@ -488,7 +487,7 @@ local function CreateMultiDropdown(labelStr, parentBox, globalList)
     local isOpen = false
     BindTap(Btn, function() for _, dd in ipairs(AllDropdowns) do if dd~=FloatFrame then dd.Visible = false end end isOpen = not isOpen FloatFrame.Visible = isOpen end)
 
-    local SearchBox = Instance.new("TextBox", FloatFrame) SearchBox.Size = UDim2.new(1, -10, 0, 25) SearchBox.BackgroundColor3 = Theme.MainBg SearchBox.TextColor3 = Theme.TextTitle SearchBox.PlaceholderText = "Search..." SearchBox.Text = "" SearchBox.Font = Enum.Font.Gotham SearchBox.TextSize = 10 Instance.new("UICorner", SearchBox).CornerRadius = UDim.new(0,4)
+    local SearchBox = Instance.new("TextBox", FloatFrame) SearchBox.Size = UDim2.new(1, -10, 0, 25) SearchBox.BackgroundColor3 = Theme.MainBg table.insert(DynamicUIElements, {Obj = SearchBox, Prop = "BackgroundColor3", Type = "MainBg"}) SearchBox.TextColor3 = Theme.TextTitle SearchBox.PlaceholderText = "Search..." SearchBox.Text = "" SearchBox.Font = Enum.Font.Gotham SearchBox.TextSize = 10 Instance.new("UICorner", SearchBox).CornerRadius = UDim.new(0,4)
     SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
         local q = string.lower(SearchBox.Text) for _, v in pairs(FloatFrame:GetChildren()) do if v:IsA("TextButton") then if q == "" or string.find(string.lower(v.Text), q) then v.Visible = true else v.Visible = false end end end
     end)
@@ -498,7 +497,7 @@ local function CreateMultiDropdown(labelStr, parentBox, globalList)
         local h = 30
         for _, item in ipairs(itemList) do
             local isSelected = globalList[item]
-            local b = Instance.new("TextButton", FloatFrame) b.Size = UDim2.new(1, 0, 0, 25) b.BackgroundColor3 = Theme.HeaderBg 
+            local b = Instance.new("TextButton", FloatFrame) b.Size = UDim2.new(1, 0, 0, 25) b.BackgroundColor3 = Theme.HeaderBg table.insert(DynamicUIElements, {Obj = b, Prop = "BackgroundColor3", Type = "HeaderBg"})
             b.TextColor3 = isSelected and Theme.SelectedGreen or Theme.TextTitle 
             b.Text = "  " .. item b.Font = Enum.Font.GothamBold b.TextSize = 9 b.TextXAlignment = Enum.TextXAlignment.Left b.ZIndex = 1000
             h = h + 25 BindTap(b, function() globalList[item] = not globalList[item] b.TextColor3 = globalList[item] and Theme.SelectedGreen or Theme.TextTitle end)
@@ -579,6 +578,7 @@ CreateButton("Refresh All Mobs & Bosses", FarmMobBox, function()
         end
     end
     table.sort(list) UpdateMultiMob(list)
+    SendNotification("Refreshed Mobs List", Theme.Accent, "System")
 end)
 Setters.AutoFarm = CreateToggle("Auto Farm Mobs", false, FarmMobBox, function(v) _G.Yui.AutoFarm = v end)
 
@@ -589,19 +589,20 @@ CreateButton("Refresh Weapons", AtkBox, function()
     for _, v in pairs(LocalPlayer.Backpack:GetChildren()) do if v:IsA("Tool") then table.insert(t, v.Name) end end
     for _, v in pairs(LocalPlayer.Character:GetChildren()) do if v:IsA("Tool") then table.insert(t, v.Name) end end
     UpdateWepDrop(t)
+    SendNotification("Refreshed Weapons List", Theme.Accent, "System")
 end)
 Setters.FastAttack = CreateToggle("Auto Fast Attack (Silent)", false, AtkBox, function(v) _G.Yui.FastAttack = v end)
 local UpdateClickPos, SetClickPos = CreateDropdown("Click Position", "Center", AtkBox, function(v) _G.Yui.ClickPosition = v end)
 UpdateClickPos({"Center", "Edge", "Off-Screen"})
 Setters.AutoClickFarming = CreateToggle("Auto Click (Khi Bật Farm)", false, AtkBox, function(v) _G.Yui.AutoClickFarming = v end)
 Setters.AutoClickAlways = CreateToggle("Auto Click (Luôn Luôn)", false, AtkBox, function(v) _G.Yui.AutoClickAlways = v end)
-Setters.AutoGunFarm = CreateToggle("Gun Farm (Aimbot Camera)", false, AtkBox, function(v) _G.Yui.AutoGunFarm = v end)
-Setters.GunAttackDist = CreateSlider("Gun Farm Distance", 5, 100, 25, AtkBox, function(v) _G.Yui.GunAttackDist = v end)
+Setters.AutoGunFarm = CreateToggle("Gun Farm (Aimbot Camera)", false, AtkBox, function(v) _G.Yui.AutoGunFarm = v GunDot.Visible = v end)
 
 local ConfigBox = CreateSection("Position & Safe", MainR)
 local UpdatePosDropdown, SetPosDrop = CreateDropdown("Position", "Above", ConfigBox, function(v) _G.Yui.AttackPos = v end)
 UpdatePosDropdown({"Above", "Below", "Behind", "Front"})
 Setters.AttackDist = CreateSlider("Melee Distance", 1, 25, 5, ConfigBox, function(v) _G.Yui.AttackDist = v end)
+Setters.GunAttackDist = CreateSlider("Gun Distance", 5, 100, 25, ConfigBox, function(v) _G.Yui.GunAttackDist = v end)
 Setters.AutoSafe = CreateToggle("Auto Safe (Fly up if low HP)", false, ConfigBox, function(v) _G.Yui.AutoSafe = v end)
 Setters.SafeHealth = CreateSlider("Safe HP %", 10, 90, 30, ConfigBox, function(v) _G.Yui.SafeHealth = v end)
 
@@ -609,10 +610,12 @@ Setters.SafeHealth = CreateSlider("Safe HP %", 10, 90, 30, ConfigBox, function(v
 local QuestBox = CreateSection("Normal Quest", QuestL)
 Setters.AutoNormalQuest = CreateToggle("Auto Normal Quest (Silent)", false, QuestBox, function(v) _G.Yui.AutoNormalQuest = v end)
 local UpdateNormalDrop, SetNormalDrop = CreateDropdown("Target NPC", "None", QuestBox, function(v) _G.Yui.SelectedNormalQuest = v end)
+CreateButton("Teleport to Normal NPC", QuestBox, function() if _G.Yui.SelectedNormalQuest ~= "" then FireNPC(_G.Yui.SelectedNormalQuest, true) end end)
 
 local DailyBox = CreateSection("Daily Quest", QuestR)
 Setters.AutoDailyQuest = CreateToggle("Auto Daily Quest (Silent)", false, DailyBox, function(v) _G.Yui.AutoDailyQuest = v end)
 local UpdateDailyDrop, SetDailyDrop = CreateDropdown("Target Daily NPC", "None", DailyBox, function(v) _G.Yui.SelectedDailyQuest = v end)
+CreateButton("Teleport to Daily NPC", DailyBox, function() if _G.Yui.SelectedDailyQuest ~= "" then FireNPC(_G.Yui.SelectedDailyQuest, true) end end)
 
 Setters.TeleportToNPC = CreateToggle("Teleport & Wait for NPC [ON]", true, QuestL, function(v) _G.Yui.TeleportToNPC = v end)
 Setters.AutoAcceptQuest = CreateToggle("Auto Accept Any Quest GUI", false, QuestL, function(v) _G.Yui.AutoAcceptQuest = v end)
@@ -630,6 +633,7 @@ CreateButton("Refresh All Quests", QuestL, function()
         end
     end
     table.sort(nList) table.sort(dList) UpdateNormalDrop(nList) UpdateDailyDrop(dList)
+    SendNotification("Refreshed Quests List", Theme.Accent, "System")
 end)
 
 local SamBox = CreateSection("Sam NPC (Compass/Box)", QuestR)
@@ -659,6 +663,7 @@ CreateButton("Refresh ESP Items List", ScannerBox, function()
     end
     table.sort(list)
     UpdateESPItemsDrop(list)
+    SendNotification("Refreshed Items ESP List", Theme.Accent, "System")
 end)
 
 local ItemTeleBox = CreateSection("Item Teleport", FruitL)
@@ -681,6 +686,7 @@ CreateButton("Refresh Item Lists", ItemTeleBox, function()
         end
     end
     table.sort(teleList) UpdateItemTeleDrop(teleList)
+    SendNotification("Refreshed Teleport Items List", Theme.Accent, "System")
 end)
 
 local TrackerContainer = Instance.new("Frame", ScannerBox)
@@ -720,11 +726,13 @@ CreateButton("Refresh Spawns", SBox, function()
         end
     end
     table.sort(t) UpdateSpawnDrop(t)
+    SendNotification("Refreshed Spawns List", Theme.Accent, "System")
 end)
 
 -- SKILLS & HAKI
 local WepSkillBox = CreateSection("Normal Skills", SkillL)
 Setters.SkillDelay = CreateSlider("Skill Delay (s)", 0, 5, 0.1, WepSkillBox, function(v) _G.Yui.SkillDelay = v end, true)
+Setters.AutoAimSkillPlayer = CreateToggle("Aim Skill Nearest Player", false, WepSkillBox, function(v) _G.Yui.AutoAimSkillPlayer = v end)
 for _, key in ipairs({"E", "R", "T", "Z", "X", "C", "V", "B", "N", "F"}) do
     Setters["Skill"..key] = CreateToggle("Auto Skill ["..key.."]", false, WepSkillBox, function(v) _G.Yui.AutoSkill[key] = v end) 
 end
@@ -758,7 +766,6 @@ Setters.JuiceDelay = CreateSlider("Make Delay (s)", 1, 30, 5, JuiceBox, function
 Setters.AutoDrink = CreateToggle("Auto Drink All (Mass Consume)", false, JuiceBox, function(v) _G.Yui.AutoDrink = v end)
 Setters.DrinkDelay = CreateSlider("Drink Delay (s)", 1, 10, 1, JuiceBox, function(v) _G.Yui.DrinkDelay = v end)
 
--- KHÔI PHỤC AUTO APPLE THEO YÊU CẦU
 local AppleBox = CreateSection("Auto Golden Apple", ResR)
 Setters.AutoEatApple = CreateToggle("Auto Eat All Apples (Mass)", false, AppleBox, function(v) _G.Yui.AutoEatApple = v end)
 Setters.AppleDelay = CreateSlider("Eat Delay (s)", 1, 10, 3, AppleBox, function(v) _G.Yui.AppleDelay = v end)
@@ -795,6 +802,7 @@ local BountyBox = CreateSection("Player Tracker", BountyL)
 local UpdatePlayerDrop, SetPlayerDrop = CreateDropdown("Target Player", "None", BountyBox, function(v) _G.Yui.TargetPlayer = v end)
 CreateButton("Refresh Players", BountyBox, function()
     local t = {} for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then table.insert(t, p.Name) end end UpdatePlayerDrop(t)
+    SendNotification("Refreshed Players", Theme.Accent, "System")
 end)
 CreateButton("Teleport to Target", BountyBox, function()
     if _G.Yui.TargetPlayer ~= "None" then
@@ -905,85 +913,98 @@ CreateButton("Boost FPS", OptBox, function()
     SendNotification("Boosted FPS!", Theme.SelectedGreen, "System")
 end)
 
--- SETTINGS
+-- SETTINGS & CONFIGS
 local SysBox = CreateSection("System Core", SetL)
 Setters.AntiAFK = CreateToggle("Anti AFK (No Kick)", _G.Yui.AntiAFK, SysBox, function(v) _G.Yui.AntiAFK = v end)
+Setters.AutoRejoin = CreateToggle("Auto Rejoin", _G.Yui.AutoRejoin, SysBox, function(v) _G.Yui.AutoRejoin = v SaveCoreSettings() end)
+Setters.AutoExecute = CreateToggle("Auto Execute on Rejoin", _G.Yui.AutoExecute, SysBox, function(v) _G.Yui.AutoExecute = v SaveCoreSettings() end)
+CreateTextBox("Paste Loadstring URL Here", SysBox, _G.Yui.ExecuteScript, function(text) _G.Yui.ExecuteScript = text SaveCoreSettings() end)
 CreateButton("Reset All Toggles", SysBox, function() for _, func in pairs(Setters) do pcall(function() func(false) end) end end)
 
-local ThemeBox = CreateSection("Theme & Text Customizer", SetR)
--- COLOR WHEEL CỦA MENU ACCENT
-local function CreateCircularColorPicker(labelText, parentBox, callback)
-    local Frame = Instance.new("Frame", parentBox) 
-    Frame.Size = UDim2.new(1, 0, 0, 130) 
-    Frame.BackgroundTransparency = 1
-    
-    local Label = Instance.new("TextLabel", Frame) 
-    Label.Size = UDim2.new(1, 0, 0, 15) 
-    Label.BackgroundTransparency = 1 
-    Label.Text = labelText 
-    Label.TextColor3 = Theme.TextTitle 
-    Label.Font = Enum.Font.GothamBold 
-    Label.TextSize = 10 
-    Label.TextXAlignment = Enum.TextXAlignment.Left 
-    table.insert(DynamicUIElements, {Obj = Label, Prop = "TextColor3", Type = "Text"})
-
-    local WheelContainer = Instance.new("Frame", Frame)
-    WheelContainer.Size = UDim2.new(0, 100, 0, 100)
-    WheelContainer.Position = UDim2.new(0.5, -50, 0, 20)
-    WheelContainer.BackgroundTransparency = 1
-    
-    local Wheel = Instance.new("ImageLabel", WheelContainer)
-    Wheel.Size = UDim2.new(1, 0, 1, 0)
-    Wheel.BackgroundTransparency = 1
-    Wheel.Image = "rbxassetid://6022668888" 
-
-    local Knob = Instance.new("Frame", Wheel) 
-    Knob.Size = UDim2.new(0, 12, 0, 12) 
-    Knob.AnchorPoint = Vector2.new(0.5, 0.5)
-    Knob.Position = UDim2.new(0.5, 0, 0.5, 0) 
-    Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255) 
-    Instance.new("UICorner", Knob).CornerRadius = UDim.new(1, 0)
-    local Stroke = Instance.new("UIStroke", Knob)
-    Stroke.Color = Color3.fromRGB(0,0,0)
-    Stroke.Thickness = 1
+local ThemeBox = CreateSection("Theme Customizer (To Bản)", SetL)
+local function CreateThickColorPicker(labelText, defaultHue, parentBox, callback)
+    local Frame = Instance.new("Frame", parentBox) Frame.Size = UDim2.new(1, 0, 0, 45) Frame.BackgroundTransparency = 1
+    local Label = Instance.new("TextLabel", Frame) Label.Size = UDim2.new(1, 0, 0, 15) Label.BackgroundTransparency = 1 Label.Text = labelText Label.TextColor3 = Theme.TextTitle Label.Font = Enum.Font.GothamBold Label.TextSize = 10 Label.TextXAlignment = Enum.TextXAlignment.Left table.insert(DynamicUIElements, {Obj = Label, Prop = "TextColor3", Type = "Text"})
+    local Track = Instance.new("Frame", Frame) Track.Size = UDim2.new(1, 0, 0, 16) Track.Position = UDim2.new(0, 0, 0, 22) Track.BackgroundColor3 = Color3.fromRGB(255, 255, 255) Instance.new("UICorner", Track).CornerRadius = UDim.new(0, 4) Instance.new("UIStroke", Track).Color = Theme.Stroke
+    local UIGradient = Instance.new("UIGradient", Track)
+    UIGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)), ColorSequenceKeypoint.new(0.167, Color3.fromRGB(255, 255, 0)),
+        ColorSequenceKeypoint.new(0.333, Color3.fromRGB(0, 255, 0)), ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
+        ColorSequenceKeypoint.new(0.667, Color3.fromRGB(0, 0, 255)), ColorSequenceKeypoint.new(0.833, Color3.fromRGB(255, 0, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+    })
+    local Knob = Instance.new("TextButton", Track) Knob.Size = UDim2.new(0, 16, 0, 20) Knob.Position = UDim2.new(defaultHue/360, -8, 0.5, -10) Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255) Knob.Text = "" Instance.new("UICorner", Knob).CornerRadius = UDim.new(0, 4) Instance.new("UIStroke", Knob).Color = Color3.fromRGB(0,0,0)
 
     local drag = false
     local function update(input)
-        local center = Wheel.AbsolutePosition + (Wheel.AbsoluteSize / 2)
-        local mousePos = Vector2.new(input.Position.X, input.Position.Y)
-        local vec = mousePos - center
-        local radius = Wheel.AbsoluteSize.X / 2
-        
-        local dist = math.clamp(vec.Magnitude, 0, radius)
-        local dir = vec.Magnitude > 0 and vec.Unit or Vector2.new(0,0)
-        local pos = dir * dist
-        
-        Knob.Position = UDim2.new(0.5, pos.X / radius * 0.5, 0.5, pos.Y / radius * 0.5)
-        
-        local hue = (math.atan2(vec.Y, vec.X) + math.pi) / (math.pi * 2)
-        local sat = dist / radius
-        callback(hue * 360, sat)
+        local rel = math.clamp((input.Position.X - Track.AbsolutePosition.X) / Track.AbsoluteSize.X, 0, 1)
+        Knob.Position = UDim2.new(rel, -8, 0.5, -10) callback(math.floor(rel * 360))
     end
-    
-    Wheel.InputBegan:Connect(function(inp) 
-        if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then 
-            drag = true update(inp) 
-        end 
-    end)
-    UserInputService.InputEnded:Connect(function(inp) 
-        if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then drag = false end 
-    end)
-    UserInputService.InputChanged:Connect(function(inp) 
-        if drag and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then update(inp) end 
-    end)
+    Knob.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then drag = true end end)
+    Track.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then drag = true update(inp) end end)
+    UserInputService.InputEnded:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then drag = false end end)
+    UserInputService.InputChanged:Connect(function(inp) if drag and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then update(inp) end end)
 end
 
-CreateCircularColorPicker("Menu Color Wheel", ThemeBox, function(hue, sat) UpdateThemeColor(hue, sat) end)
-CreateColorPicker("Text Color Bar", _G.Yui.TextHue, ThemeBox, function(hue) UpdateTextColor(hue) end)
+CreateThickColorPicker("UI Accent Color Bar", _G.Yui.CustomHue, ThemeBox, function(hue) UpdateThemeColor(hue) end)
+CreateThickColorPicker("Text Color Bar", _G.Yui.TextHue, ThemeBox, function(hue) UpdateTextColor(hue) end)
+CreateThickColorPicker("Background Color Bar", _G.Yui.BgHue, ThemeBox, function(hue) UpdateBgColor(hue) end)
+CreateButton("Save Theme Color", ThemeBox, function() SaveCoreSettings() SendNotification("Theme Saved!", Theme.SelectedGreen, "System") end)
 
+local ConfigBox2 = CreateSection("Configurations", SetR)
+local ConfigInput = CreateTextBox("Enter New Config Name", ConfigBox2, "", function(text) _G.Yui.ConfigName = text end)
+
+local function GetConfigList()
+    local list = {}
+    if listfiles then for _, file in pairs(listfiles(ConfigFolder)) do table.insert(list, file:gsub(ConfigFolder.."\\", ""):gsub(ConfigFolder.."/", ""):gsub(".json", "")) end end
+    local found = false for _, n in ipairs(list) do if n == _G.Yui.ConfigName then found = true break end end
+    if not found and _G.Yui.ConfigName ~= "" then table.insert(list, _G.Yui.ConfigName) end
+    return list
+end
+
+local UpdateConfigDrop, SetConfigDrop = CreateDropdown("Select Config", _G.Yui.ConfigName, ConfigBox2, function(v) _G.Yui.ConfigName = v SaveCoreSettings() end)
+
+CreateButton("Create New Config", ConfigBox2, function()
+    if _G.Yui.ConfigName ~= "" and writefile and HttpService then 
+        writefile(ConfigFolder .. "/" .. _G.Yui.ConfigName .. ".json", HttpService:JSONEncode(_G.Yui)) 
+        UpdateConfigDrop(GetConfigList()) SetConfigDrop(_G.Yui.ConfigName) SaveCoreSettings() ConfigInput("")
+        SendNotification("Config Created: " .. _G.Yui.ConfigName, Theme.SelectedGreen, "Config")
+    end
+end)
+
+CreateButton("Save / Overwrite Selected", ConfigBox2, function()
+    if writefile and HttpService and _G.Yui.ConfigName ~= "" then 
+        writefile(ConfigFolder .. "/" .. _G.Yui.ConfigName .. ".json", HttpService:JSONEncode(_G.Yui)) 
+        UpdateConfigDrop(GetConfigList()) 
+        SendNotification("Config Saved: " .. _G.Yui.ConfigName, Theme.SelectedGreen, "Config")
+    end
+end)
+CreateButton("Load Selected Config", ConfigBox2, function()
+    if readfile and isfile and isfile(ConfigFolder .. "/" .. _G.Yui.ConfigName .. ".json") then
+        local data = HttpService:JSONDecode(readfile(ConfigFolder .. "/" .. _G.Yui.ConfigName .. ".json"))
+        if data then 
+            for k, v in pairs(data) do _G.Yui[k] = v if Setters[k] then pcall(function() Setters[k](v) end) end end 
+            SendNotification("Config Loaded: " .. _G.Yui.ConfigName, Theme.SelectedGreen, "Config")
+        end
+    end
+end)
+
+local AutoLoadStatus = Instance.new("TextLabel", ConfigBox2)
+AutoLoadStatus.Size = UDim2.new(1, 0, 0, 15) AutoLoadStatus.BackgroundTransparency = 1
+AutoLoadStatus.TextColor3 = Theme.SelectedGreen AutoLoadStatus.Font = Enum.Font.Gotham AutoLoadStatus.TextSize = 10 table.insert(DynamicUIElements, {Obj = AutoLoadStatus, Prop = "TextColor3", Type = "Text"})
+AutoLoadStatus.Text = _G.Yui.AutoLoadConfig and ("Auto Loading: " .. _G.Yui.AutoLoadName) or "Auto Load: OFF"
+
+CreateButton("Set as Auto Load", ConfigBox2, function()
+    _G.Yui.AutoLoadConfig = true _G.Yui.AutoLoadName = _G.Yui.ConfigName AutoLoadStatus.Text = "Auto Loading: " .. _G.Yui.AutoLoadName SaveCoreSettings()
+    SendNotification("Set AutoLoad: " .. _G.Yui.AutoLoadName, Theme.SelectedGreen, "Config")
+end)
+CreateButton("Remove Auto Load", ConfigBox2, function()
+    _G.Yui.AutoLoadConfig = false _G.Yui.AutoLoadName = "" AutoLoadStatus.Text = "Auto Load: OFF" SaveCoreSettings()
+    SendNotification("AutoLoad Removed", Theme.Accent, "Config")
+end)
 
 -- =========================================================================
--- ITEM SCANNER & ESP THREAD (CÓ BLACKLIST)
+-- ITEM SCANNER & ESP THREAD (THÊM TOKEN)
 -- =========================================================================
 local BlacklistModels = {"spawnbox", "fruitreceptical", "safeboxwall", "threedtextboundingbox", "science textbook"}
 
@@ -1003,7 +1024,7 @@ task.spawn(function()
         for _, obj in pairs(Workspace:GetDescendants()) do
             if obj:IsA("Tool") or obj:IsA("Model") or obj:IsA("BasePart") then
                 local n = string.lower(obj.Name)
-                if not IsBlacklisted(n) and (string.find(n, "fruit") or string.find(n, "box") or string.find(n, "book") or string.find(n, "compass") or string.find(n, "chest") or string.find(n, "barrel") or string.find(n, "crate") or string.find(n, "scroll")) then
+                if not IsBlacklisted(n) and (string.find(n, "fruit") or string.find(n, "box") or string.find(n, "book") or string.find(n, "compass") or string.find(n, "chest") or string.find(n, "barrel") or string.find(n, "crate") or string.find(n, "scroll") or string.find(n, "token") or string.find(n, "reset")) then
                     
                     local isChar = false
                     if obj.Parent and obj.Parent:FindFirstChild("Humanoid") then isChar = true end
@@ -1042,7 +1063,7 @@ task.spawn(function()
         text = text .. "<font size='12' color='rgb(255, 100, 100)'><b>[ CHESTS & BARRELS ]</b></font>\n"
         text = text .. (c_str ~= "" and c_str or "\n")
         
-        text = text .. "<font color='rgb(200, 200, 255)'><b>[ OTHERS ]</b></font>\n"
+        text = text .. "<font color='rgb(200, 200, 255)'><b>[ OTHERS (Tokens/Compass...) ]</b></font>\n"
         text = text .. (o_str ~= "" and o_str or "\n")
         
         if ItemTrackerLabel then ItemTrackerLabel.Text = text end
@@ -1122,7 +1143,6 @@ local function SmartClickDialog(opts)
     return false
 end
 
--- THREAD TÌM BOX BẰNG COMPASS (Cây)
 task.spawn(function()
     while task.wait(_G.Yui.FindBoxDelay) do
         if _G.Yui.AutoFindBox then
@@ -1313,6 +1333,7 @@ RunService.Heartbeat:Connect(function()
     else WOWPad.Position = Vector3.new(0, 99999, 0) WOWPad.CanCollide = false end
 end)
 
+-- FLY THREAD
 RunService.RenderStepped:Connect(function()
     if _G.Yui.Fly then
         local char = LocalPlayer.Character
@@ -1340,86 +1361,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-RunService.RenderStepped:Connect(function()
-    local cam = workspace.CurrentCamera
-    if _G.Yui.ESPPlayer then
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Head") then
-                local dist = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and math.floor((LocalPlayer.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude) or 0
-                local espName = "ESP_"..p.Name
-                local bg = ESPFolder:FindFirstChild(espName)
-                if not bg then
-                    bg = Instance.new("BillboardGui", ESPFolder) bg.Name = espName bg.AlwaysOnTop = true bg.Size = UDim2.new(0, 100, 0, 40) bg.StudsOffset = Vector3.new(0, 2.5, 0)
-                    local txt = Instance.new("TextLabel", bg) txt.Size = UDim2.new(1,0,1,0) txt.BackgroundTransparency = 1 txt.TextColor3 = Theme.Accent txt.Font = Enum.Font.GothamBold txt.TextSize = 12 txt.TextStrokeTransparency = 0
-                    local hl = Instance.new("Highlight", bg) hl.FillTransparency = 1 hl.OutlineColor = Theme.Accent hl.Adornee = p.Character
-                end
-                bg.Adornee = p.Character:FindFirstChild("Head") bg.TextLabel.Text = p.Name .. " [" .. dist .. "m]"
-
-                if Drawing then
-                    if not ESPTracers[p.Name] then ESPTracers[p.Name] = Drawing.new("Line") ESPTracers[p.Name].Thickness = 1.5 ESPTracers[p.Name].Color = Theme.Accent ESPTracers[p.Name].Transparency = 0.8 end
-                    local pos, onScreen = cam:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
-                    if onScreen then ESPTracers[p.Name].From = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y) ESPTracers[p.Name].To = Vector2.new(pos.X, pos.Y) ESPTracers[p.Name].Visible = true
-                    else ESPTracers[p.Name].Visible = false end
-                end
-            else
-                if ESPFolder:FindFirstChild("ESP_"..p.Name) then ESPFolder:FindFirstChild("ESP_"..p.Name):Destroy() end
-                if ESPTracers[p.Name] then ESPTracers[p.Name].Visible = false ESPTracers[p.Name]:Remove() ESPTracers[p.Name] = nil end
-            end
-        end
-    else
-        ESPFolder:ClearAllChildren()
-        for k, line in pairs(ESPTracers) do if line then line.Visible = false line:Remove() end end
-        ESPTracers = {}
-    end
-    
-    if _G.Yui.Spectate and _G.Yui.TargetPlayer ~= "None" then
-        local p = Players:FindFirstChild(_G.Yui.TargetPlayer)
-        if p and p.Character and p.Character:FindFirstChild("Humanoid") then cam.CameraSubject = p.Character.Humanoid end
-    end
-end)
-
-RunService.RenderStepped:Connect(function()
-    local cam = workspace.CurrentCamera
-    local isCollecting = _G.Yui.CollectChest or _G.Yui.CollectBarrel or _G.Yui.AutoFruit or _G.Yui.AutoJuice or _G.Yui.AutoSpawnBox
-    if _G.Yui.CamUnderground and isCollecting then
-        local char = LocalPlayer.Character local root = char and char:FindFirstChild("HumanoidRootPart")
-        if root then cam.CameraType = Enum.CameraType.Scriptable cam.CFrame = CFrame.new(root.Position - Vector3.new(0, 5000, 0), root.Position - Vector3.new(0, 5001, 0)) end
-    else
-        if cam.CameraType == Enum.CameraType.Scriptable then cam.CameraType = Enum.CameraType.Custom cam.CameraSubject = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") end
-    end
-end)
-
-task.spawn(function()
-    while task.wait() do
-        if _G.Yui.AutoHunt and _G.Yui.TargetPlayer ~= "None" then
-            local p = Players:FindFirstChild(_G.Yui.TargetPlayer)
-            if p and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                local offset = CFrame.new(0, 0, _G.Yui.HuntDist) MoveTo(p.Character.HumanoidRootPart.CFrame * offset)
-            end
-        end
-    end
-end)
-
-task.spawn(function()
-    while task.wait(0.5) do
-        local char = LocalPlayer.Character
-        local hum = char and char:FindFirstChild("Humanoid")
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        if _G.Yui.AutoSafe and hum and root and hum.Health > 0 then
-            local hpPercent = (hum.Health / hum.MaxHealth) * 100
-            if hpPercent <= _G.Yui.SafeHealth then
-                root.CFrame = root.CFrame + Vector3.new(0, 2000, 0) root.Velocity = Vector3.zero
-                if not root:FindFirstChild("SafeFloat") then
-                    local bf = Instance.new("BodyVelocity", root) bf.Name = "SafeFloat" bf.MaxForce = Vector3.new(1e5,1e5,1e5) bf.Velocity = Vector3.zero
-                end
-            else
-                local bf = root:FindFirstChild("SafeFloat") if bf then bf:Destroy() end
-            end
-        end
-    end
-end)
-
--- BỘ NÃO GOM VẬT PHẨM TỐI ƯU
+-- BỘ NÃO GOM VẬT PHẨM TỐI ƯU (ĐÃ SỬA BARREL CHỐNG KẸT)
 local CachedCollectables = {}
 task.spawn(function()
     while task.wait(3) do
@@ -1480,6 +1422,7 @@ task.spawn(function()
                 end
             end
 
+            -- FIX BARREL KHÔNG KẸT
             if _G.Yui.CollectBarrel and (n == "Barrel" or n == "Crate") and not didAction then
                 local tPart = obj:IsA("BasePart") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChildOfClass("MeshPart")
                 local cd = obj:FindFirstChildOfClass("ClickDetector")
@@ -1487,7 +1430,7 @@ task.spawn(function()
                     local posKey = tostring(obj:GetDebugId())
                     if not TimedBlacklist[posKey] or tick() - TimedBlacklist[posKey] > 1.5 then 
                         root.CFrame = tPart.CFrame * CFrame.new(0, 2, 0) root.Velocity = Vector3.zero
-                        task.wait(0.1) 
+                        task.wait(0.2) -- Tăng thời gian đứng yên xíu cho chắc
                         if fireclickdetector then for i=1,5 do fireclickdetector(cd, 1) end end
                         SendNotification("Collected: " .. n, Theme.SelectedGreen, "Barrel")
                         TimedBlacklist[posKey] = tick() didAction = true
@@ -1500,69 +1443,7 @@ task.spawn(function()
     end
 end)
 
--- AUTO FISH
-task.spawn(function()
-    while task.wait(0.2) do
-        local char = LocalPlayer.Character if not char or not char:FindFirstChild("HumanoidRootPart") then continue end
-        local hrp = char.HumanoidRootPart local backpack = LocalPlayer:FindFirstChild("Backpack")
-
-        if _G.Yui.AutoGetRod then
-            local hasRod = false
-            if char:FindFirstChildOfClass("Tool") and (string.find(string.lower(char:FindFirstChildOfClass("Tool").Name), "rod") or string.find(string.lower(char:FindFirstChildOfClass("Tool").Name), "fish")) then hasRod = true end
-            if backpack then for _, t in pairs(backpack:GetChildren()) do if t:IsA("Tool") and (string.find(string.lower(t.Name), "rod") or string.find(string.lower(t.Name), "fish")) then hasRod = true end end end
-
-            if hasRod then
-                _G.Yui.AutoGetRod = false
-            else
-                local package = char:FindFirstChild("Package") or (backpack and backpack:FindFirstChild("Package"))
-                if not package then
-                    local fisherman = nil
-                    for _, obj in pairs(Workspace:GetDescendants()) do if obj:IsA("Model") and obj.Name == "Fisherman" and obj:FindFirstChild("HumanoidRootPart") then fisherman = obj break end end
-                    if fisherman then MoveTo(fisherman.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)) local cd = fisherman:FindFirstChildOfClass("ClickDetector", true) if cd then fireclickdetector(cd, 0) end end
-                else
-                    if package.Parent == backpack then char.Humanoid:EquipTool(package) task.wait(0.5) end
-                    VirtualUser:CaptureController() VirtualUser:ClickButton1(Vector2.new(0, 0))
-
-                    local allNPCs = {}
-                    for _, obj in pairs(Workspace:GetDescendants()) do
-                        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") and not Players:GetPlayerFromCharacter(obj) and obj.Name ~= "Fisherman" then table.insert(allNPCs, obj) end
-                    end
-                    for _, npc in ipairs(allNPCs) do
-                        local stillHavePackage = char:FindFirstChild("Package") or (backpack and backpack:FindFirstChild("Package"))
-                        if not stillHavePackage then break end
-                        MoveTo(npc.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)) task.wait(0.3)
-                    end
-                end
-            end
-        end
-
-        if _G.Yui.AutoFish then
-            local rod = char:FindFirstChildOfClass("Tool")
-            if not rod or not (string.find(string.lower(rod.Name), "rod") or string.find(string.lower(rod.Name), "fish")) then
-                if backpack then for _, tool in ipairs(backpack:GetChildren()) do local tName = string.lower(tool.Name) if tool:IsA("Tool") and (string.find(tName, "rod") or string.find(tName, "fish") or string.find(tName, "pole")) then char.Humanoid:EquipTool(tool) rod = tool task.wait(1) break end end end
-            end
-            if rod then
-                local isCast = Workspace:FindFirstChild("Bobber") or Workspace:FindFirstChild("FishingRope_" .. tostring(LocalPlayer.UserId), true)
-                if not isCast then 
-                    VirtualUser:CaptureController() VirtualUser:ClickButton1(Vector2.new(0, 0)) task.wait(1) 
-                end
-                
-                if _G.Yui.AutoShake then
-                    local pGui = LocalPlayer.PlayerGui
-                    if pGui then
-                        for _, v in pairs(pGui:GetDescendants()) do
-                            if (v:IsA("TextButton") or v:IsA("ImageButton")) and (string.find(string.lower(v.Name), "shake") or (v:IsA("TextButton") and string.find(string.lower(v.Text), "shake"))) then
-                                if v.Visible then SilentClick(v) end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-end)
-
--- BỘ NÃO ĐÁNH QUÁI (ĐÃ CÓ LỌC LEVEL VÀ FARM NEAR)
+-- BỘ NÃO ĐÁNH QUÁI (ĐÃ FIX: FARM NEAR MẶC KỆ DANH SÁCH + CHUẨN LEVEL)
 local LastAttack = tick()
 local WepCycleIndex = 1
 local LastWepSwap = tick()
@@ -1606,13 +1487,23 @@ task.spawn(function()
                 if obj and obj.Parent and obj:FindFirstChild("HumanoidRootPart") and obj:FindFirstChild("Humanoid") and obj.Humanoid.Health > 0 then
                     local rawNameL = string.lower(obj.Name)
                     local lvl = tonumber(string.match(rawNameL, "%d+")) or 0
+                    
                     local validLvl = true
                     if _G.Yui.MobLevelFilter == "< 1000" and lvl >= 1000 then validLvl = false end
                     if _G.Yui.MobLevelFilter == "> 1000" and lvl < 1000 then validLvl = false end
                     
                     if validLvl then
                         local cleanName = string.gsub(obj.Name, "%[.-%]", "") cleanName = string.gsub(cleanName, "%d+$", "") cleanName = string.match(cleanName, "^%s*(.-)%s*$") or cleanName
-                        if (_G.Yui.FarmNear or _G.Yui.SelectedMobs[cleanName] or (targetMobName~="" and string.find(obj.Name, targetMobName, 1, true))) then
+                        
+                        -- FIX: Nếu bật FarmNear thì không cần check SelectedMobs
+                        local isTarget = false
+                        if _G.Yui.FarmNear then
+                            isTarget = true
+                        elseif _G.Yui.SelectedMobs[cleanName] or (targetMobName~="" and string.find(obj.Name, targetMobName, 1, true)) then
+                            isTarget = true
+                        end
+
+                        if isTarget then
                             local dist = (root.Position - obj.HumanoidRootPart.Position).Magnitude
                             if dist < shortest then shortest = dist target = obj end
                         end
@@ -1630,14 +1521,10 @@ RunService.Heartbeat:Connect(function()
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if root then
             if _G.Yui.AutoGunFarm then
-                -- GUN FARM: KÉO XA QUÁI RA & CHỈA SÚNG VÀO QUÁI
                 local dist = _G.Yui.GunAttackDist or 25
-                local offset = CFrame.new(0, _G.Yui.AttackDist, dist)
                 local targetPos = CurrentTarget.HumanoidRootPart.Position
-                -- Teleport xa quái và quay mặt về phía quái
                 root.CFrame = CFrame.new(targetPos + Vector3.new(0, _G.Yui.AttackDist, dist), targetPos)
             else
-                -- MELEE FARM: NHƯ CŨ
                 local offset = CFrame.new(0, _G.Yui.AttackDist, 0) * CFrame.Angles(math.rad(-90), 0, 0)
                 if _G.Yui.AttackPos == "Below" then offset = CFrame.new(0, -_G.Yui.AttackDist, 0) * CFrame.Angles(math.rad(90), 0, 0)
                 elseif _G.Yui.AttackPos == "Behind" then offset = CFrame.new(0, 0, _G.Yui.AttackDist)
@@ -1651,13 +1538,26 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- GUN FARM (AIMBOT CAMERA) THREAD
+-- GUN FARM (AIMBOT CAMERA)
 RunService.RenderStepped:Connect(function()
     if _G.Yui.AutoGunFarm and CurrentTarget and CurrentTarget:FindFirstChild("HumanoidRootPart") then
         local cam = workspace.CurrentCamera
         cam.CFrame = CFrame.new(cam.CFrame.Position, CurrentTarget.HumanoidRootPart.Position)
     end
 end)
+
+local function getClosestPlayer()
+    local closest, dist = nil, math.huge
+    local char = LocalPlayer.Character local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return nil end
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+            local d = (root.Position - p.Character.HumanoidRootPart.Position).Magnitude
+            if d < dist then dist = d closest = p.Character end
+        end
+    end
+    return closest
+end
 
 task.spawn(function()
     while task.wait() do
@@ -1693,8 +1593,14 @@ task.spawn(function()
                         if tick() - LastAttack >= 0.1 then
                             local cam = workspace.CurrentCamera
                             local clickPos = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)
-                            if _G.Yui.ClickPosition == "Edge" then clickPos = Vector2.new(10, cam.ViewportSize.Y/2)
-                            elseif _G.Yui.ClickPosition == "Off-Screen" then clickPos = Vector2.new(9999, 9999) end
+                            
+                            if _G.Yui.AutoGunFarm and GunDot.Visible then
+                                local inset = GuiService:GetGuiInset()
+                                clickPos = Vector2.new(GunDot.AbsolutePosition.X + GunDot.AbsoluteSize.X/2, GunDot.AbsolutePosition.Y + GunDot.AbsoluteSize.Y/2 + inset.Y)
+                            else
+                                if _G.Yui.ClickPosition == "Edge" then clickPos = Vector2.new(10, cam.ViewportSize.Y/2)
+                                elseif _G.Yui.ClickPosition == "Off-Screen" then clickPos = Vector2.new(9999, 9999) end
+                            end
                             
                             VirtualUser:CaptureController() 
                             VirtualUser:ClickButton1(clickPos) 
@@ -1705,10 +1611,27 @@ task.spawn(function()
             end)
         end
         
-        if CurrentTarget and CurrentTarget:FindFirstChild("HumanoidRootPart") then
-            if tick() - LastSkillTick >= _G.Yui.SkillDelay then
+        -- FIX TỐI ƯU SKILL MƯỢT
+        if tick() - LastSkillTick >= _G.Yui.SkillDelay then
+            local shouldSkill = (CurrentTarget and CurrentTarget:FindFirstChild("HumanoidRootPart")) or _G.Yui.AutoAimSkillPlayer
+            if shouldSkill then
+                -- AIMBOT SKILL VÀO PLAYER NẾU BẬT
+                if _G.Yui.AutoAimSkillPlayer then
+                    local targetP = getClosestPlayer()
+                    if targetP and targetP:FindFirstChild("HumanoidRootPart") and char and char:FindFirstChild("HumanoidRootPart") then
+                        local root = char.HumanoidRootPart
+                        root.CFrame = CFrame.lookAt(root.Position, Vector3.new(targetP.HumanoidRootPart.Position.X, root.Position.Y, targetP.HumanoidRootPart.Position.Z))
+                    end
+                end
+
                 for key, isEnabled in pairs(_G.Yui.AutoSkill) do 
-                    if isEnabled then pcall(function() VirtualInputManager:SendKeyEvent(true, Enum.KeyCode[key], false, game) end) end 
+                    if isEnabled then 
+                        task.spawn(function()
+                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode[key], false, game) 
+                            task.wait(0.05) -- Delay siêu nhỏ để server nhận lệnh
+                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode[key], false, game) 
+                        end)
+                    end 
                 end
                 LastSkillTick = tick()
             end
@@ -1720,7 +1643,6 @@ task.spawn(function()
     end
 end)
 
--- BỘ NÃO MASS CONSUME (JUICE VÀ APPLE)
 local LastDrinkTick = tick()
 task.spawn(function()
     while task.wait(0.1) do
@@ -1779,14 +1701,84 @@ task.spawn(function()
     end
 end)
 
-local CoreGuiS = game:GetService("CoreGui")
-if CoreGuiS:FindFirstChild("RobloxPromptGui") then
-    CoreGuiS.RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
-        if _G.Yui.AutoRejoin and child.Name == "ErrorPrompt" then
-            task.wait(2)
-            local ts = game:GetService("TeleportService")
-            if _G.Yui.AutoExecute and queue_on_teleport and _G.Yui.ExecuteScript ~= "" then queue_on_teleport([[loadstring(game:HttpGet("]].._G.Yui.ExecuteScript..[["))()]]) end
-            ts:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+local LastHoldTicks = {E=0, R=0, T=0, Z=0, X=0, C=0, V=0, B=0, N=0, F=0}
+RunService.Heartbeat:Connect(function()
+    if CurrentTarget and CurrentTarget:FindFirstChild("HumanoidRootPart") then
+        for key, active in pairs(_G.Yui.HoldSkill) do
+            if active and tick() - LastHoldTicks[key] > (_G.Yui.HoldTime + 0.5) then
+                LastHoldTicks[key] = tick()
+                task.spawn(function()
+                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode[key], false, game) task.wait(_G.Yui.HoldTime) VirtualInputManager:SendKeyEvent(false, Enum.KeyCode[key], false, game)
+                end)
+            end
         end
-    end)
-end
+    end
+end)
+
+-- AUTO FISH (ĐÃ LÀM LẠI HOÀN TOÀN THEO CẤU TRÚC FishingRope_[UserId])
+task.spawn(function()
+    while task.wait(0.2) do
+        local char = LocalPlayer.Character if not char or not char:FindFirstChild("HumanoidRootPart") then continue end
+        local hrp = char.HumanoidRootPart local backpack = LocalPlayer:FindFirstChild("Backpack")
+
+        if _G.Yui.AutoGetRod then
+            local hasRod = false
+            if char:FindFirstChildOfClass("Tool") and (string.find(string.lower(char:FindFirstChildOfClass("Tool").Name), "rod") or string.find(string.lower(char:FindFirstChildOfClass("Tool").Name), "fish")) then hasRod = true end
+            if backpack then for _, t in pairs(backpack:GetChildren()) do if t:IsA("Tool") and (string.find(string.lower(t.Name), "rod") or string.find(string.lower(t.Name), "fish")) then hasRod = true end end end
+
+            if hasRod then
+                _G.Yui.AutoGetRod = false
+            else
+                local package = char:FindFirstChild("Package") or (backpack and backpack:FindFirstChild("Package"))
+                if not package then
+                    local fisherman = nil
+                    for _, obj in pairs(Workspace:GetDescendants()) do if obj:IsA("Model") and obj.Name == "Fisherman" and obj:FindFirstChild("HumanoidRootPart") then fisherman = obj break end end
+                    if fisherman then MoveTo(fisherman.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)) local cd = fisherman:FindFirstChildOfClass("ClickDetector", true) if cd then fireclickdetector(cd, 0) end end
+                else
+                    if package.Parent == backpack then char.Humanoid:EquipTool(package) task.wait(0.5) end
+                    VirtualUser:CaptureController() VirtualUser:ClickButton1(Vector2.new(0, 0))
+
+                    local allNPCs = {}
+                    for _, obj in pairs(Workspace:GetDescendants()) do
+                        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") and not Players:GetPlayerFromCharacter(obj) and obj.Name ~= "Fisherman" then table.insert(allNPCs, obj) end
+                    end
+                    for _, npc in ipairs(allNPCs) do
+                        local stillHavePackage = char:FindFirstChild("Package") or (backpack and backpack:FindFirstChild("Package"))
+                        if not stillHavePackage then break end
+                        MoveTo(npc.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)) task.wait(0.3)
+                    end
+                end
+            end
+        end
+
+        if _G.Yui.AutoFish then
+            local rod = char:FindFirstChildOfClass("Tool")
+            if not rod or not (string.find(string.lower(rod.Name), "rod") or string.find(string.lower(rod.Name), "fish")) then
+                if backpack then for _, tool in ipairs(backpack:GetChildren()) do local tName = string.lower(tool.Name) if tool:IsA("Tool") and (string.find(tName, "rod") or string.find(tName, "fish") or string.find(tName, "pole")) then char.Humanoid:EquipTool(tool) rod = tool task.wait(1) break end end end
+            end
+            
+            if rod then
+                -- FIX THEO ẢNH: Bắt buộc dùng FishingRope_ID
+                local ropeName = "FishingRope_" .. tostring(LocalPlayer.UserId)
+                local isCast = Workspace:FindFirstChild(ropeName, true) ~= nil
+                
+                if not isCast then 
+                    VirtualUser:CaptureController() 
+                    VirtualUser:ClickButton1(Vector2.new(0, 0)) 
+                    task.wait(1) -- Chờ thả dây xong
+                end
+                
+                if _G.Yui.AutoShake then
+                    local pGui = LocalPlayer.PlayerGui
+                    if pGui then
+                        for _, v in pairs(pGui:GetDescendants()) do
+                            if (v:IsA("TextButton") or v:IsA("ImageButton")) and (string.find(string.lower(v.Name), "shake") or (v:IsA("TextButton") and string.find(string.lower(v.Text), "shake"))) then
+                                if v.Visible then SilentClick(v) end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
