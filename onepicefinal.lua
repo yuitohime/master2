@@ -1,5 +1,5 @@
 -- =========================================================================
--- [ULTIMATE MASTER] YUIHUB V26 - SILENT QUESTS, SAM OPTIONS, RAINBOW THEME
+-- [ULTIMATE MASTER] YUIHUB V26 - STRICT ORIGINAL + REQUESTED FIXES ONLY
 -- =========================================================================
 
 local Players = game:GetService("Players")
@@ -30,18 +30,19 @@ LocalPlayer.Idled:Connect(function()
     end
 end)
 
--- Global Settings
+-- Global Settings (GIỮ NGUYÊN GỐC + THÊM BIẾN MỚI)
 _G.Yui = {
     AntiAFK = true, MoveMethod = "Teleport", CollectMethod = "Teleport (Continuous)", MoveSpeed = 300, HoverOnKill = true,
-    AutoFarm = false, SelectedMobs = {}, SelectedWeapon = "None", FastAttack = false, AutoClick = false,
+    AutoFarm = false, SelectedMobs = {}, SelectedWeapon = "None", FastAttack = false, 
+    AutoClickFarming = false, AutoClickAlways = false, ClickPosition = "Center", -- Thêm biến Attack mới
     AttackDist = 5, AttackPos = "Above", AutoSpawn = false,
-    AutoSkill = {R=false, Z=false, X=false, C=false, V=false, B=false, N=false, F=false},
-    HoldSkill = {R=false, Z=false, X=false, C=false, V=false, B=false, N=false, F=false}, HoldTime = 1,
+    AutoSkill = {E=false, R=false, T=false, Z=false, X=false, C=false, V=false, B=false, N=false, F=false}, -- Thêm ERT
+    HoldSkill = {E=false, R=false, T=false, Z=false, X=false, C=false, V=false, B=false, N=false, F=false}, HoldTime = 1, -- Thêm ERT
     AutoHaki = {E=false, R=false, T=false},
     SelectedNormalQuest = "", AutoNormalQuest = false,
     SelectedDailyQuest = "", AutoDailyQuest = false, AutoAcceptQuest = false, TeleportToNPC = true,
     AutoSam = false, AutoSamAmount = "x1", AutoUpgradeCap = false,
-    CollectChest = false, CollectBarrel = false, CollectSpeed = 0.2, 
+    CollectChest = false, CollectBarrel = false, CollectSpeed = 0.05, -- Tốc độ siêu nhanh
     AutoFruit = false, AutoSpawnBox = false, CamUnderground = false,
     AutoJuice = false, JuiceDelay = 5, AutoDrink = false, DrinkDelay = 1, AutoEatApple = false, AppleDelay = 3, 
     WalkSpeed = 16, EnableWS = false, JumpPower = 50, EnableJP = false, 
@@ -169,50 +170,11 @@ local ScreenGui = Instance.new("ScreenGui") ScreenGui.Name = "YuiHub" ScreenGui.
 local ESPFolder = Instance.new("Folder") ESPFolder.Name = "YuiESPFolder" ESPFolder.Parent = CoreGui
 
 -- =========================================================================
--- INTRO ANIMATION
--- =========================================================================
-local IntroGui = Instance.new("ScreenGui", TargetGui) IntroGui.Name = "YuiIntro" IntroGui.ResetOnSpawn = false
-
-local NotifFrame = Instance.new("Frame", IntroGui) NotifFrame.Size = UDim2.new(0, 280, 0, 50) NotifFrame.Position = UDim2.new(1, 20, 1, -80) NotifFrame.BackgroundColor3 = Theme.HeaderBg Instance.new("UICorner", NotifFrame).CornerRadius = UDim.new(0, 8)
-local NotifStroke = Instance.new("UIStroke", NotifFrame) NotifStroke.Color = Theme.Accent table.insert(DynamicUIElements, {Obj = NotifStroke, Prop = "Color"})
-
-local Spinner = Instance.new("ImageLabel", NotifFrame) Spinner.Size = UDim2.new(0, 30, 0, 30) Spinner.Position = UDim2.new(0, 10, 0, 10) Spinner.BackgroundTransparency = 1 Spinner.Image = "rbxassetid://14457317772" Spinner.ImageColor3 = Theme.Accent table.insert(DynamicUIElements, {Obj = Spinner, Prop = "ImageColor3"})
-
-local NotifText = Instance.new("TextLabel", NotifFrame) NotifText.Size = UDim2.new(1, -55, 1, 0) NotifText.Position = UDim2.new(0, 50, 0, 0) NotifText.BackgroundTransparency = 1 NotifText.Text = "Thanks for using YuiHub.\nPlease wait, loading..." NotifText.TextColor3 = Theme.TextTitle NotifText.Font = Enum.Font.GothamBold NotifText.TextSize = 11 NotifText.TextXAlignment = Enum.TextXAlignment.Left
-
-local Logo = Instance.new("ImageLabel", IntroGui) Logo.Image = "rbxassetid://14457317772" Logo.AnchorPoint = Vector2.new(0.5, 0.5) Logo.Size = UDim2.new(0, 80, 0, 80) Logo.Position = UDim2.new(0.5, 0, -0.2, 0) Logo.BackgroundTransparency = 1 Logo.ImageColor3 = Theme.Accent table.insert(DynamicUIElements, {Obj = Logo, Prop = "ImageColor3"})
-
-local function ShowMainGui()
-    if IntroGui then IntroGui:Destroy() end
-    if ScreenGui and ScreenGui:FindFirstChild("YuiMainFrame") then ScreenGui.YuiMainFrame.Visible = true end
-end
-task.delay(4, ShowMainGui) -- Failsafe
-
-task.spawn(function()
-    TweenService:Create(NotifFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quint), {Position = UDim2.new(1, -300, 1, -80)}):Play()
-    local rotTween = TweenService:Create(Spinner, TweenInfo.new(1, Enum.EasingStyle.Linear), {Rotation = 360}) rotTween.RepeatCount = -1 rotTween:Play()
-    task.wait(1.5)
-    TweenService:Create(NotifFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quint), {Position = UDim2.new(1, 20, 1, -80)}):Play()
-    TweenService:Create(Logo, TweenInfo.new(0.8, Enum.EasingStyle.Bounce, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, 0, 0.5, 0)}):Play()
-    TweenService:Create(Logo, TweenInfo.new(1.2, Enum.EasingStyle.Linear), {Rotation = 360}):Play()
-    task.wait(1)
-    
-    local beamX = Instance.new("Frame", IntroGui) beamX.Size = UDim2.new(0,0,0,2) beamX.Position = UDim2.new(0.5,0,0.5,0) beamX.AnchorPoint = Vector2.new(0.5,0.5) beamX.BackgroundColor3 = Theme.Accent beamX.BorderSizePixel = 0 table.insert(DynamicUIElements, {Obj = beamX, Prop = "BackgroundColor3"})
-    local beamY = Instance.new("Frame", IntroGui) beamY.Size = UDim2.new(0,2,0,0) beamY.Position = UDim2.new(0.5,0,0.5,0) beamY.AnchorPoint = Vector2.new(0.5,0.5) beamY.BackgroundColor3 = Theme.Accent beamY.BorderSizePixel = 0 table.insert(DynamicUIElements, {Obj = beamY, Prop = "BackgroundColor3"})
-    
-    TweenService:Create(beamX, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = UDim2.new(1.5,0,0,2)}):Play() TweenService:Create(beamY, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = UDim2.new(0,2,1.5,0)}):Play()
-    task.wait(0.2) beamX:Destroy() beamY:Destroy()
-    
-    local exp = TweenService:Create(Logo, TweenInfo.new(0.4, Enum.EasingStyle.Sine), {Size = UDim2.new(0, 600, 0, 400), ImageTransparency = 1}) exp:Play() exp.Completed:Wait()
-    ShowMainGui()
-end)
-
--- =========================================================================
 -- MAIN GUI CONSTRUCTION
 -- =========================================================================
 local OpenIconBtn = Instance.new("ImageButton", ScreenGui) OpenIconBtn.Name = "OpenIconBtn"
 OpenIconBtn.Size = UDim2.new(0, 45, 0, 45) OpenIconBtn.Position = UDim2.new(0, 15, 0.5, -22) OpenIconBtn.BackgroundColor3 = Theme.HeaderBg
-OpenIconBtn.Image = "rbxassetid://14457317772" OpenIconBtn.Visible = false OpenIconBtn.Active = true
+OpenIconBtn.Image = "rbxassetid://14457317772" OpenIconBtn.Visible = true OpenIconBtn.Active = true
 Instance.new("UICorner", OpenIconBtn).CornerRadius = UDim.new(0, 8) 
 local OpenStroke = Instance.new("UIStroke", OpenIconBtn) OpenStroke.Color = Theme.Accent table.insert(DynamicUIElements, {Obj = OpenStroke, Prop = "Color"})
 MakeDraggable(OpenIconBtn, OpenIconBtn)
@@ -293,7 +255,7 @@ local function CreateSlider(labelText, min, max, default, parentBox, callback, a
     local drag = false
     local function update(input)
         local rel = math.clamp((input.Position.X - Track.AbsolutePosition.X) / Track.AbsoluteSize.X, 0, 1) Fill.Size = UDim2.new(rel, 0, 1, 0) 
-        local val = min + (max - min) * rel if not allowFloat then val = math.floor(val) else val = math.floor(val * 10) / 10 end
+        local val = min + (max - min) * rel if not allowFloat then val = math.floor(val) else val = math.floor(val * 100) / 100 end
         ValLabel.Text = tostring(val) callback(val)
     end
     Knob.InputBegan:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then drag = true end end)
@@ -451,18 +413,18 @@ Setters.HoverOnKill = CreateToggle("Hover In Air On Kill", _G.Yui.HoverOnKill, F
 local FarmMobBox = CreateSection("Farming Mobs", MainR)
 Setters.AutoSpawn = CreateToggle("Auto Spawn (Fix Anti-Death)", false, FarmMobBox, function(v) _G.Yui.AutoSpawn = v end)
 local UpdateMultiMob = CreateMultiDropdown("Select Mobs", FarmMobBox, _G.Yui.SelectedMobs)
-CreateButton("Refresh Mobs (Level Only)", FarmMobBox, function()
+
+-- ĐÃ FIX BỘ QUÉT QUÁI: Quét tất cả (hang động, boss, thức tỉnh)
+CreateButton("Refresh All Mobs & Bosses", FarmMobBox, function()
     local temp, list = {}, {}
     for _, obj in pairs(Workspace:GetDescendants()) do
         if obj:IsA("Model") and obj ~= LocalPlayer.Character and not Players:GetPlayerFromCharacter(obj) then
             local hum = obj:FindFirstChildOfClass("Humanoid")
             if hum and hum.Health > 0 and obj:FindFirstChild("HumanoidRootPart") then
-                local rawName = string.lower(obj.Name)
-                if string.find(rawName, "lv") or string.find(rawName, "level") then
-                    local cleanName = string.gsub(obj.Name, "%[.-%]", "") cleanName = string.gsub(cleanName, "%d+$", "") cleanName = string.match(cleanName, "^%s*(.-)%s*$") or cleanName
-                    if cleanName ~= "" and obj.Parent and not string.find(string.lower(obj.Parent.Name), "quest") then
-                        if not temp[cleanName] then temp[cleanName] = true table.insert(list, cleanName) end
-                    end
+                local rawName = obj.Name
+                local cleanName = string.gsub(rawName, "%[.-%]", "") cleanName = string.gsub(cleanName, "%d+$", "") cleanName = string.match(cleanName, "^%s*(.-)%s*$") or cleanName
+                if cleanName ~= "" and obj.Parent and not string.find(string.lower(obj.Parent.Name), "quest") then
+                    if not temp[cleanName] then temp[cleanName] = true table.insert(list, cleanName) end
                 end
             end
         end
@@ -481,6 +443,12 @@ CreateButton("Refresh Weapons", AtkBox, function()
     UpdateWepDrop(t)
 end)
 Setters.FastAttack = CreateToggle("Auto Fast Attack (Silent)", false, AtkBox, function(v) _G.Yui.FastAttack = v end)
+
+-- ĐÃ FIX AUTO CLICK: Tách 2 chế độ và Tọa độ Click
+local UpdateClickPos, SetClickPos = CreateDropdown("Click Position", "Center", AtkBox, function(v) _G.Yui.ClickPosition = v end)
+UpdateClickPos({"Center", "Edge", "Off-Screen"})
+Setters.AutoClickFarming = CreateToggle("Auto Click (Khi Bật Farm)", false, AtkBox, function(v) _G.Yui.AutoClickFarming = v end)
+Setters.AutoClickAlways = CreateToggle("Auto Click (Luôn Luôn)", false, AtkBox, function(v) _G.Yui.AutoClickAlways = v end)
 
 local ConfigBox = CreateSection("Position & Safe", MainR)
 local UpdatePosDropdown, SetPosDrop = CreateDropdown("Position", "Above", ConfigBox, function(v) _G.Yui.AttackPos = v end)
@@ -554,25 +522,17 @@ end)
 
 -- SKILLS & HAKI
 local WepSkillBox = CreateSection("Normal Skills", SkillL)
-Setters.SkillR = CreateToggle("Auto Skill [R]", false, WepSkillBox, function(v) _G.Yui.AutoSkill.R = v end) 
-Setters.SkillZ = CreateToggle("Auto Skill [Z]", false, WepSkillBox, function(v) _G.Yui.AutoSkill.Z = v end) 
-Setters.SkillX = CreateToggle("Auto Skill [X]", false, WepSkillBox, function(v) _G.Yui.AutoSkill.X = v end) 
-Setters.SkillC = CreateToggle("Auto Skill [C]", false, WepSkillBox, function(v) _G.Yui.AutoSkill.C = v end) 
-Setters.SkillV = CreateToggle("Auto Skill [V]", false, WepSkillBox, function(v) _G.Yui.AutoSkill.V = v end) 
-Setters.SkillB = CreateToggle("Auto Skill [B]", false, WepSkillBox, function(v) _G.Yui.AutoSkill.B = v end) 
-Setters.SkillN = CreateToggle("Auto Skill [N]", false, WepSkillBox, function(v) _G.Yui.AutoSkill.N = v end) 
-Setters.SkillF = CreateToggle("Auto Skill [F]", false, WepSkillBox, function(v) _G.Yui.AutoSkill.F = v end) 
+-- ĐÃ FIX THÊM: E, R, T
+for _, key in ipairs({"E", "R", "T", "Z", "X", "C", "V", "B", "N", "F"}) do
+    Setters["Skill"..key] = CreateToggle("Auto Skill ["..key.."]", false, WepSkillBox, function(v) _G.Yui.AutoSkill[key] = v end) 
+end
 
 local HoldSkillBox = CreateSection("Hold Skills", SkillR)
 Setters.HoldTime = CreateSlider("Hold Time (s)", 1, 5, 1, HoldSkillBox, function(v) _G.Yui.HoldTime = v end)
-Setters.HoldR = CreateToggle("Hold Skill [R]", false, HoldSkillBox, function(v) _G.Yui.HoldSkill.R = v end) 
-Setters.HoldZ = CreateToggle("Hold Skill [Z]", false, HoldSkillBox, function(v) _G.Yui.HoldSkill.Z = v end) 
-Setters.HoldX = CreateToggle("Hold Skill [X]", false, HoldSkillBox, function(v) _G.Yui.HoldSkill.X = v end) 
-Setters.HoldC = CreateToggle("Hold Skill [C]", false, HoldSkillBox, function(v) _G.Yui.HoldSkill.C = v end) 
-Setters.HoldV = CreateToggle("Hold Skill [V]", false, HoldSkillBox, function(v) _G.Yui.HoldSkill.V = v end) 
-Setters.HoldB = CreateToggle("Hold Skill [B]", false, HoldSkillBox, function(v) _G.Yui.HoldSkill.B = v end) 
-Setters.HoldN = CreateToggle("Hold Skill [N]", false, HoldSkillBox, function(v) _G.Yui.HoldSkill.N = v end) 
-Setters.HoldF = CreateToggle("Hold Skill [F]", false, HoldSkillBox, function(v) _G.Yui.HoldSkill.F = v end) 
+-- ĐÃ FIX THÊM: E, R, T
+for _, key in ipairs({"E", "R", "T", "Z", "X", "C", "V", "B", "N", "F"}) do
+    Setters["Hold"..key] = CreateToggle("Hold Skill ["..key.."]", false, HoldSkillBox, function(v) _G.Yui.HoldSkill[key] = v end) 
+end
 
 local HakiBox = CreateSection("Auto Haki", SkillL)
 Setters.HakiE = CreateToggle("Armament Haki [E]", false, HakiBox, function(v) _G.Yui.AutoHaki.E = v end)
@@ -584,16 +544,19 @@ local SkyBaseBox = CreateSection("Collection Modes", ResL)
 local UpdateColDrop, SetColDrop = CreateDropdown("Collect Method", _G.Yui.CollectMethod, SkyBaseBox, function(v) _G.Yui.CollectMethod = v end)
 UpdateColDrop({"Teleport (Return)", "Teleport (Continuous)", "Fly"})
 Setters.CamUnderground = CreateToggle("Hide Camera Underground", false, SkyBaseBox, function(v) _G.Yui.CamUnderground = v end)
-Setters.CollectSpeed = CreateSlider("Sweep Delay (s)", 0.1, 2, 0.2, SkyBaseBox, function(v) _G.Yui.CollectSpeed = v end, true)
+-- Đã hạ mặc định xuống 0.05
+Setters.CollectSpeed = CreateSlider("Sweep Delay (s)", 0.01, 1, 0.05, SkyBaseBox, function(v) _G.Yui.CollectSpeed = v end, true)
 
 local CrateBox = CreateSection("Chest & Barrel Sweep", ResL)
-Setters.CollectChest = CreateToggle("Auto Chests (No Loop)", false, CrateBox, function(v) _G.Yui.CollectChest = v end)
-Setters.CollectBarrel = CreateToggle("Auto Barrels/Crates (No Loop)", false, CrateBox, function(v) _G.Yui.CollectBarrel = v end)
+-- ĐÃ FIX: Chữ Liên Tục
+Setters.CollectChest = CreateToggle("Auto Chests (Liên Tục)", false, CrateBox, function(v) _G.Yui.CollectChest = v end)
+Setters.CollectBarrel = CreateToggle("Auto Barrels/Crates (Liên Tục)", false, CrateBox, function(v) _G.Yui.CollectBarrel = v end)
 
 local JuiceBox = CreateSection("Juice & Drinks", ResR)
 Setters.AutoJuice = CreateToggle("Auto Make Juice", false, JuiceBox, function(v) _G.Yui.AutoJuice = v end)
 Setters.JuiceDelay = CreateSlider("Make Delay (s)", 1, 30, 5, JuiceBox, function(v) _G.Yui.JuiceDelay = v end)
-Setters.AutoDrink = CreateToggle("Auto Drink All", false, JuiceBox, function(v) _G.Yui.AutoDrink = v end)
+-- ĐÃ FIX: Chữ Uống Cùng Lúc
+Setters.AutoDrink = CreateToggle("Auto Drink All (Uống Cùng Lúc)", false, JuiceBox, function(v) _G.Yui.AutoDrink = v end)
 Setters.DrinkDelay = CreateSlider("Drink Delay (s)", 1, 10, 1, JuiceBox, function(v) _G.Yui.DrinkDelay = v end)
 
 local AppleBox = CreateSection("Auto Golden Apple", ResR)
@@ -784,7 +747,6 @@ CreateButton("Remove Auto Load", ConfigBox2, function()
     _G.Yui.AutoLoadConfig = false _G.Yui.AutoLoadName = "" AutoLoadStatus.Text = "Auto Load: OFF" SaveCoreSettings()
 end)
 
--- HÀM BỔ TRỢ CHO QUEST (THAY THẾ BỘ NÃO QUEST Ở ĐÂY)
 local function HasActiveQuest()
     local pGui = LocalPlayer:FindFirstChild("PlayerGui")
     local questGui = pGui and pGui:FindFirstChild("QuestGui")
@@ -800,22 +762,27 @@ local function HasActiveQuest()
     return false
 end
 
-local function ClickButton(btn)
-    if not btn then return end
-    pcall(function() for _, c in pairs(getconnections(btn.MouseButton1Click)) do c:Fire() end end)
-    pcall(function() firesignal(btn.MouseButton1Click) end)
-    pcall(function() firesignal(btn.Activated) end)
+local function SmartClickDialog(opts)
+    local btnNext = opts:FindFirstChild("Next")
+    local btnOption = opts:FindFirstChild("Option")
+    local btnOption2 = opts:FindFirstChild("Option2")
+    local btnLeave = opts:FindFirstChild("Leave")
+
+    if btnNext and btnNext.Visible then SilentClick(btnNext) return true end
+    if btnOption and btnOption.Visible then SilentClick(btnOption) return true end
+    if btnOption2 and btnOption2.Visible then SilentClick(btnOption2) return true end
+    if btnLeave and btnLeave.Visible and HasActiveQuest() then SilentClick(btnLeave) return true end
+    return false
 end
 
 -- =========================================================================
--- BỘ NÃO ĐỐI THOẠI & NHẬN QUEST (TÍCH HỢP TÁCH DAILY/NORMAL & ĐỨNG LỲ)
+-- BỘ NÃO ĐỐI THOẠI & NHẬN QUEST (ĐÃ CÀI ĐỨNG CHỜ QUEST VÀO ĐÂY)
 -- =========================================================================
 task.spawn(function()
     while task.wait(0.5) do
         local pGui = LocalPlayer:FindFirstChild("PlayerGui")
         if not pGui then continue end
 
-        -- Xử lý Hồi Sinh
         if _G.Yui.AutoSpawn then
             local loadFrame = pGui:FindFirstChild("Load") and pGui.Load:FindFirstChild("Frame") and pGui.Load.Frame:FindFirstChild("Load")
             local hum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
@@ -825,7 +792,6 @@ task.spawn(function()
             end
         end
         
-        -- Auto Upgrade Cap (Sam)
         if _G.Yui.AutoUpgradeCap then
             for _, gui in pairs(pGui:GetDescendants()) do
                 if gui:IsA("TextButton") or gui:IsA("ImageButton") then
@@ -834,7 +800,6 @@ task.spawn(function()
             end
         end
 
-        -- CƠ CHẾ AUTO QUEST MỚI TÁCH DAILY/NORMAL
         local targetQuestName = nil
         if _G.Yui.AutoDailyQuest and _G.Yui.SelectedDailyQuest ~= "" and _G.Yui.SelectedDailyQuest ~= "None" then targetQuestName = _G.Yui.SelectedDailyQuest
         elseif _G.Yui.AutoNormalQuest and _G.Yui.SelectedNormalQuest ~= "" and _G.Yui.SelectedNormalQuest ~= "None" then targetQuestName = _G.Yui.SelectedNormalQuest end
@@ -870,18 +835,9 @@ task.spawn(function()
                                     if dialogue and dialogue.Visible then
                                         pcall(function() dialogue.Position = UDim2.new(5, 0, 5, 0) end) 
                                         local opts = dialogue:FindFirstChild("Options")
-                                        if opts then
-                                            local btnNext = opts:FindFirstChild("Next")
-                                            local btnOption = opts:FindFirstChild("Option")
-                                            local btnOption2 = opts:FindFirstChild("Option2")
-                                            
-                                            if btnNext and btnNext.Visible then ClickButton(btnNext)
-                                            elseif btnOption and btnOption.Visible then ClickButton(btnOption)
-                                            elseif btnOption2 and btnOption2.Visible then ClickButton(btnOption2) end
-                                        end
+                                        if opts then SmartClickDialog(opts) end
                                     end
                                 end
-                                
                                 task.wait(0.1)
                                 MoveTo(oldPos)
                             else
@@ -891,15 +847,7 @@ task.spawn(function()
                                 if dialogue and dialogue.Visible then
                                     pcall(function() dialogue.Position = UDim2.new(5, 0, 5, 0) end)
                                     local opts = dialogue:FindFirstChild("Options")
-                                    if opts then
-                                        local btnNext = opts:FindFirstChild("Next")
-                                        local btnOption = opts:FindFirstChild("Option")
-                                        local btnOption2 = opts:FindFirstChild("Option2")
-                                        
-                                        if btnNext and btnNext.Visible then ClickButton(btnNext)
-                                        elseif btnOption and btnOption.Visible then ClickButton(btnOption)
-                                        elseif btnOption2 and btnOption2.Visible then ClickButton(btnOption2) end
-                                    end
+                                    if opts then SmartClickDialog(opts) end
                                 end
                             end
                         end
@@ -909,7 +857,6 @@ task.spawn(function()
             end
         end
 
-        -- CÁC TƯƠNG TÁC THOẠI KHÁC (SAM, AUTO ACCEPT CHUNG)
         local questGui = pGui:FindFirstChild("QuestGui")
         local dialogue = questGui and questGui:FindFirstChild("Dialogue")
         
@@ -942,6 +889,10 @@ task.spawn(function()
                                 if not string.find(txt, "nevermind") and not string.find(txt, "leave") and not string.find(txt, "no") then SilentClick(btn) break end
                             end
                         end
+                    end
+                else
+                    if _G.Yui.AutoNormalQuest or _G.Yui.AutoDailyQuest then
+                        SmartClickDialog(opts)
                     end
                 end
             end
@@ -1051,7 +1002,7 @@ task.spawn(function()
     end
 end)
 
--- SWEEP COLLECTION LOOP
+-- SWEEP COLLECTION LOOP (ĐÃ FIX: LẶP LIÊN TỤC CHỈ SAU 1 GIÂY)
 task.spawn(function()
     while task.wait(0.1) do
         local char = LocalPlayer.Character local root = char and char:FindFirstChild("HumanoidRootPart") if not root then continue end
@@ -1112,7 +1063,7 @@ task.spawn(function()
                     local tPart = obj:IsA("BasePart") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChildOfClass("MeshPart")
                     if tPart and tPart.Transparency < 1 then
                         local posKey = math.floor(tPart.Position.X).."_"..math.floor(tPart.Position.Z)
-                        if not TimedBlacklist[posKey] or tick() - TimedBlacklist[posKey] > _G.Yui.ChestDelay then table.insert(chests, {Obj = obj, Part = tPart, Key = posKey}) end
+                        if not TimedBlacklist[posKey] or tick() - TimedBlacklist[posKey] > 1 then table.insert(chests, {Obj = obj, Part = tPart, Key = posKey}) end
                     end
                 end
             end
@@ -1135,7 +1086,7 @@ task.spawn(function()
                     local cd = obj:FindFirstChildOfClass("ClickDetector")
                     if tPart and cd and tPart.Transparency < 1 then
                         local posKey = math.floor(tPart.Position.X).."_"..math.floor(tPart.Position.Z)
-                        if not TimedBlacklist[posKey] or tick() - TimedBlacklist[posKey] > _G.Yui.BarrelDelay then table.insert(barrels, {Obj = obj, Part = tPart, CD = cd, Key = posKey}) end
+                        if not TimedBlacklist[posKey] or tick() - TimedBlacklist[posKey] > 1 then table.insert(barrels, {Obj = obj, Part = tPart, CD = cd, Key = posKey}) end
                     end
                 end
             end
@@ -1153,6 +1104,7 @@ task.spawn(function()
     end
 end)
 
+-- BỘ NÃO ĐÁNH QUÁI (ĐÃ FIX: NHẬN DIỆN MỌI QUÁI TRÊN ĐẢO/HANG)
 local LastAttack = tick()
 task.spawn(function()
     while task.wait() do
@@ -1170,8 +1122,9 @@ task.spawn(function()
                 local shortest = math.huge local target = nil
                 for _, obj in pairs(Workspace:GetDescendants()) do
                     if obj:IsA("Model") and obj.Parent and not string.find(string.lower(obj.Parent.Name), "quest") and obj:FindFirstChildOfClass("Humanoid") and obj:FindFirstChildOfClass("Humanoid").Health > 0 then
-                        local cleanName = string.gsub(obj.Name, "%[.-%]", "") cleanName = string.gsub(cleanName, "%d+$", "") cleanName = string.match(cleanName, "^%s*(.-)%s*$") or cleanName
-                        if (_G.Yui.SelectedMobs[cleanName] or (targetMobName~="" and string.find(obj.Name, targetMobName, 1, true))) and obj:FindFirstChild("HumanoidRootPart") then
+                        local rawName = obj.Name
+                        local cleanName = string.gsub(rawName, "%[.-%]", "") cleanName = string.gsub(cleanName, "%d+$", "") cleanName = string.match(cleanName, "^%s*(.-)%s*$") or cleanName
+                        if (_G.Yui.SelectedMobs[cleanName] or _G.Yui.SelectedMobs[rawName] or (targetMobName~="" and string.find(rawName, targetMobName, 1, true))) and obj:FindFirstChild("HumanoidRootPart") then
                             local dist = (root.Position - obj.HumanoidRootPart.Position).Magnitude
                             if dist < shortest then shortest = dist target = obj end
                         end
@@ -1193,7 +1146,8 @@ task.spawn(function()
             CurrentTarget = nil
         end
 
-        local wantsAttack = _G.Yui.AutoClick or _G.Yui.FastAttack or (_G.Yui.AutoFarm and CurrentTarget) or (_G.Yui.AutoHunt and _G.Yui.TargetPlayer ~= "None")
+        -- ĐÃ FIX BỘ NÃO CLICK CHUỘT
+        local wantsAttack = _G.Yui.AutoClickAlways or (_G.Yui.AutoClickFarming and CurrentTarget) or _G.Yui.FastAttack
         if wantsAttack and _G.Yui.SelectedWeapon ~= "None" then
             pcall(function()
                 local toolToEquip = LocalPlayer.Backpack:FindFirstChild(_G.Yui.SelectedWeapon) or char:FindFirstChild(_G.Yui.SelectedWeapon)
@@ -1201,12 +1155,17 @@ task.spawn(function()
                 
                 local equippedTool = char:FindFirstChildOfClass("Tool")
                 if equippedTool and equippedTool.Name == _G.Yui.SelectedWeapon then
-                    if _G.Yui.FastAttack then
-                        equippedTool:Activate()
-                    elseif _G.Yui.AutoClick then
-                        equippedTool:Activate()
-                        if tick() - LastAttack >= 0.15 then
-                            VirtualInputManager:SendMouseButtonEvent(200, 0, 0, true, game, 0) VirtualInputManager:SendMouseButtonEvent(200, 0, 0, false, game, 0) LastAttack = tick()
+                    equippedTool:Activate()
+                    if _G.Yui.AutoClickFarming or _G.Yui.AutoClickAlways or _G.Yui.FastAttack then
+                        if tick() - LastAttack >= 0.1 then
+                            local cam = workspace.CurrentCamera
+                            local clickPos = Vector2.new(cam.ViewportSize.X/2, cam.ViewportSize.Y/2)
+                            if _G.Yui.ClickPosition == "Edge" then clickPos = Vector2.new(10, cam.ViewportSize.Y/2)
+                            elseif _G.Yui.ClickPosition == "Off-Screen" then clickPos = Vector2.new(9999, 9999) end
+                            
+                            VirtualUser:CaptureController() 
+                            VirtualUser:ClickButton1(clickPos) 
+                            LastAttack = tick()
                         end
                     end
                 end
@@ -1223,7 +1182,34 @@ task.spawn(function()
     end
 end)
 
-local LastHoldTicks = {R=0, Z=0, X=0, C=0, V=0, B=0, N=0, F=0}
+-- BỘ NÃO UỐNG NƯỚC (MASS DRINK - LỖ ĐEN)
+local LastDrinkTick = tick()
+task.spawn(function()
+    while task.wait(0.1) do
+        if _G.Yui.AutoDrink and tick() - LastDrinkTick > _G.Yui.DrinkDelay then
+            pcall(function()
+                local char = LocalPlayer.Character
+                if char then
+                    local toEquip = {}
+                    for _, tool in pairs(LocalPlayer.Backpack:GetChildren()) do
+                        if tool:IsA("Tool") and (string.find(string.lower(tool.Name), "juice") or string.find(string.lower(tool.Name), "milk")) then
+                            table.insert(toEquip, tool)
+                        end
+                    end
+                    for _, tool in ipairs(toEquip) do tool.Parent = char end
+                    for _, tool in pairs(char:GetChildren()) do
+                        if tool:IsA("Tool") and (string.find(string.lower(tool.Name), "juice") or string.find(string.lower(tool.Name), "milk")) then
+                            tool:Activate()
+                        end
+                    end
+                end
+            end)
+            LastDrinkTick = tick()
+        end
+    end
+end)
+
+local LastHoldTicks = {E=0, R=0, T=0, Z=0, X=0, C=0, V=0, B=0, N=0, F=0}
 RunService.Heartbeat:Connect(function()
     if CurrentTarget and CurrentTarget:FindFirstChild("HumanoidRootPart") then
         for key, active in pairs(_G.Yui.HoldSkill) do
