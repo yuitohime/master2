@@ -1,5 +1,5 @@
 -- =========================================================================
--- [ULTIMATE MASTER] YUIHUB V26 - STACK NOTIFICATIONS, UI SOUNDS, NO LAG
+-- [ULTIMATE MASTER] YUIHUB V26 - GUN AIMBOT, COLOR WHEEL, MASS APPLE/JUICE
 -- =========================================================================
 
 local Players = game:GetService("Players")
@@ -31,7 +31,7 @@ end)
 _G.Yui = {
     AntiAFK = true, MoveMethod = "Teleport", CollectMethod = "Teleport (Continuous)", MoveSpeed = 300, HoverOnKill = true,
     AutoFarm = false, SelectedMobs = {}, SelectedWeapons = {}, FastAttack = false, 
-    AutoClickFarming = false, AutoClickAlways = false, ClickPosition = "Center", AutoGunFarm = false,
+    AutoClickFarming = false, AutoClickAlways = false, ClickPosition = "Center", AutoGunFarm = false, GunAttackDist = 25,
     MobLevelFilter = "All", FarmNear = false,
     AttackDist = 5, AttackPos = "Above", AutoSpawn = false,
     AutoSkill = {E=false, R=false, T=false, Z=false, X=false, C=false, V=false, B=false, N=false, F=false}, 
@@ -42,13 +42,13 @@ _G.Yui = {
     AutoSam = false, AutoSamInf = false, AutoSamAmount = "x1", AutoUpgradeCap = false, SamLoopCount = 1, AutoFindBox = false, FindBoxDelay = 0.3,
     CollectChest = false, CollectBarrel = false, CollectCompass = false, CollectSpeed = 0.05, 
     AutoFruit = false, AutoSpawnBox = false, CamUnderground = false,
-    AutoJuice = false, JuiceDelay = 5, AutoDrink = false, DrinkDelay = 1, 
+    AutoJuice = false, JuiceDelay = 5, AutoDrink = false, DrinkDelay = 1, AutoEatApple = false, AppleDelay = 3, 
     WalkSpeed = 16, EnableWS = false, JumpPower = 50, EnableJP = false, 
     Fly = false, FlySpeed = 50, Noclip = false, WalkOnWater = false, InfJump = false, AutoSafe = false, SafeHealth = 30,
     AutoGetRod = false, AutoFish = false, AutoShake = false, AutoPin = false,
     TargetPlayer = "None", AutoHunt = false, HuntDist = 5, ESPPlayer = false, Spectate = false,
     ESPItems = false, SelectedESPItems = {}, TargetItemTeleport = "None",
-    CustomHue = 330, TextHue = 0
+    CustomHue = 330, CustomSat = 1, TextHue = 0
 }
 
 local CurrentTarget = nil
@@ -76,7 +76,7 @@ end)
 local function PlayUISound()
     pcall(function()
         local s = Instance.new("Sound", CoreGui)
-        s.SoundId = "rbxassetid://6895079853" -- Âm thanh click mượt mà
+        s.SoundId = "rbxassetid://6895079853" 
         s.Volume = 1
         s:Play()
         game.Debris:AddItem(s, 2)
@@ -112,7 +112,7 @@ local function BindTap(element, callback)
     element.Activated:Connect(function()
         if not debounce then 
             debounce = true 
-            PlayUISound() -- Phát âm thanh khi chạm nút
+            PlayUISound()
             callback() 
             task.wait(0.1) 
             debounce = false 
@@ -139,14 +139,16 @@ end
 -- Theme Logic
 local Theme = {
     MainBg = Color3.fromRGB(15, 15, 18), HeaderBg = Color3.fromRGB(22, 22, 25), BoxBg = Color3.fromRGB(20, 20, 23), 
-    Accent = Color3.fromHSV(_G.Yui.CustomHue / 360, 1, 1),
+    Accent = Color3.fromHSV(_G.Yui.CustomHue / 360, _G.Yui.CustomSat, 1),
     TextTitle = Color3.fromHSV(_G.Yui.TextHue / 360, 0.8, 1), 
     TextSub = Color3.fromRGB(140, 140, 140), Stroke = Color3.fromRGB(35, 35, 40), SelectedGreen = Color3.fromRGB(50, 255, 100)
 }
 local DynamicUIElements = {}
 
-local function UpdateThemeColor(hueVal)
-    _G.Yui.CustomHue = hueVal Theme.Accent = Color3.fromHSV(hueVal / 360, 1, 1)
+local function UpdateThemeColor(hueVal, satVal)
+    _G.Yui.CustomHue = hueVal
+    _G.Yui.CustomSat = satVal
+    Theme.Accent = Color3.fromHSV(hueVal, satVal, 1)
     for _, item in pairs(DynamicUIElements) do
         if item.Obj and item.Obj.Parent then
             if item.IsToggle then if item.Obj.BackgroundColor3 ~= Theme.MainBg then item.Obj[item.Prop] = Theme.Accent end 
@@ -170,12 +172,12 @@ local NotifGui = Instance.new("ScreenGui") NotifGui.Name = "YuiNotif" NotifGui.P
 local NotifContainer = Instance.new("Frame", NotifGui)
 NotifContainer.Size = UDim2.new(0, 250, 0, 400)
 NotifContainer.AnchorPoint = Vector2.new(1, 1)
-NotifContainer.Position = UDim2.new(1, -20, 1, -20) -- Góc phải bên dưới
+NotifContainer.Position = UDim2.new(1, -20, 1, -20) 
 NotifContainer.BackgroundTransparency = 1
 local NotifLayout = Instance.new("UIListLayout", NotifContainer)
 NotifLayout.SortOrder = Enum.SortOrder.LayoutOrder
 NotifLayout.Padding = UDim.new(0, 8)
-NotifLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom -- Báo mới mọc từ dưới lên
+NotifLayout.VerticalAlignment = Enum.VerticalAlignment.Bottom 
 
 local ActiveNotifs = {}
 
@@ -187,7 +189,6 @@ local function SendNotification(text, color, stackId)
         ActiveNotifs[stackId].Label.Text = text .. " (x" .. ActiveNotifs[stackId].Count .. ")"
         ActiveNotifs[stackId].Tick = tick()
         
-        -- Tạo hiệu ứng giật nhẹ để biết là vừa cộng dồn
         local sizeTween = TweenService:Create(ActiveNotifs[stackId].Frame, TweenInfo.new(0.1, Enum.EasingStyle.Bounce), {Size = UDim2.new(1, 10, 0, 35)})
         sizeTween:Play()
         sizeTween.Completed:Connect(function()
@@ -197,7 +198,7 @@ local function SendNotification(text, color, stackId)
     end
     
     local frame = Instance.new("Frame", NotifContainer)
-    frame.Size = UDim2.new(1, 0, 0, 35) -- Hình chữ nhật dài
+    frame.Size = UDim2.new(1, 0, 0, 35) 
     frame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
     frame.BackgroundTransparency = 0.1
     Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 6)
@@ -218,7 +219,6 @@ local function SendNotification(text, color, stackId)
     
     ActiveNotifs[stackId] = {Frame = frame, Label = lbl, Stroke = stroke, Count = 1, Tick = tick()}
     
-    -- Hiệu ứng hiện ra
     frame.Position = UDim2.new(1, 50, 0, 0)
     TweenService:Create(frame, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = UDim2.new(0, 0, 0, 0)}):Play()
     
@@ -226,7 +226,7 @@ local function SendNotification(text, color, stackId)
         while true do
             task.wait(0.1)
             if not ActiveNotifs[stackId] then break end
-            if tick() - ActiveNotifs[stackId].Tick > 3 then -- 3 giây không cập nhật sẽ biến mất
+            if tick() - ActiveNotifs[stackId].Tick > 3 then 
                 local outTween = TweenService:Create(ActiveNotifs[stackId].Frame, TweenInfo.new(0.4), {Position = UDim2.new(1, 50, 0, 0), BackgroundTransparency = 1})
                 TweenService:Create(ActiveNotifs[stackId].Label, TweenInfo.new(0.4), {TextTransparency = 1}):Play()
                 TweenService:Create(ActiveNotifs[stackId].Stroke, TweenInfo.new(0.4), {Transparency = 1}):Play()
@@ -322,8 +322,6 @@ local function CreateToggle(labelText, default, parentBox, callback)
         isOn = not isOn TweenService:Create(Knob, TweenInfo.new(0.2), {Position = isOn and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6)}):Play()
         TweenService:Create(Bg, TweenInfo.new(0.2), {BackgroundColor3 = isOn and Theme.Accent or Theme.MainBg}):Play() 
         callback(isOn)
-        
-        -- GỌI HÀM NOTIFY BẬT TẮT (STACK THEO TÊN NÚT)
         SendNotification((isOn and "Enabled: " or "Disabled: ") .. labelText, isOn and Theme.SelectedGreen or Color3.fromRGB(255, 100, 100), labelText.."_Toggle")
     end)
     return function(state) isOn = state Knob.Position = isOn and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6) Bg.BackgroundColor3 = isOn and Theme.Accent or Theme.MainBg callback(isOn) end
@@ -348,6 +346,73 @@ local function CreateSlider(labelText, min, max, default, parentBox, callback, a
     UserInputService.InputEnded:Connect(function(inp) if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then drag = false end end)
     UserInputService.InputChanged:Connect(function(inp) if drag and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then update(inp) end end)
     return function(val) val = math.clamp(val, min, max) Fill.Size = UDim2.new((val - min) / (max - min), 0, 1, 0) ValLabel.Text = tostring(val) callback(val) end
+end
+
+-- COLOR WHEEL MỚI (CHO MENU ACCENT)
+local function CreateCircularColorPicker(labelText, parentBox, callback)
+    local Frame = Instance.new("Frame", parentBox) 
+    Frame.Size = UDim2.new(1, 0, 0, 130) 
+    Frame.BackgroundTransparency = 1
+    
+    local Label = Instance.new("TextLabel", Frame) 
+    Label.Size = UDim2.new(1, 0, 0, 15) 
+    Label.BackgroundTransparency = 1 
+    Label.Text = labelText 
+    Label.TextColor3 = Theme.TextTitle 
+    Label.Font = Enum.Font.GothamBold 
+    Label.TextSize = 10 
+    Label.TextXAlignment = Enum.TextXAlignment.Left 
+    table.insert(DynamicUIElements, {Obj = Label, Prop = "TextColor3", Type = "Text"})
+
+    local WheelContainer = Instance.new("Frame", Frame)
+    WheelContainer.Size = UDim2.new(0, 100, 0, 100)
+    WheelContainer.Position = UDim2.new(0.5, -50, 0, 20)
+    WheelContainer.BackgroundTransparency = 1
+    
+    local Wheel = Instance.new("ImageLabel", WheelContainer)
+    Wheel.Size = UDim2.new(1, 0, 1, 0)
+    Wheel.BackgroundTransparency = 1
+    Wheel.Image = "rbxassetid://6022668888" 
+
+    local Knob = Instance.new("Frame", Wheel) 
+    Knob.Size = UDim2.new(0, 12, 0, 12) 
+    Knob.AnchorPoint = Vector2.new(0.5, 0.5)
+    Knob.Position = UDim2.new(0.5, 0, 0.5, 0) 
+    Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255) 
+    Instance.new("UICorner", Knob).CornerRadius = UDim.new(1, 0)
+    local Stroke = Instance.new("UIStroke", Knob)
+    Stroke.Color = Color3.fromRGB(0,0,0)
+    Stroke.Thickness = 1
+
+    local drag = false
+    local function update(input)
+        local center = Wheel.AbsolutePosition + (Wheel.AbsoluteSize / 2)
+        local mousePos = Vector2.new(input.Position.X, input.Position.Y)
+        local vec = mousePos - center
+        local radius = Wheel.AbsoluteSize.X / 2
+        
+        local dist = math.clamp(vec.Magnitude, 0, radius)
+        local dir = vec.Magnitude > 0 and vec.Unit or Vector2.new(0,0)
+        local pos = dir * dist
+        
+        Knob.Position = UDim2.new(0.5, pos.X / radius * 0.5, 0.5, pos.Y / radius * 0.5)
+        
+        local hue = (math.atan2(vec.Y, vec.X) + math.pi) / (math.pi * 2)
+        local sat = dist / radius
+        callback(hue * 360, sat)
+    end
+    
+    Wheel.InputBegan:Connect(function(inp) 
+        if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then 
+            drag = true update(inp) 
+        end 
+    end)
+    UserInputService.InputEnded:Connect(function(inp) 
+        if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then drag = false end 
+    end)
+    UserInputService.InputChanged:Connect(function(inp) 
+        if drag and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then update(inp) end 
+    end)
 end
 
 local function CreateColorPicker(labelText, defaultHue, parentBox, callback)
@@ -531,11 +596,12 @@ UpdateClickPos({"Center", "Edge", "Off-Screen"})
 Setters.AutoClickFarming = CreateToggle("Auto Click (Khi Bật Farm)", false, AtkBox, function(v) _G.Yui.AutoClickFarming = v end)
 Setters.AutoClickAlways = CreateToggle("Auto Click (Luôn Luôn)", false, AtkBox, function(v) _G.Yui.AutoClickAlways = v end)
 Setters.AutoGunFarm = CreateToggle("Gun Farm (Aimbot Camera)", false, AtkBox, function(v) _G.Yui.AutoGunFarm = v end)
+Setters.GunAttackDist = CreateSlider("Gun Farm Distance", 5, 100, 25, AtkBox, function(v) _G.Yui.GunAttackDist = v end)
 
 local ConfigBox = CreateSection("Position & Safe", MainR)
 local UpdatePosDropdown, SetPosDrop = CreateDropdown("Position", "Above", ConfigBox, function(v) _G.Yui.AttackPos = v end)
 UpdatePosDropdown({"Above", "Below", "Behind", "Front"})
-Setters.AttackDist = CreateSlider("Distance", 1, 25, 5, ConfigBox, function(v) _G.Yui.AttackDist = v end)
+Setters.AttackDist = CreateSlider("Melee Distance", 1, 25, 5, ConfigBox, function(v) _G.Yui.AttackDist = v end)
 Setters.AutoSafe = CreateToggle("Auto Safe (Fly up if low HP)", false, ConfigBox, function(v) _G.Yui.AutoSafe = v end)
 Setters.SafeHealth = CreateSlider("Safe HP %", 10, 90, 30, ConfigBox, function(v) _G.Yui.SafeHealth = v end)
 
@@ -638,6 +704,24 @@ CreateButton("Drop All Fruits", FBox, function()
     end
 end)
 
+local SBox = CreateSection("SpawnBoxes & Teleport", FruitR)
+Setters.AutoSpawnBox = CreateToggle("Auto Collect SpawnBox", false, SBox, function(v) _G.Yui.AutoSpawnBox = v end)
+local UpdateSpawnDrop, SetSpawnDrop = CreateDropdown("Select Spawn", "None", SBox, function(v)
+    for _, box in pairs(workspace:GetDescendants()) do
+        if box.Name == v and box:IsA("BasePart") then MoveTo(box.CFrame * CFrame.new(0, 3, 0)) break end
+    end
+end)
+CreateButton("Refresh Spawns", SBox, function()
+    local t = {}
+    for _, obj in pairs(workspace:GetDescendants()) do
+        local pN = string.lower(obj.Parent and obj.Parent.Name or "")
+        if (string.find(pN, "spawnbox") or string.find(pN, "spawns")) and obj:IsA("BasePart") then
+            if not table.find(t, obj.Name) then table.insert(t, obj.Name) end
+        end
+    end
+    table.sort(t) UpdateSpawnDrop(t)
+end)
+
 -- SKILLS & HAKI
 local WepSkillBox = CreateSection("Normal Skills", SkillL)
 Setters.SkillDelay = CreateSlider("Skill Delay (s)", 0, 5, 0.1, WepSkillBox, function(v) _G.Yui.SkillDelay = v end, true)
@@ -661,6 +745,7 @@ local SkyBaseBox = CreateSection("Collection Modes", ResL)
 local UpdateColDrop, SetColDrop = CreateDropdown("Collect Method", _G.Yui.CollectMethod, SkyBaseBox, function(v) _G.Yui.CollectMethod = v end)
 UpdateColDrop({"Teleport (Return)", "Teleport (Continuous)", "Fly"})
 Setters.CamUnderground = CreateToggle("Hide Camera Underground", false, SkyBaseBox, function(v) _G.Yui.CamUnderground = v end)
+Setters.CollectSpeed = CreateSlider("Sweep Delay (s)", 0.01, 1, 0.05, SkyBaseBox, function(v) _G.Yui.CollectSpeed = v end, true)
 
 local CrateBox = CreateSection("Chest & Barrel Sweep", ResL)
 Setters.CollectChest = CreateToggle("Auto Chests (Liên Tục)", false, CrateBox, function(v) _G.Yui.CollectChest = v end)
@@ -671,6 +756,12 @@ local JuiceBox = CreateSection("Juice & Drinks", ResR)
 Setters.AutoJuice = CreateToggle("Auto Make Juice", false, JuiceBox, function(v) _G.Yui.AutoJuice = v end)
 Setters.JuiceDelay = CreateSlider("Make Delay (s)", 1, 30, 5, JuiceBox, function(v) _G.Yui.JuiceDelay = v end)
 Setters.AutoDrink = CreateToggle("Auto Drink All (Mass Consume)", false, JuiceBox, function(v) _G.Yui.AutoDrink = v end)
+Setters.DrinkDelay = CreateSlider("Drink Delay (s)", 1, 10, 1, JuiceBox, function(v) _G.Yui.DrinkDelay = v end)
+
+-- KHÔI PHỤC AUTO APPLE THEO YÊU CẦU
+local AppleBox = CreateSection("Auto Golden Apple", ResR)
+Setters.AutoEatApple = CreateToggle("Auto Eat All Apples (Mass)", false, AppleBox, function(v) _G.Yui.AutoEatApple = v end)
+Setters.AppleDelay = CreateSlider("Eat Delay (s)", 1, 10, 3, AppleBox, function(v) _G.Yui.AppleDelay = v end)
 
 -- PLAYER
 local MoveBox = CreateSection("Movement", PlayerL)
@@ -820,7 +911,74 @@ Setters.AntiAFK = CreateToggle("Anti AFK (No Kick)", _G.Yui.AntiAFK, SysBox, fun
 CreateButton("Reset All Toggles", SysBox, function() for _, func in pairs(Setters) do pcall(function() func(false) end) end end)
 
 local ThemeBox = CreateSection("Theme & Text Customizer", SetR)
-CreateColorPicker("Menu Accent Color Bar", _G.Yui.CustomHue, ThemeBox, function(hue) UpdateThemeColor(hue) end)
+-- COLOR WHEEL CỦA MENU ACCENT
+local function CreateCircularColorPicker(labelText, parentBox, callback)
+    local Frame = Instance.new("Frame", parentBox) 
+    Frame.Size = UDim2.new(1, 0, 0, 130) 
+    Frame.BackgroundTransparency = 1
+    
+    local Label = Instance.new("TextLabel", Frame) 
+    Label.Size = UDim2.new(1, 0, 0, 15) 
+    Label.BackgroundTransparency = 1 
+    Label.Text = labelText 
+    Label.TextColor3 = Theme.TextTitle 
+    Label.Font = Enum.Font.GothamBold 
+    Label.TextSize = 10 
+    Label.TextXAlignment = Enum.TextXAlignment.Left 
+    table.insert(DynamicUIElements, {Obj = Label, Prop = "TextColor3", Type = "Text"})
+
+    local WheelContainer = Instance.new("Frame", Frame)
+    WheelContainer.Size = UDim2.new(0, 100, 0, 100)
+    WheelContainer.Position = UDim2.new(0.5, -50, 0, 20)
+    WheelContainer.BackgroundTransparency = 1
+    
+    local Wheel = Instance.new("ImageLabel", WheelContainer)
+    Wheel.Size = UDim2.new(1, 0, 1, 0)
+    Wheel.BackgroundTransparency = 1
+    Wheel.Image = "rbxassetid://6022668888" 
+
+    local Knob = Instance.new("Frame", Wheel) 
+    Knob.Size = UDim2.new(0, 12, 0, 12) 
+    Knob.AnchorPoint = Vector2.new(0.5, 0.5)
+    Knob.Position = UDim2.new(0.5, 0, 0.5, 0) 
+    Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255) 
+    Instance.new("UICorner", Knob).CornerRadius = UDim.new(1, 0)
+    local Stroke = Instance.new("UIStroke", Knob)
+    Stroke.Color = Color3.fromRGB(0,0,0)
+    Stroke.Thickness = 1
+
+    local drag = false
+    local function update(input)
+        local center = Wheel.AbsolutePosition + (Wheel.AbsoluteSize / 2)
+        local mousePos = Vector2.new(input.Position.X, input.Position.Y)
+        local vec = mousePos - center
+        local radius = Wheel.AbsoluteSize.X / 2
+        
+        local dist = math.clamp(vec.Magnitude, 0, radius)
+        local dir = vec.Magnitude > 0 and vec.Unit or Vector2.new(0,0)
+        local pos = dir * dist
+        
+        Knob.Position = UDim2.new(0.5, pos.X / radius * 0.5, 0.5, pos.Y / radius * 0.5)
+        
+        local hue = (math.atan2(vec.Y, vec.X) + math.pi) / (math.pi * 2)
+        local sat = dist / radius
+        callback(hue * 360, sat)
+    end
+    
+    Wheel.InputBegan:Connect(function(inp) 
+        if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then 
+            drag = true update(inp) 
+        end 
+    end)
+    UserInputService.InputEnded:Connect(function(inp) 
+        if inp.UserInputType == Enum.UserInputType.MouseButton1 or inp.UserInputType == Enum.UserInputType.Touch then drag = false end 
+    end)
+    UserInputService.InputChanged:Connect(function(inp) 
+        if drag and (inp.UserInputType == Enum.UserInputType.MouseMovement or inp.UserInputType == Enum.UserInputType.Touch) then update(inp) end 
+    end)
+end
+
+CreateCircularColorPicker("Menu Color Wheel", ThemeBox, function(hue, sat) UpdateThemeColor(hue, sat) end)
 CreateColorPicker("Text Color Bar", _G.Yui.TextHue, ThemeBox, function(hue) UpdateTextColor(hue) end)
 
 
@@ -1078,7 +1236,6 @@ task.spawn(function()
         local questGui = pGui:FindFirstChild("QuestGui")
         local dialogue = questGui and questGui:FindFirstChild("Dialogue")
         
-        -- AUTO SAM 
         local wantsSam = false
         if _G.Yui.AutoSam then
             if _G.Yui.SamLoopCount > 0 then wantsSam = true end
@@ -1183,13 +1340,234 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+RunService.RenderStepped:Connect(function()
+    local cam = workspace.CurrentCamera
+    if _G.Yui.ESPPlayer then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Head") then
+                local dist = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and math.floor((LocalPlayer.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude) or 0
+                local espName = "ESP_"..p.Name
+                local bg = ESPFolder:FindFirstChild(espName)
+                if not bg then
+                    bg = Instance.new("BillboardGui", ESPFolder) bg.Name = espName bg.AlwaysOnTop = true bg.Size = UDim2.new(0, 100, 0, 40) bg.StudsOffset = Vector3.new(0, 2.5, 0)
+                    local txt = Instance.new("TextLabel", bg) txt.Size = UDim2.new(1,0,1,0) txt.BackgroundTransparency = 1 txt.TextColor3 = Theme.Accent txt.Font = Enum.Font.GothamBold txt.TextSize = 12 txt.TextStrokeTransparency = 0
+                    local hl = Instance.new("Highlight", bg) hl.FillTransparency = 1 hl.OutlineColor = Theme.Accent hl.Adornee = p.Character
+                end
+                bg.Adornee = p.Character:FindFirstChild("Head") bg.TextLabel.Text = p.Name .. " [" .. dist .. "m]"
+
+                if Drawing then
+                    if not ESPTracers[p.Name] then ESPTracers[p.Name] = Drawing.new("Line") ESPTracers[p.Name].Thickness = 1.5 ESPTracers[p.Name].Color = Theme.Accent ESPTracers[p.Name].Transparency = 0.8 end
+                    local pos, onScreen = cam:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+                    if onScreen then ESPTracers[p.Name].From = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y) ESPTracers[p.Name].To = Vector2.new(pos.X, pos.Y) ESPTracers[p.Name].Visible = true
+                    else ESPTracers[p.Name].Visible = false end
+                end
+            else
+                if ESPFolder:FindFirstChild("ESP_"..p.Name) then ESPFolder:FindFirstChild("ESP_"..p.Name):Destroy() end
+                if ESPTracers[p.Name] then ESPTracers[p.Name].Visible = false ESPTracers[p.Name]:Remove() ESPTracers[p.Name] = nil end
+            end
+        end
+    else
+        ESPFolder:ClearAllChildren()
+        for k, line in pairs(ESPTracers) do if line then line.Visible = false line:Remove() end end
+        ESPTracers = {}
+    end
+    
+    if _G.Yui.Spectate and _G.Yui.TargetPlayer ~= "None" then
+        local p = Players:FindFirstChild(_G.Yui.TargetPlayer)
+        if p and p.Character and p.Character:FindFirstChild("Humanoid") then cam.CameraSubject = p.Character.Humanoid end
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    local cam = workspace.CurrentCamera
+    local isCollecting = _G.Yui.CollectChest or _G.Yui.CollectBarrel or _G.Yui.AutoFruit or _G.Yui.AutoJuice or _G.Yui.AutoSpawnBox
+    if _G.Yui.CamUnderground and isCollecting then
+        local char = LocalPlayer.Character local root = char and char:FindFirstChild("HumanoidRootPart")
+        if root then cam.CameraType = Enum.CameraType.Scriptable cam.CFrame = CFrame.new(root.Position - Vector3.new(0, 5000, 0), root.Position - Vector3.new(0, 5001, 0)) end
+    else
+        if cam.CameraType == Enum.CameraType.Scriptable then cam.CameraType = Enum.CameraType.Custom cam.CameraSubject = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") end
+    end
+end)
+
+task.spawn(function()
+    while task.wait() do
+        if _G.Yui.AutoHunt and _G.Yui.TargetPlayer ~= "None" then
+            local p = Players:FindFirstChild(_G.Yui.TargetPlayer)
+            if p and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local offset = CFrame.new(0, 0, _G.Yui.HuntDist) MoveTo(p.Character.HumanoidRootPart.CFrame * offset)
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.5) do
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChild("Humanoid")
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if _G.Yui.AutoSafe and hum and root and hum.Health > 0 then
+            local hpPercent = (hum.Health / hum.MaxHealth) * 100
+            if hpPercent <= _G.Yui.SafeHealth then
+                root.CFrame = root.CFrame + Vector3.new(0, 2000, 0) root.Velocity = Vector3.zero
+                if not root:FindFirstChild("SafeFloat") then
+                    local bf = Instance.new("BodyVelocity", root) bf.Name = "SafeFloat" bf.MaxForce = Vector3.new(1e5,1e5,1e5) bf.Velocity = Vector3.zero
+                end
+            else
+                local bf = root:FindFirstChild("SafeFloat") if bf then bf:Destroy() end
+            end
+        end
+    end
+end)
+
+-- BỘ NÃO GOM VẬT PHẨM TỐI ƯU
+local CachedCollectables = {}
+task.spawn(function()
+    while task.wait(3) do
+        local newCache = {}
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            local n = obj.Name
+            if n == "TreasureChest" or n == "Barrel" or n == "Crate" or string.find(string.lower(n), "compass") or string.find(string.lower(n), "fruit") then
+                table.insert(newCache, obj)
+            end
+        end
+        CachedCollectables = newCache
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.1) do
+        local char = LocalPlayer.Character local root = char and char:FindFirstChild("HumanoidRootPart") if not root then continue end
+        local didAction = false
+        local anchor = root.CFrame
+        if _G.Yui.CollectMethod == "Teleport (Continuous)" then anchor = nil end
+
+        for _, obj in ipairs(CachedCollectables) do
+            if not obj or not obj.Parent then continue end
+            local n = obj.Name
+            local ln = string.lower(n)
+
+            if _G.Yui.AutoFruit and string.find(ln, "fruit") and not didAction then
+                local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildWhichIsA("BasePart")
+                if handle then
+                    MoveTo(handle.CFrame)
+                    for _, cd in pairs(obj:GetDescendants()) do if cd:IsA("ClickDetector") then fireclickdetector(cd, 1) end end
+                    SendNotification("Collected: " .. n, Theme.SelectedGreen, "Fruit")
+                    task.wait(_G.Yui.CollectSpeed) didAction = true
+                end
+            end
+
+            if _G.Yui.CollectCompass and string.find(ln, "compass") and not didAction then
+                local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildWhichIsA("BasePart")
+                if handle then
+                    MoveTo(handle.CFrame)
+                    for _, cd in pairs(obj:GetDescendants()) do if cd:IsA("ClickDetector") then fireclickdetector(cd, 1) end end
+                    SendNotification("Collected: Compass", Theme.SelectedGreen, "Compass")
+                    task.wait(_G.Yui.CollectSpeed) didAction = true
+                end
+            end
+
+            if _G.Yui.CollectChest and n == "TreasureChest" and not didAction then
+                local tPart = obj:IsA("BasePart") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChildOfClass("MeshPart")
+                if tPart and tPart.Transparency < 1 then
+                    local posKey = tostring(obj:GetDebugId()) 
+                    if not TimedBlacklist[posKey] or tick() - TimedBlacklist[posKey] > 1.5 then 
+                        root.CFrame = tPart.CFrame * CFrame.new(0, 1, 0) root.Velocity = Vector3.zero
+                        task.wait(0.1) 
+                        if firetouchinterest then for i=1,10 do for _, part in ipairs(char:GetChildren()) do if part:IsA("BasePart") then firetouchinterest(part, tPart, 0) firetouchinterest(part, tPart, 1) end end end end
+                        SendNotification("Collected: Chest", Theme.SelectedGreen, "Chest")
+                        TimedBlacklist[posKey] = tick() didAction = true
+                    end
+                end
+            end
+
+            if _G.Yui.CollectBarrel and (n == "Barrel" or n == "Crate") and not didAction then
+                local tPart = obj:IsA("BasePart") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChildOfClass("MeshPart")
+                local cd = obj:FindFirstChildOfClass("ClickDetector")
+                if tPart and cd and tPart.Transparency < 1 then
+                    local posKey = tostring(obj:GetDebugId())
+                    if not TimedBlacklist[posKey] or tick() - TimedBlacklist[posKey] > 1.5 then 
+                        root.CFrame = tPart.CFrame * CFrame.new(0, 2, 0) root.Velocity = Vector3.zero
+                        task.wait(0.1) 
+                        if fireclickdetector then for i=1,5 do fireclickdetector(cd, 1) end end
+                        SendNotification("Collected: " .. n, Theme.SelectedGreen, "Barrel")
+                        TimedBlacklist[posKey] = tick() didAction = true
+                    end
+                end
+            end
+        end
+        if didAction and anchor and _G.Yui.CollectMethod == "Teleport (Return)" then MoveTo(anchor) end
+        if not didAction then task.wait(0.1) end
+    end
+end)
+
+-- AUTO FISH
+task.spawn(function()
+    while task.wait(0.2) do
+        local char = LocalPlayer.Character if not char or not char:FindFirstChild("HumanoidRootPart") then continue end
+        local hrp = char.HumanoidRootPart local backpack = LocalPlayer:FindFirstChild("Backpack")
+
+        if _G.Yui.AutoGetRod then
+            local hasRod = false
+            if char:FindFirstChildOfClass("Tool") and (string.find(string.lower(char:FindFirstChildOfClass("Tool").Name), "rod") or string.find(string.lower(char:FindFirstChildOfClass("Tool").Name), "fish")) then hasRod = true end
+            if backpack then for _, t in pairs(backpack:GetChildren()) do if t:IsA("Tool") and (string.find(string.lower(t.Name), "rod") or string.find(string.lower(t.Name), "fish")) then hasRod = true end end end
+
+            if hasRod then
+                _G.Yui.AutoGetRod = false
+            else
+                local package = char:FindFirstChild("Package") or (backpack and backpack:FindFirstChild("Package"))
+                if not package then
+                    local fisherman = nil
+                    for _, obj in pairs(Workspace:GetDescendants()) do if obj:IsA("Model") and obj.Name == "Fisherman" and obj:FindFirstChild("HumanoidRootPart") then fisherman = obj break end end
+                    if fisherman then MoveTo(fisherman.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)) local cd = fisherman:FindFirstChildOfClass("ClickDetector", true) if cd then fireclickdetector(cd, 0) end end
+                else
+                    if package.Parent == backpack then char.Humanoid:EquipTool(package) task.wait(0.5) end
+                    VirtualUser:CaptureController() VirtualUser:ClickButton1(Vector2.new(0, 0))
+
+                    local allNPCs = {}
+                    for _, obj in pairs(Workspace:GetDescendants()) do
+                        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") and not Players:GetPlayerFromCharacter(obj) and obj.Name ~= "Fisherman" then table.insert(allNPCs, obj) end
+                    end
+                    for _, npc in ipairs(allNPCs) do
+                        local stillHavePackage = char:FindFirstChild("Package") or (backpack and backpack:FindFirstChild("Package"))
+                        if not stillHavePackage then break end
+                        MoveTo(npc.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)) task.wait(0.3)
+                    end
+                end
+            end
+        end
+
+        if _G.Yui.AutoFish then
+            local rod = char:FindFirstChildOfClass("Tool")
+            if not rod or not (string.find(string.lower(rod.Name), "rod") or string.find(string.lower(rod.Name), "fish")) then
+                if backpack then for _, tool in ipairs(backpack:GetChildren()) do local tName = string.lower(tool.Name) if tool:IsA("Tool") and (string.find(tName, "rod") or string.find(tName, "fish") or string.find(tName, "pole")) then char.Humanoid:EquipTool(tool) rod = tool task.wait(1) break end end end
+            end
+            if rod then
+                local isCast = Workspace:FindFirstChild("Bobber") or Workspace:FindFirstChild("FishingRope_" .. tostring(LocalPlayer.UserId), true)
+                if not isCast then 
+                    VirtualUser:CaptureController() VirtualUser:ClickButton1(Vector2.new(0, 0)) task.wait(1) 
+                end
+                
+                if _G.Yui.AutoShake then
+                    local pGui = LocalPlayer.PlayerGui
+                    if pGui then
+                        for _, v in pairs(pGui:GetDescendants()) do
+                            if (v:IsA("TextButton") or v:IsA("ImageButton")) and (string.find(string.lower(v.Name), "shake") or (v:IsA("TextButton") and string.find(string.lower(v.Text), "shake"))) then
+                                if v.Visible then SilentClick(v) end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
 -- BỘ NÃO ĐÁNH QUÁI (ĐÃ CÓ LỌC LEVEL VÀ FARM NEAR)
 local LastAttack = tick()
 local WepCycleIndex = 1
 local LastWepSwap = tick()
 local LastSkillTick = tick()
 
--- LẤY DANH SÁCH QUÁI TỐI ƯU HÓA (CACHE 3s)
 local CachedMobs = {}
 task.spawn(function()
     while task.wait(3) do
@@ -1251,18 +1629,29 @@ RunService.Heartbeat:Connect(function()
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if root then
-            local offset = CFrame.new(0, _G.Yui.AttackDist, 0) * CFrame.Angles(math.rad(-90), 0, 0)
-            if _G.Yui.AttackPos == "Below" then offset = CFrame.new(0, -_G.Yui.AttackDist, 0) * CFrame.Angles(math.rad(90), 0, 0)
-            elseif _G.Yui.AttackPos == "Behind" then offset = CFrame.new(0, 0, _G.Yui.AttackDist)
-            elseif _G.Yui.AttackPos == "Front" then offset = CFrame.new(0, 0, -_G.Yui.AttackDist) * CFrame.Angles(0, math.rad(180), 0) end
+            if _G.Yui.AutoGunFarm then
+                -- GUN FARM: KÉO XA QUÁI RA & CHỈA SÚNG VÀO QUÁI
+                local dist = _G.Yui.GunAttackDist or 25
+                local offset = CFrame.new(0, _G.Yui.AttackDist, dist)
+                local targetPos = CurrentTarget.HumanoidRootPart.Position
+                -- Teleport xa quái và quay mặt về phía quái
+                root.CFrame = CFrame.new(targetPos + Vector3.new(0, _G.Yui.AttackDist, dist), targetPos)
+            else
+                -- MELEE FARM: NHƯ CŨ
+                local offset = CFrame.new(0, _G.Yui.AttackDist, 0) * CFrame.Angles(math.rad(-90), 0, 0)
+                if _G.Yui.AttackPos == "Below" then offset = CFrame.new(0, -_G.Yui.AttackDist, 0) * CFrame.Angles(math.rad(90), 0, 0)
+                elseif _G.Yui.AttackPos == "Behind" then offset = CFrame.new(0, 0, _G.Yui.AttackDist)
+                elseif _G.Yui.AttackPos == "Front" then offset = CFrame.new(0, 0, -_G.Yui.AttackDist) * CFrame.Angles(0, math.rad(180), 0) end
+                root.CFrame = CurrentTarget.HumanoidRootPart.CFrame * offset
+            end
             
-            MoveTo(CurrentTarget.HumanoidRootPart.CFrame * offset)
+            root.Velocity = Vector3.zero
             for _, part in ipairs(char:GetDescendants()) do if part:IsA("BasePart") then part.CanCollide = false end end
         end
     end
 end)
 
--- GUN FARM (AIMBOT) THREAD
+-- GUN FARM (AIMBOT CAMERA) THREAD
 RunService.RenderStepped:Connect(function()
     if _G.Yui.AutoGunFarm and CurrentTarget and CurrentTarget:FindFirstChild("HumanoidRootPart") then
         local cam = workspace.CurrentCamera
@@ -1331,145 +1720,61 @@ task.spawn(function()
     end
 end)
 
--- BỘ NÃO GOM VẬT PHẨM (TỐI ƯU HÓA: DÙNG CACHE TRÁNH ĐƠ GAME)
-local CachedCollectables = {}
-task.spawn(function()
-    while task.wait(3) do
-        local newCache = {}
-        for _, obj in pairs(Workspace:GetDescendants()) do
-            local n = obj.Name
-            if n == "TreasureChest" or n == "Barrel" or n == "Crate" or string.find(string.lower(n), "compass") or string.find(string.lower(n), "fruit") then
-                table.insert(newCache, obj)
-            end
-        end
-        CachedCollectables = newCache
-    end
-end)
-
+-- BỘ NÃO MASS CONSUME (JUICE VÀ APPLE)
+local LastDrinkTick = tick()
 task.spawn(function()
     while task.wait(0.1) do
-        local char = LocalPlayer.Character local root = char and char:FindFirstChild("HumanoidRootPart") if not root then continue end
-        local didAction = false
-        local anchor = root.CFrame
-        if _G.Yui.CollectMethod == "Teleport (Continuous)" then anchor = nil end
-
-        for _, obj in ipairs(CachedCollectables) do
-            if not obj or not obj.Parent then continue end
-            local n = obj.Name
-            local ln = string.lower(n)
-
-            if _G.Yui.AutoFruit and string.find(ln, "fruit") and not didAction then
-                local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildWhichIsA("BasePart")
-                if handle then
-                    MoveTo(handle.CFrame)
-                    for _, cd in pairs(obj:GetDescendants()) do if cd:IsA("ClickDetector") then fireclickdetector(cd, 1) end end
-                    SendNotification("Collected: " .. n, Theme.SelectedGreen, "Fruit")
-                    task.wait(_G.Yui.CollectSpeed) didAction = true
-                end
-            end
-
-            if _G.Yui.CollectCompass and string.find(ln, "compass") and not didAction then
-                local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildWhichIsA("BasePart")
-                if handle then
-                    MoveTo(handle.CFrame)
-                    for _, cd in pairs(obj:GetDescendants()) do if cd:IsA("ClickDetector") then fireclickdetector(cd, 1) end end
-                    SendNotification("Collected: Compass", Theme.SelectedGreen, "Compass")
-                    task.wait(_G.Yui.CollectSpeed) didAction = true
-                end
-            end
-
-            if _G.Yui.CollectChest and n == "TreasureChest" and not didAction then
-                local tPart = obj:IsA("BasePart") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChildOfClass("MeshPart")
-                if tPart and tPart.Transparency < 1 then
-                    local posKey = tostring(obj:GetDebugId()) -- Dùng ID thay vì tọa độ để chống kẹt
-                    if not TimedBlacklist[posKey] or tick() - TimedBlacklist[posKey] > 1.5 then 
-                        root.CFrame = tPart.CFrame * CFrame.new(0, 1, 0) root.Velocity = Vector3.zero
-                        task.wait(0.1) 
-                        if firetouchinterest then for i=1,10 do for _, part in ipairs(char:GetChildren()) do if part:IsA("BasePart") then firetouchinterest(part, tPart, 0) firetouchinterest(part, tPart, 1) end end end end
-                        SendNotification("Collected: Chest", Theme.SelectedGreen, "Chest")
-                        TimedBlacklist[posKey] = tick() didAction = true
+        if _G.Yui.AutoDrink and tick() - LastDrinkTick > _G.Yui.DrinkDelay then
+            pcall(function()
+                local char = LocalPlayer.Character
+                if char then
+                    local toEquip = {}
+                    for _, tool in pairs(LocalPlayer.Backpack:GetChildren()) do
+                        if tool:IsA("Tool") and (string.find(string.lower(tool.Name), "juice") or string.find(string.lower(tool.Name), "milk")) then
+                            table.insert(toEquip, tool)
+                        end
+                    end
+                    if #toEquip > 0 then
+                        for _, tool in ipairs(toEquip) do tool.Parent = char end
+                        for _, tool in pairs(char:GetChildren()) do
+                            if tool:IsA("Tool") and (string.find(string.lower(tool.Name), "juice") or string.find(string.lower(tool.Name), "milk")) then
+                                tool:Activate()
+                            end
+                        end
+                        SendNotification("Drank " .. #toEquip .. " Juices/Milks!", Theme.Accent, "Drink")
                     end
                 end
-            end
-
-            if _G.Yui.CollectBarrel and (n == "Barrel" or n == "Crate") and not didAction then
-                local tPart = obj:IsA("BasePart") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChildOfClass("MeshPart")
-                local cd = obj:FindFirstChildOfClass("ClickDetector")
-                if tPart and cd and tPart.Transparency < 1 then
-                    local posKey = tostring(obj:GetDebugId())
-                    if not TimedBlacklist[posKey] or tick() - TimedBlacklist[posKey] > 1.5 then 
-                        root.CFrame = tPart.CFrame * CFrame.new(0, 2, 0) root.Velocity = Vector3.zero
-                        task.wait(0.1) 
-                        if fireclickdetector then for i=1,5 do fireclickdetector(cd, 1) end end
-                        SendNotification("Collected: " .. n, Theme.SelectedGreen, "Barrel")
-                        TimedBlacklist[posKey] = tick() didAction = true
-                    end
-                end
-            end
+            end)
+            LastDrinkTick = tick()
         end
-        if didAction and anchor and _G.Yui.CollectMethod == "Teleport (Return)" then MoveTo(anchor) end
-        if not didAction then task.wait(0.1) end
     end
 end)
 
--- AUTO FISH (ĐÃ FIX: KIỂM TRA ĐÚNG TRƯỚC KHI THẢ & AUTO SHAKE)
+local LastAppleTick = tick()
 task.spawn(function()
-    while task.wait(0.2) do
-        local char = LocalPlayer.Character if not char or not char:FindFirstChild("HumanoidRootPart") then continue end
-        local hrp = char.HumanoidRootPart local backpack = LocalPlayer:FindFirstChild("Backpack")
-
-        if _G.Yui.AutoGetRod then
-            local hasRod = false
-            if char:FindFirstChildOfClass("Tool") and (string.find(string.lower(char:FindFirstChildOfClass("Tool").Name), "rod") or string.find(string.lower(char:FindFirstChildOfClass("Tool").Name), "fish")) then hasRod = true end
-            if backpack then for _, t in pairs(backpack:GetChildren()) do if t:IsA("Tool") and (string.find(string.lower(t.Name), "rod") or string.find(string.lower(t.Name), "fish")) then hasRod = true end end end
-
-            if hasRod then
-                _G.Yui.AutoGetRod = false
-            else
-                local package = char:FindFirstChild("Package") or (backpack and backpack:FindFirstChild("Package"))
-                if not package then
-                    local fisherman = nil
-                    for _, obj in pairs(Workspace:GetDescendants()) do if obj:IsA("Model") and obj.Name == "Fisherman" and obj:FindFirstChild("HumanoidRootPart") then fisherman = obj break end end
-                    if fisherman then MoveTo(fisherman.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)) local cd = fisherman:FindFirstChildOfClass("ClickDetector", true) if cd then fireclickdetector(cd, 0) end end
-                else
-                    if package.Parent == backpack then char.Humanoid:EquipTool(package) task.wait(0.5) end
-                    VirtualUser:CaptureController() VirtualUser:ClickButton1(Vector2.new(0, 0))
-
-                    local allNPCs = {}
-                    for _, obj in pairs(Workspace:GetDescendants()) do
-                        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") and obj:FindFirstChild("HumanoidRootPart") and not Players:GetPlayerFromCharacter(obj) and obj.Name ~= "Fisherman" then table.insert(allNPCs, obj) end
-                    end
-                    for _, npc in ipairs(allNPCs) do
-                        local stillHavePackage = char:FindFirstChild("Package") or (backpack and backpack:FindFirstChild("Package"))
-                        if not stillHavePackage then break end
-                        MoveTo(npc.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)) task.wait(0.3)
-                    end
-                end
-            end
-        end
-
-        if _G.Yui.AutoFish then
-            local rod = char:FindFirstChildOfClass("Tool")
-            if not rod or not (string.find(string.lower(rod.Name), "rod") or string.find(string.lower(rod.Name), "fish")) then
-                if backpack then for _, tool in ipairs(backpack:GetChildren()) do local tName = string.lower(tool.Name) if tool:IsA("Tool") and (string.find(tName, "rod") or string.find(tName, "fish") or string.find(tName, "pole")) then char.Humanoid:EquipTool(tool) rod = tool task.wait(1) break end end end
-            end
-            if rod then
-                local isCast = Workspace:FindFirstChild("Bobber") or Workspace:FindFirstChild("FishingRope_" .. tostring(LocalPlayer.UserId), true)
-                if not isCast then 
-                    VirtualUser:CaptureController() VirtualUser:ClickButton1(Vector2.new(0, 0)) task.wait(1.5) 
-                end
-                
-                if _G.Yui.AutoShake then
-                    local pGui = LocalPlayer.PlayerGui
-                    if pGui then
-                        for _, v in pairs(pGui:GetDescendants()) do
-                            if (v:IsA("TextButton") or v:IsA("ImageButton")) and (string.find(string.lower(v.Name), "shake") or (v:IsA("TextButton") and string.find(string.lower(v.Text), "shake"))) then
-                                if v.Visible then SilentClick(v) end
-                            end
+    while task.wait(0.1) do
+        if _G.Yui.AutoEatApple and tick() - LastAppleTick > _G.Yui.AppleDelay then
+            pcall(function()
+                local char = LocalPlayer.Character
+                if char then
+                    local toEquip = {}
+                    for _, tool in pairs(LocalPlayer.Backpack:GetChildren()) do
+                        if tool:IsA("Tool") and string.find(string.lower(tool.Name), "apple") then
+                            table.insert(toEquip, tool)
                         end
                     end
+                    if #toEquip > 0 then
+                        for _, tool in ipairs(toEquip) do tool.Parent = char end
+                        for _, tool in pairs(char:GetChildren()) do
+                            if tool:IsA("Tool") and string.find(string.lower(tool.Name), "apple") then
+                                tool:Activate()
+                            end
+                        end
+                        SendNotification("Ate " .. #toEquip .. " Apples!", Theme.Accent, "Apple")
+                    end
                 end
-            end
+            end)
+            LastAppleTick = tick()
         end
     end
 end)
