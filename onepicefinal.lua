@@ -1,5 +1,5 @@
 -- =========================================================================
--- [ULTIMATE MASTER] YUIHUB V26 - FIX FISH, SKILLS SEPARATE DELAY & TOKEN ESP
+-- [ULTIMATE MASTER] YUIHUB V26 - FIX BARREL SWEEP, PIN TELEPORT & SKILLS
 -- =========================================================================
 
 local Players = game:GetService("Players")
@@ -866,6 +866,7 @@ CreateButton("Scan Map & All NPCs", TeleBox, function()
     SendNotification("Map Scanned!", Theme.SelectedGreen, "System")
 end)
 
+-- (CHỈNH SỬA) PIN LOCATION Ở PHẦN FISH
 local PinBox = CreateSection("Location Pins", FishL)
 Setters.AutoPin = CreateToggle("Pin Location", false, PinBox, function(v) 
     _G.Yui.AutoPin = v 
@@ -1362,7 +1363,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- BỘ NÃO GOM VẬT PHẨM TỐI ƯU (ĐÃ SỬA BARREL CHỐNG KẸT)
+-- BỘ NÃO GOM VẬT PHẨM TỐI ƯU (ĐÃ SỬA BARREL CHỐNG KẸT & TĂNG TỐC ĐỘ)
 local CachedCollectables = {}
 task.spawn(function()
     while task.wait(3) do
@@ -1423,17 +1424,34 @@ task.spawn(function()
                 end
             end
 
+            -- (CHỈNH SỬA) FIX AUTO BARREL / CRATE
             if _G.Yui.CollectBarrel and (n == "Barrel" or n == "Crate") and not didAction then
-                local tPart = obj:IsA("BasePart") and obj or obj:FindFirstChildOfClass("Part") or obj:FindFirstChildOfClass("MeshPart")
-                local cd = obj:FindFirstChildOfClass("ClickDetector")
-                if tPart and cd and tPart.Transparency < 1 then
-                    local posKey = tostring(obj:GetDebugId())
-                    if not TimedBlacklist[posKey] or tick() - TimedBlacklist[posKey] > 1.5 then 
-                        root.CFrame = tPart.CFrame * CFrame.new(0, 2, 0) root.Velocity = Vector3.zero
-                        task.wait(0.2) 
-                        if fireclickdetector then for i=1,5 do fireclickdetector(cd, 1) end end
-                        SendNotification("Collected: " .. n, Theme.SelectedGreen, "Barrel")
-                        TimedBlacklist[posKey] = tick() didAction = true
+                local tPart = obj:IsA("BasePart") and obj or obj:FindFirstChildWhichIsA("BasePart", true)
+                if tPart and tPart.Transparency < 1 then
+                    -- Quét lấy TOÀN BỘ ClickDetector bên trong (Giải quyết vấn đề lồng ghép model)
+                    local cds = {}
+                    if obj:FindFirstChildOfClass("ClickDetector") then table.insert(cds, obj:FindFirstChildOfClass("ClickDetector")) end
+                    for _, desc in pairs(obj:GetDescendants()) do
+                        if desc:IsA("ClickDetector") then table.insert(cds, desc) end
+                    end
+
+                    if #cds > 0 then
+                        local posKey = tostring(obj:GetDebugId())
+                        -- Tăng blacklist lên 5s để tránh loop kẹt ở 1 thùng
+                        if not TimedBlacklist[posKey] or tick() - TimedBlacklist[posKey] > 5 then 
+                            root.CFrame = tPart.CFrame * CFrame.new(0, 2, 0) 
+                            root.Velocity = Vector3.zero
+                            task.wait(0.2) 
+                            if fireclickdetector then 
+                                for _, cd in ipairs(cds) do
+                                    fireclickdetector(cd, 0)
+                                    fireclickdetector(cd, 1)
+                                end 
+                            end
+                            SendNotification("Collected: " .. n, Theme.SelectedGreen, "Barrel")
+                            TimedBlacklist[posKey] = tick() 
+                            didAction = true
+                        end
                     end
                 end
             end
@@ -1718,6 +1736,14 @@ task.spawn(function()
     while task.wait(0.2) do
         local char = LocalPlayer.Character if not char or not char:FindFirstChild("HumanoidRootPart") then continue end
         local hrp = char.HumanoidRootPart local backpack = LocalPlayer:FindFirstChild("Backpack")
+
+        -- (CHỈNH SỬA) TỰ ĐỘNG GIỮ VỊ TRÍ GHIM TRONG LÚC CÂU CÁ
+        if _G.Yui.AutoPin and _G.PinnedCFrame then
+            if (hrp.Position - _G.PinnedCFrame.Position).Magnitude > 3 then
+                hrp.CFrame = _G.PinnedCFrame
+                hrp.Velocity = Vector3.zero
+            end
+        end
 
         if _G.Yui.AutoGetRod then
             local hasRod = false
