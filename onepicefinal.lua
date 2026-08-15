@@ -1,5 +1,5 @@
 -- ==========================================
--- DELTA UI V10 - SEA EVENT TEST MENU (FIXED)
+-- DELTA UI V10 - SEA EVENT TEST MENU (PRO FIX)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -17,7 +17,8 @@ local _G_Sea = {
     AutoClick = true,
     Skill_Z = false, Skill_X = false, Skill_C = false, Skill_V = false,
     Zone4 = Vector3.new(-15610, 39, 37071),
-    IsFighting = false
+    IsFighting = false,
+    ArrivedAtZone = false -- KIỂM SOÁT TELE 1 LẦN
 }
 
 -- ==========================================
@@ -33,7 +34,7 @@ Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
 local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1, 0, 0, 30); Title.BackgroundTransparency = 1
-Title.Text = "🌊 AUTO SEA EVENT (FIXED TỐI ƯU)"; Title.TextColor3 = Color3.fromRGB(0, 200, 255)
+Title.Text = "🌊 AUTO SEA EVENT (PRO VERSION)"; Title.TextColor3 = Color3.fromRGB(0, 200, 255)
 Title.Font = Enum.Font.GothamBold; Title.TextSize = 16
 
 local StatusLbl = Instance.new("TextLabel", MainFrame)
@@ -50,8 +51,14 @@ local function CreateToggle(yPos, text, varName)
     Btn.MouseButton1Click:Connect(function()
         _G_Sea[varName] = not _G_Sea[varName]
         Btn.BackgroundColor3 = _G_Sea[varName] and Color3.fromRGB(0, 150, 100) or Color3.fromRGB(60, 60, 60)
-        -- Nhả phím W nếu tắt Auto để tránh chạy lung tung
-        if not _G_Sea.AutoSea then VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game) end
+        
+        if not _G_Sea.AutoSea then 
+            -- Nhả phím W và reset trạng thái khi tắt Auto
+            VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game) 
+            _G_Sea.ArrivedAtZone = false
+        else
+            _G_Sea.ArrivedAtZone = false -- Bật lại auto thì check tele lại
+        end
     end)
 end
 
@@ -87,12 +94,10 @@ task.spawn(function()
         if _G_Sea.AutoSea and _G_Sea.IsFighting then
             local char = LocalPlayer.Character
             if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
-                -- Auto Click
                 if _G_Sea.AutoClick then
                     local tool = char:FindFirstChildWhichIsA("Tool")
                     if tool then tool:Activate() end
                 end
-                -- Auto Skill
                 if _G_Sea.Skill_Z then PressKey("Z") end
                 if _G_Sea.Skill_X then PressKey("X") end
                 if _G_Sea.Skill_C then PressKey("C") end
@@ -107,7 +112,9 @@ end)
 local function GetSeaMonster()
     local monsterFolder = Workspace:FindFirstChild("Monster")
     if not monsterFolder then return nil end
-    for _, v in pairs(monsterFolder:GetChildren()) do
+    
+    -- Dùng GetDescendants() để tìm quái ở mọi ngóc ngách, quét siêu xa không giới hạn
+    for _, v in pairs(monsterFolder:GetDescendants()) do
         if v:IsA("Model") and (v.Name == "Sea Monster" or string.find(v.Name, "The Starving Ghost")) then
             if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v:FindFirstChild("HumanoidRootPart") then
                 return v
@@ -118,7 +125,6 @@ local function GetSeaMonster()
 end
 
 task.spawn(function()
-    -- Vòng lặp chạy cực nhanh để CFrame tức thời, không bị đơ
     while task.wait() do 
         if not _G_Sea.AutoSea then 
             StatusLbl.Text = "Trạng thái: Đã tắt."
@@ -129,7 +135,6 @@ task.spawn(function()
         local HRP = char and char:FindFirstChild("HumanoidRootPart")
         local Hum = char and char:FindFirstChild("Humanoid")
         
-        -- Nếu đang chết, chờ hồi sinh
         if not char or not HRP or not Hum or Hum.Health <= 0 then continue end
 
         local targetMonster = GetSeaMonster()
@@ -140,76 +145,86 @@ task.spawn(function()
         -- TRẠNG THÁI 1: CÓ QUÁI XUẤT HIỆN
         if targetMonster then
             _G_Sea.IsFighting = true
-            StatusLbl.Text = "Trạng thái: Đang đấm " .. targetMonster.Name
+            StatusLbl.Text = "Trạng thái: Đang tiêu diệt " .. targetMonster.Name
             
-            -- Nhả phím chạy thuyền ra
+            -- Dừng lái thuyền
             VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game)
-            
-            -- Nếu đang ngồi thì nhảy ra
             if Hum.Sit then Hum.Sit = false end
             
-            -- Dịch chuyển bám liên tục trên đầu quái
-            HRP.CFrame = targetMonster.HumanoidRootPart.CFrame * CFrame.new(0, 15, 0) * CFrame.Angles(math.rad(-90),0,0)
+            -- LOGIC BAY & NÉ CHIÊU TÙY THEO LOẠI QUÁI
+            if targetMonster.Name == "Sea Monster" then
+                -- Bay vòng tròn né chiêu (Bán kính 25, độ cao 20)
+                local radius = 25
+                local speed = 2 -- Tốc độ bay vòng tròn
+                local angle = tick() * speed
+                
+                local rootPos = targetMonster.HumanoidRootPart.Position
+                local targetPos = rootPos + Vector3.new(math.cos(angle) * radius, 20, math.sin(angle) * radius)
+                
+                -- CFrame.new(Vị trí muốn tới, Vị trí nhìn vào) -> Giúp xoay mặt bắn skill chuẩn xác
+                HRP.CFrame = CFrame.new(targetPos, rootPos)
+            else
+                -- The Starving Ghost (Thuyền) -> Đứng yên trên đầu xả skill
+                HRP.CFrame = targetMonster.HumanoidRootPart.CFrame * CFrame.new(0, 20, 0) * CFrame.Angles(math.rad(-90),0,0)
+            end
 
         -- TRẠNG THÁI 2: KHÔNG CÓ QUÁI (Xử lý thuyền)
         else
-            -- Vừa đánh xong, set về false
             if _G_Sea.IsFighting then
                 _G_Sea.IsFighting = false
                 VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game)
             end
 
+            -- Nếu chưa có thuyền (hoặc thuyền hỏng)
             if not myBoat then
-                StatusLbl.Text = "Trạng thái: Đang đi tới NPC mua thuyền..."
+                _G_Sea.ArrivedAtZone = false -- Reset trạng thái để chuẩn bị tele chiếc thuyền mới
+                StatusLbl.Text = "Trạng thái: Đang mua thuyền mới..."
+                
                 local npcFolder = Workspace:FindFirstChild("NPC")
                 local spawner = npcFolder and npcFolder:FindFirstChild("BoatSpawner")
                 
                 if spawner and spawner:FindFirstChild("LowerTorso") then
-                    -- Tele lại gần sát NPC BoatSpawner
                     HRP.CFrame = spawner.LowerTorso.CFrame * CFrame.new(0, 0, 4)
-                    task.wait(0.5) -- Đợi load nhân vật
-                    
+                    task.wait(0.5)
                     pcall(function()
                         ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(Workspace.NPC.BoatSpawner, Workspace.NPC.BoatSpawner, Workspace.NPC.BoatSpawner)
                     end)
-                    task.wait(1.5) -- Chờ thuyền spawn ra thư mục Boats
+                    task.wait(1.5)
                 end
             else
                 local seat = myBoat:FindFirstChild("VehicleSeat", true)
                 if seat then
-                    -- Kiểm tra khoảng cách thuyền với vùng 4
-                    local distToZone = (seat.Position - _G_Sea.Zone4).Magnitude
-                    
-                    if distToZone > 1000 then
-                        StatusLbl.Text = "Trạng thái: Đang Teleport thuyền ra Vùng 4..."
+                    -- Nếu chưa từng tele ra Vùng 4 lần nào
+                    if not _G_Sea.ArrivedAtZone then
+                        StatusLbl.Text = "Trạng thái: Teleport thuyền ra biển 4 (1 LẦN DUY NHẤT)..."
                         
-                        -- Phải bắt nhân vật nhảy ra khỏi ghế trước khi tele thuyền để tránh đơ vật lý game
                         if Hum.Sit then Hum.Sit = false; task.wait(0.2) end
                         
-                        -- Dịch chuyển cả cái thuyền ra Vùng 4
                         if myBoat:IsA("Model") and myBoat.PrimaryPart then
                             myBoat:PivotTo(CFrame.new(_G_Sea.Zone4))
                         else
                             seat.CFrame = CFrame.new(_G_Sea.Zone4)
                         end
-                        task.wait(0.3) -- Chờ thuyền load ở vị trí mới
+                        task.wait(0.3)
                         
-                        -- Dịch chuyển nhân vật vào đúng cái ghế và bắt ngồi xuống
                         HRP.CFrame = seat.CFrame + Vector3.new(0, 3, 0)
                         task.wait(0.1)
                         seat:Sit(Hum)
                         
-                    else
-                        StatusLbl.Text = "Trạng thái: Đang lái thuyền săn sự kiện..."
+                        -- Khóa lệnh tele lại, từ giờ chỉ có chạy thẳng
+                        _G_Sea.ArrivedAtZone = true 
                         
-                        -- Đảm bảo chắc chắn là đang ngồi trên ghế
+                    -- Nếu đã tele rồi, bắt đầu lái thẳng liên tục
+                    else
+                        StatusLbl.Text = "Trạng thái: Đang lái tự động (Auto Drive)..."
+                        
                         if not Hum.Sit then
                             HRP.CFrame = seat.CFrame
                             task.wait(0.1)
                             seat:Sit(Hum)
                         end
                         
-                        -- Giả lập bấm đè phím W để thuyền đi thẳng liên tục
+                        -- Liên tục đè phím W chạy thẳng tới vô tận để săn event
                         VIM:SendKeyEvent(true, Enum.KeyCode.W, false, game)
                     end
                 end
