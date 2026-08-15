@@ -1,5 +1,5 @@
 -- ==========================================
--- DELTA UI V10 - ULTIMATE (ORIGINAL UI + SMART HAKI + SEA EVENT + PRO WEAPON SWAP SKILLS + AUTO RAID)
+-- DELTA UI V10 - ULTIMATE (ORIGINAL UI + SMART HAKI + SEA EVENT + PRO WEAPON SWAP SKILLS + AUTO RAID TÁCH RỜI)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -54,8 +54,9 @@ local _G_V10 = {
     AutoSea = false, HuntSeaMonster = true, HuntGhost = true, AutoSitBoat = true, 
     SeaZone = Vector3.new(-15610, 39, 37071), IsFightingSea = false, ArrivedAtZone = false,
 
-    -- Auto Raid System
-    AutoRaid = false, RaidTeleportDelay = 2, AutoJoinGame = false,
+    -- Auto Raid System (Đã tách rời)
+    AutoBuyRaid = false, AutoStartRaid = false, AutoJoinGame = false,
+    AutoTeleEntrance = false, AutoTeleReRaid = false, RaidTeleportDelay = 2,
 
     -- Player & Misc
     SelectedIsland = nil, SelectedSpawnPoint = nil,
@@ -386,8 +387,20 @@ CreateToggleSwitch(TabSeaEvent, "Săn Thuyền Ma (The Starving Ghost)", "HuntGh
 CreateToggleSwitch(TabSeaEvent, "Tự Động Ngồi Lái Thuyền", "AutoSitBoat")
 
 -- --- TAB: AUTO RAID ---
-CreateToggleSwitch(TabRaid, "Bật Auto Raid (Tự Mua & Đánh)", "AutoRaid")
+local LblRaidDivider1 = Instance.new("TextLabel", TabRaid)
+LblRaidDivider1.Size = UDim2.new(1, 0, 0, 20); LblRaidDivider1.BackgroundTransparency = 1; LblRaidDivider1.TextColor3 = Color3.fromRGB(255, 100, 100)
+LblRaidDivider1.Font = Enum.Font.GothamBold; LblRaidDivider1.TextSize = 13; LblRaidDivider1.TextXAlignment = Enum.TextXAlignment.Center; LblRaidDivider1.Text = "--- MUA RAID & JOIN GAME ---"
+
+CreateToggleSwitch(TabRaid, "Bật Tự Động Mua Raid / Re-Raid", "AutoBuyRaid")
+CreateToggleSwitch(TabRaid, "Bật Tự Động Bấm Starto (Bắt đầu Raid)", "AutoStartRaid")
 CreateToggleSwitch(TabRaid, "Tự Động Bấm Play/Join Game", "AutoJoinGame")
+
+local LblRaidDivider2 = Instance.new("TextLabel", TabRaid)
+LblRaidDivider2.Size = UDim2.new(1, 0, 0, 20); LblRaidDivider2.BackgroundTransparency = 1; LblRaidDivider2.TextColor3 = Color3.fromRGB(255, 100, 100)
+LblRaidDivider2.Font = Enum.Font.GothamBold; LblRaidDivider2.TextSize = 13; LblRaidDivider2.TextXAlignment = Enum.TextXAlignment.Center; LblRaidDivider2.Text = "--- TELEPORT RAID ---"
+
+CreateToggleSwitch(TabRaid, "Teleport Đến Cửa Raid (Ngoài Map)", "AutoTeleEntrance")
+CreateToggleSwitch(TabRaid, "Teleport Vào Phòng Re-Raid (Trong Map)", "AutoTeleReRaid")
 CreateSlider(TabRaid, "Delay Teleport Raid (Giây)", 1, 10, "RaidTeleportDelay")
 
 -- --- TAB: ĐẢO & BAY ---
@@ -667,7 +680,8 @@ RunService.RenderStepped:Connect(function()
         local hrp = char.HumanoidRootPart
         local hum = char.Humanoid
         
-        if _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm or _G_V10.AutoFarmFree or _G_V10.FarmAll or (_G_V10.AutoSea and _G_V10.IsFightingSea) or _G_V10.AutoRaid then
+        -- Thêm _G_V10.AutoStartRaid và _G_V10.AutoBuyRaid vào check NoClip
+        if _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm or _G_V10.AutoFarmFree or _G_V10.FarmAll or (_G_V10.AutoSea and _G_V10.IsFightingSea) or _G_V10.AutoStartRaid or _G_V10.AutoBuyRaid then
             for _, v in pairs(char:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
         end
 
@@ -776,7 +790,8 @@ task.spawn(function()
         if _G_V10.AutoRepeatQuest then RepeatQuestRemote() end
 
         local isNormalFarming = _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm or _G_V10.AutoFarmFree or _G_V10.FarmAll
-        local isFarmingAction = isNormalFarming or (_G_V10.AutoSea and _G_V10.IsFightingSea) or _G_V10.AutoRaid
+        -- AutoRaid không kích hoạt loop combat ở đây, tự dùng skill bên dưới
+        local isFarmingAction = isNormalFarming or (_G_V10.AutoSea and _G_V10.IsFightingSea) or _G_V10.AutoStartRaid or _G_V10.AutoBuyRaid
 
         if isFarmingAction and not _G_V10.FreeFly then
             if _G_V10.AutoClick then
@@ -784,11 +799,10 @@ task.spawn(function()
                 if equippedTool then equippedTool:Activate() end
             end
             
-            -- LOGIC XẢ SKILL RIÊNG BIỆT THEO TỪNG VŨ KHÍ (Min Delay 0.1s)
+            -- LOGIC XẢ SKILL RIÊNG BIỆT THEO TỪNG VŨ KHÍ (Tốc độ ánh sáng 0.1s)
             if os.clock() - lastSkillSpamTime >= _G_V10.SkillSpamDelay then
                 lastSkillSpamTime = os.clock()
                 
-                -- Nếu bật AutoSwap, xả skill tương ứng với vũ khí đang cầm (1 hoặc 2)
                 if _G_V10.AutoSwapWeapon then
                     local prefix = (currentSwapState == 1) and "W1_" or "W2_"
                     if _G_V10[prefix.."Z"] then PressKey("Z") end
@@ -798,12 +812,9 @@ task.spawn(function()
                     if _G_V10[prefix.."B"] then PressKey("B") end
                     if _G_V10[prefix.."F"] then PressKey("F") end
                 else
-                    -- Nếu không bật AutoSwap, cho phép xả skill dựa vào nút Global cũ hoặc skill W1 nếu cần. 
                     if _G_V10.AutoSkill then
-                        if _G_V10.Skill_Z then PressKey("Z") end
-                        if _G_V10.Skill_X then PressKey("X") end
-                        if _G_V10.Skill_C then PressKey("C") end
-                        if _G_V10.Skill_V then PressKey("V") end
+                        if _G_V10.Skill_Z then PressKey("Z") end; if _G_V10.Skill_X then PressKey("X") end
+                        if _G_V10.Skill_C then PressKey("C") end; if _G_V10.Skill_V then PressKey("V") end
                         if _G_V10.Skill_F then PressKey("F") end
                     end
                 end
@@ -811,7 +822,7 @@ task.spawn(function()
             
             EnableAntiFall(HRP)
             
-            if isNormalFarming and not (_G_V10.AutoSea and _G_V10.IsFightingSea) and not _G_V10.AutoRaid then
+            if isNormalFarming and not (_G_V10.AutoSea and _G_V10.IsFightingSea) then
                 local targetMobInstance, shortestDist = nil, math.huge
                 for _, v in pairs(workspace:GetDescendants()) do
                     if v:IsA("Model") and v:FindFirstChild("HumanoidRootPart") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v.Name ~= LocalPlayer.Name and not Players:GetPlayerFromCharacter(v) then
@@ -847,7 +858,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- AUTO RAID (TRONG/NGOÀI & TỰ BẤM PLAY GAME)
+-- AUTO RAID (ĐÃ ĐƯỢC TÁCH RỜI CHỨC NĂNG)
 -- ==========================================
 local lastRaidTeleport = os.clock()
 
@@ -859,38 +870,63 @@ task.spawn(function()
             pcall(function() ReplicatedStorage.Assets.Remote.RemoteEvent.Home:FireServer("Dark Castle", "Sea", true) end)
         end
         
-        if not _G_V10.AutoRaid then continue end
-        
         local char = LocalPlayer.Character
         local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if not char or not hrp or char.Humanoid.Health <= 0 then continue end
         
-        -- Dùng khoảng cách để phân biệt đang ở trong map Raid hay đang ở bên ngoài
-        local distToRaidMap = (hrp.Position - Vector3.new(-123, 114, 407)).Magnitude
+        -- Tính khoảng cách để phân biệt vị trí trong/ngoài
+        local distToReRaid = (hrp.Position - Vector3.new(-123, 114, 407)).Magnitude
+        local npcFolder = Workspace:FindFirstChild("NPC")
         
-        if distToRaidMap < 3000 then 
-            -- ĐANG TRONG MAP RAID
-            -- Tự động bấm nút Bắt Đầu Raid liên tục
-            pcall(function() ReplicatedStorage.Assets.Remote.RemoteEvent.Starto:FireServer() end)
+        if distToReRaid < 3000 then 
+            -- =====================================
+            -- ĐANG Ở TRONG MAP RAID
+            -- =====================================
             
-            -- Kiểm tra xem Raid xong chưa (NPC Dazzl xuất hiện)
-            local dazzl = Workspace:FindFirstChild("NPC") and Workspace.NPC:FindFirstChild("Dazzl")
-            if dazzl and dazzl:FindFirstChild("HumanoidRootPart") then
-                -- Mua Re-raid
-                pcall(function() ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(dazzl, dazzl, dazzl) end)
-                
-                -- Teleport Delay (Chờ sau khi mua Re-Raid)
+            -- Tự động bấm nút Bắt Đầu Raid liên tục
+            if _G_V10.AutoStartRaid then
+                pcall(function() ReplicatedStorage.Assets.Remote.RemoteEvent.Starto:FireServer() end)
+            end
+            
+            -- Mua Re-raid khi xuất hiện Dazzl (Task spawn chống kẹt loop)
+            if _G_V10.AutoBuyRaid and npcFolder then
+                local dazzl = npcFolder:FindFirstChild("Dazzl")
+                if dazzl and dazzl:FindFirstChild("HumanoidRootPart") then
+                    task.spawn(function()
+                        pcall(function() ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(dazzl, dazzl, dazzl) end)
+                    end)
+                end
+            end
+            
+            -- Teleport Delay (Chờ sau khi đánh xong để Re-Raid)
+            if _G_V10.AutoTeleReRaid then
                 if os.clock() - lastRaidTeleport >= _G_V10.RaidTeleportDelay then
                     hrp.CFrame = CFrame.new(-123, 114, 407)
                     lastRaidTeleport = os.clock()
                 end
             end
+            
         else
-            -- ĐANG Ở NGOÀI MAP
-            -- Sử dụng Teleport Delay riêng khi đứng ngoài đợi vào Raid
-            if os.clock() - lastRaidTeleport >= _G_V10.RaidTeleportDelay then
-                hrp.CFrame = CFrame.new(-1346, 79, 3989)
-                lastRaidTeleport = os.clock()
+            -- =====================================
+            -- ĐANG Ở NGOÀI MAP RAID
+            -- =====================================
+            
+            -- Mua Raid (Task spawn chống kẹt loop)
+            if _G_V10.AutoBuyRaid and npcFolder then
+                local dazzl = npcFolder:FindFirstChild("Dazzl")
+                if dazzl and dazzl:FindFirstChild("HumanoidRootPart") then
+                    task.spawn(function()
+                        pcall(function() ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(dazzl, dazzl, dazzl) end)
+                    end)
+                end
+            end
+            
+            -- Teleport đến cửa chờ Raid
+            if _G_V10.AutoTeleEntrance then
+                if os.clock() - lastRaidTeleport >= _G_V10.RaidTeleportDelay then
+                    hrp.CFrame = CFrame.new(-1346, 79, 3989)
+                    lastRaidTeleport = os.clock()
+                end
             end
         end
     end
