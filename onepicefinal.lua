@@ -1,71 +1,100 @@
--- Danh sách từ khóa rác cần chặn để tránh lag đt
-local blacklisted = {"mouse", "move", "camera", "walk", "update", "ping", "input", "step", "dash", "jump", "anim", "attack", "damage", "hit", "skill"}
+-- ==========================================
+-- DELTA UI V10 - AUTO RAID TEST MENU
+-- ==========================================
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 
--- Bảng lưu để chống spam copy
-local loggedRemotes = {}
+local SafeParent = pcall(gethui) and gethui() or LocalPlayer:WaitForChild("PlayerGui")
+if SafeParent:FindFirstChild("Raid_TestUI") then SafeParent["Raid_TestUI"]:Destroy() end
 
-local oldNamecall
-oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-    local method = getnamecallmethod()
-    
-    -- Chỉ bắt FireServer và InvokeServer (Giao tiếp với máy chủ)
-    if not checkcaller() and (method == "FireServer" or method == "InvokeServer") then
-        local remoteName = string.lower(self.Name)
-        local isSpam = false
-        
-        -- Lọc bỏ các remote rác
-        for _, badWord in pairs(blacklisted) do
-            if string.find(remoteName, badWord) then
-                isSpam = true
-                break
-            end
-        end
-        
-        if not isSpam then
-            local args = {...}
-            local argsStr = ""
-            
-            -- Ép kiểu tham số để tạo code chuẩn xác
-            for i, v in ipairs(args) do
-                if type(v) == "string" then
-                    argsStr = argsStr .. '"' .. v .. '"'
-                elseif type(v) == "number" or type(v) == "boolean" then
-                    argsStr = argsStr .. tostring(v)
-                elseif typeof(v) == "Instance" then
-                    argsStr = argsStr .. v:GetFullName()
-                else
-                    argsStr = argsStr .. "nil"
-                end
-                if i < #args then argsStr = argsStr .. ", " end
-            end
-            
-            -- Gộp thành code hoàn chỉnh
-            local fullCode = string.format('%s:%s(%s)', self:GetFullName(), method, argsStr)
-            
-            if not loggedRemotes[fullCode] then
-                loggedRemotes[fullCode] = true 
-                
-                print("====================================")
-                print("🛒 ĐÃ BẮT ĐƯỢC REMOTE MUA RAID:")
-                print(fullCode)
-                print("====================================")
-                
-                -- Tự động copy
-                if setclipboard then
-                    setclipboard(fullCode)
-                end
-                
-                -- Báo Notification
-                game.StarterGui:SetCore("SendNotification", {
-                    Title = "✅ Bắt Remote Thành Công",
-                    Text = "Đã copy code mua Raid!",
-                    Duration = 5
-                })
-            end
-        end
+-- --- BIẾN TOÀN CỤC ---
+local _G_Raid = {
+    AutoRaid = false,
+    RaidEntrance = Vector3.new(-1346, 79, 3989)
+}
+
+-- ==========================================
+-- TẠO GIAO DIỆN ĐƠN GIẢN
+-- ==========================================
+local ScreenGui = Instance.new("ScreenGui", SafeParent)
+ScreenGui.Name = "Raid_TestUI"; ScreenGui.ResetOnSpawn = false
+
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 350, 0, 160); MainFrame.Position = UDim2.new(0.5, -175, 0.5, -80)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25); MainFrame.Active = true; MainFrame.Draggable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+Instance.new("UIStroke", MainFrame).Color = Color3.fromRGB(255, 100, 100)
+
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0, 30); Title.BackgroundTransparency = 1
+Title.Text = "🔥 AUTO RAID TEST"; Title.TextColor3 = Color3.fromRGB(255, 100, 100)
+Title.Font = Enum.Font.GothamBold; Title.TextSize = 16
+
+local StatusLbl = Instance.new("TextLabel", MainFrame)
+StatusLbl.Size = UDim2.new(1, -20, 0, 20); StatusLbl.Position = UDim2.new(0, 10, 0, 35)
+StatusLbl.BackgroundTransparency = 1; StatusLbl.TextColor3 = Color3.fromRGB(255, 255, 100)
+StatusLbl.Text = "Trạng thái: Đang chờ..."; StatusLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+-- NÚT BẬT/TẮT AUTO RAID
+local ToggleBtn = Instance.new("TextButton", MainFrame)
+ToggleBtn.Size = UDim2.new(1, -20, 0, 40); ToggleBtn.Position = UDim2.new(0, 10, 0, 70)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ToggleBtn.Text = "BẬT AUTO RAID"; ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255); ToggleBtn.Font = Enum.Font.GothamBold; ToggleBtn.TextSize = 14
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 6)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    _G_Raid.AutoRaid = not _G_Raid.AutoRaid
+    if _G_Raid.AutoRaid then
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 100)
+        ToggleBtn.Text = "ĐANG BẬT AUTO RAID (BẤM ĐỂ TẮT)"
+    else
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        ToggleBtn.Text = "BẬT AUTO RAID"
+        StatusLbl.Text = "Trạng thái: Đã tắt Auto Raid."
     end
-    
-    return oldNamecall(self, ...)
 end)
 
-print("✅ Đã bật Mini Spy! Hãy thao tác mua Raid để lấy Code...")
+-- Nút đóng UI
+local CloseBtn = Instance.new("TextButton", MainFrame)
+CloseBtn.Size = UDim2.new(0, 30, 0, 30); CloseBtn.Position = UDim2.new(1, -30, 0, 0); CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "X"; CloseBtn.TextColor3 = Color3.fromRGB(255, 50, 50); CloseBtn.Font = Enum.Font.GothamBold; CloseBtn.TextSize = 16
+CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
+
+-- ==========================================
+-- LOGIC AUTO RAID
+-- ==========================================
+task.spawn(function()
+    while task.wait(2) do -- Chạy mỗi 2 giây để tránh spam lag game
+        if not _G_Raid.AutoRaid then continue end
+        
+        local char = LocalPlayer.Character
+        local HRP = char and char:FindFirstChild("HumanoidRootPart")
+        
+        if not char or not HRP or char.Humanoid.Health <= 0 then continue end
+        
+        -- Tính khoảng cách từ chỗ đứng đến cửa vào Raid
+        local distanceToRaid = (HRP.Position - _G_Raid.RaidEntrance).Magnitude
+        
+        -- Nếu khoảng cách lớn hơn 150 stud (Nghĩa là chưa vô Raid)
+        if distanceToRaid > 150 then
+            StatusLbl.Text = "Trạng thái: Đang mua Raid..."
+            
+            -- 1. Gọi lệnh Mua Raid
+            local success, err = pcall(function()
+                ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(Workspace.NPC.Dazzl, Workspace.NPC.Dazzl, Workspace.NPC.Dazzl)
+            end)
+            
+            task.wait(1) -- Chờ game xử lý việc mua Raid
+            
+            -- 2. Teleport vô cửa Raid
+            StatusLbl.Text = "Trạng thái: Đang dịch chuyển vào Raid..."
+            HRP.CFrame = CFrame.new(_G_Raid.RaidEntrance)
+            
+        else
+            -- Đã ở ngay tọa độ Raid hoặc ở trong Map Raid
+            StatusLbl.Text = "Trạng thái: Đang ở trong Raid."
+        end
+    end
+end)
