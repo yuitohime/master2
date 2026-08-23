@@ -1,5 +1,5 @@
 -- ==========================================
--- 🛠️ YUI DEV TOOLS: SPY & ANTI-CHEAT CHECKER (BẢNG ĐỘC LẬP)
+-- 🛠️ YUI DEV TOOLS V3: TÌM TỌA ĐỘ & BẮT REMOTE SKILL
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -14,8 +14,8 @@ local ScreenGui = Instance.new("ScreenGui", SafeParent)
 ScreenGui.Name = "Yui_SpyTools"; ScreenGui.ResetOnSpawn = false
 
 local MainFrame = Instance.new("Frame", ScreenGui)
-MainFrame.Size = UDim2.new(0, 480, 0, 350)
-MainFrame.Position = UDim2.new(0.5, -240, 0.5, -175)
+MainFrame.Size = UDim2.new(0, 480, 0, 400) -- Kéo dài ra thêm một chút
+MainFrame.Position = UDim2.new(0.5, -240, 0.5, -200)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
 MainFrame.Active = true; MainFrame.Draggable = true
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
@@ -28,7 +28,7 @@ Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 8)
 
 local Title = Instance.new("TextLabel", TopBar)
 Title.Size = UDim2.new(1, -50, 1, 0); Title.Position = UDim2.new(0, 10, 0, 0)
-Title.BackgroundTransparency = 1; Title.Text = "🕵️ YUI SPY TOOLS (TÌM MÃ LỖI SKILL)"
+Title.BackgroundTransparency = 1; Title.Text = "🕵️ YUI DEV TOOLS V3"
 Title.TextColor3 = Color3.fromRGB(0, 255, 150); Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14; Title.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -38,32 +38,41 @@ CloseBtn.BackgroundTransparency = 1; CloseBtn.Text = "X"
 CloseBtn.TextColor3 = Color3.fromRGB(255, 50, 50); CloseBtn.Font = Enum.Font.GothamBold; CloseBtn.TextSize = 16
 CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
--- Khu vực Nút Bấm
+-- Khu vực Nút Bấm (Sắp xếp lại 3 hàng)
 local ButtonsFrame = Instance.new("Frame", MainFrame)
-ButtonsFrame.Size = UDim2.new(1, -20, 0, 80); ButtonsFrame.Position = UDim2.new(0, 10, 0, 40)
+ButtonsFrame.Size = UDim2.new(1, -20, 0, 120); ButtonsFrame.Position = UDim2.new(0, 10, 0, 40)
 ButtonsFrame.BackgroundTransparency = 1
 
-local HydroBtn = Instance.new("TextButton", ButtonsFrame)
-HydroBtn.Size = UDim2.new(1, 0, 0, 35)
-HydroBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255); HydroBtn.Text = "💧 BẬT HYDROXIDE SPY (BẢNG FULL)"
-HydroBtn.TextColor3 = Color3.fromRGB(255, 255, 255); HydroBtn.Font = Enum.Font.GothamBold; HydroBtn.TextSize = 12
-Instance.new("UICorner", HydroBtn).CornerRadius = UDim.new(0, 6)
+-- Hàng 1: Nút Lấy Tọa Độ (Đã trả lại cho bạn!)
+local GetCoordsBtn = Instance.new("TextButton", ButtonsFrame)
+GetCoordsBtn.Size = UDim2.new(1, 0, 0, 35); GetCoordsBtn.Position = UDim2.new(0, 0, 0, 0)
+GetCoordsBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255); GetCoordsBtn.Text = "📍 LẤY TỌA ĐỘ CHỖ ĐANG ĐỨNG (COPY NGAY)"
+GetCoordsBtn.TextColor3 = Color3.fromRGB(255, 255, 255); GetCoordsBtn.Font = Enum.Font.GothamBold; GetCoordsBtn.TextSize = 12
+Instance.new("UICorner", GetCoordsBtn).CornerRadius = UDim.new(0, 6)
 
+-- Hàng 2: Bật Simple Spy (Nhẹ & xịn hơn Hydroxide)
+local SimpleSpyBtn = Instance.new("TextButton", ButtonsFrame)
+SimpleSpyBtn.Size = UDim2.new(1, 0, 0, 35); SimpleSpyBtn.Position = UDim2.new(0, 0, 0, 40)
+SimpleSpyBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255); SimpleSpyBtn.Text = "👁️ BẬT SIMPLE SPY (BẮT TẤT CẢ SKILL)"
+SimpleSpyBtn.TextColor3 = Color3.fromRGB(255, 255, 255); SimpleSpyBtn.Font = Enum.Font.GothamBold; SimpleSpyBtn.TextSize = 12
+Instance.new("UICorner", SimpleSpyBtn).CornerRadius = UDim.new(0, 6)
+
+-- Hàng 3: Custom Spy & Clear Log
 local ToggleSpyBtn = Instance.new("TextButton", ButtonsFrame)
-ToggleSpyBtn.Size = UDim2.new(0.65, -5, 0, 35); ToggleSpyBtn.Position = UDim2.new(0, 0, 0, 40)
-ToggleSpyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60); ToggleSpyBtn.Text = "🔴 ĐANG TẮT CUSTOM SPY"
+ToggleSpyBtn.Size = UDim2.new(0.65, -5, 0, 35); ToggleSpyBtn.Position = UDim2.new(0, 0, 0, 80)
+ToggleSpyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60); ToggleSpyBtn.Text = "🔴 CUSTOM SPY NHẸ (TẮT)"
 ToggleSpyBtn.TextColor3 = Color3.fromRGB(255, 255, 255); ToggleSpyBtn.Font = Enum.Font.GothamBold; ToggleSpyBtn.TextSize = 12
 Instance.new("UICorner", ToggleSpyBtn).CornerRadius = UDim.new(0, 6)
 
 local ClearBtn = Instance.new("TextButton", ButtonsFrame)
-ClearBtn.Size = UDim2.new(0.35, 0, 0, 35); ClearBtn.Position = UDim2.new(0.65, 5, 0, 40)
+ClearBtn.Size = UDim2.new(0.35, 0, 0, 35); ClearBtn.Position = UDim2.new(0.65, 5, 0, 80)
 ClearBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50); ClearBtn.Text = "🗑️ XÓA LOG"
 ClearBtn.TextColor3 = Color3.fromRGB(255, 255, 255); ClearBtn.Font = Enum.Font.GothamBold; ClearBtn.TextSize = 12
 Instance.new("UICorner", ClearBtn).CornerRadius = UDim.new(0, 6)
 
 -- Khu vực Log hiển thị
 local ScrollList = Instance.new("ScrollingFrame", MainFrame)
-ScrollList.Size = UDim2.new(1, -20, 1, -135); ScrollList.Position = UDim2.new(0, 10, 0, 125)
+ScrollList.Size = UDim2.new(1, -20, 1, -175); ScrollList.Position = UDim2.new(0, 10, 0, 165)
 ScrollList.BackgroundTransparency = 1; ScrollList.ScrollBarThickness = 4
 local UIListLayout = Instance.new("UIListLayout", ScrollList); UIListLayout.Padding = UDim.new(0, 6)
 
@@ -80,7 +89,7 @@ local function AddLog(displayText, copyText, color)
     CodeBox.Font = Enum.Font.Code; CodeBox.TextSize = 11; CodeBox.TextWrapped = true; CodeBox.TextXAlignment = Enum.TextXAlignment.Left; CodeBox.TextYAlignment = Enum.TextYAlignment.Top
     CodeBox.ClearTextOnFocus = false; CodeBox.TextEditable = false
     
-    -- NÚT SAO CHÉP (COPY) TO RÕ RÀNG
+    -- NÚT SAO CHÉP
     local CopyBtn = Instance.new("TextButton", EntryFrame)
     CopyBtn.Size = UDim2.new(0, 60, 0, 40); CopyBtn.Position = UDim2.new(1, -65, 0.5, -20)
     CopyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255); CopyBtn.Text = "COPY"; CopyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -98,24 +107,38 @@ local function AddLog(displayText, copyText, color)
     ScrollList.CanvasSize = UDim2.new(0, 0, 0, UIListLayout.AbsoluteContentSize.Y + 10)
 end
 
--- ================= CÁC NÚT BẤM =================
-HydroBtn.MouseButton1Click:Connect(function()
-    HydroBtn.Text = "⏳ ĐANG TẢI HYDROXIDE..."
-    pcall(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/Upbolt/Hydroxide/revision/init.lua"))()
-    end)
-    task.wait(1)
-    HydroBtn.Text = "✅ HYDROXIDE ĐÃ MỞ (KIỂM TRA GÓC MÀN HÌNH)"
+-- ================= CÁC NÚT BẤM CHÍNH =================
+-- 1. NÚT LẤY TỌA ĐỘ
+GetCoordsBtn.MouseButton1Click:Connect(function()
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local pos = char.HumanoidRootPart.Position
+        local coordCode = string.format("Vector3.new(%.0f, %.0f, %.0f)", pos.X, pos.Y, pos.Z)
+        AddLog("📍 [TỌA ĐỘ HIỆN TẠI]:\n" .. coordCode, coordCode, Color3.fromRGB(0, 255, 150))
+    else
+        AddLog("❌ KHÔNG TÌM THẤY NHÂN VẬT!", "", Color3.fromRGB(255, 50, 50))
+    end
 end)
 
+-- 2. NÚT TẢI SIMPLE SPY (Thay cho Hydroxide)
+SimpleSpyBtn.MouseButton1Click:Connect(function()
+    SimpleSpyBtn.Text = "⏳ ĐANG TẢI SIMPLE SPY..."
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/exxtremestuffs/SimpleSpySource/master/SimpleSpy.lua"))()
+    end)
+    task.wait(1)
+    SimpleSpyBtn.Text = "✅ ĐÃ MỞ SIMPLE SPY (KIỂM TRA GÓC TRÁI/PHẢI)"
+end)
+
+-- 3. NÚT BẬT SPY CŨ
 ToggleSpyBtn.MouseButton1Click:Connect(function()
     _G.YuiSpyEnabled = not _G.YuiSpyEnabled
     if _G.YuiSpyEnabled then
         ToggleSpyBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 100)
-        ToggleSpyBtn.Text = "🟢 ĐANG BẬT CUSTOM SPY (CHỜ NHẬN SKILL)"
+        ToggleSpyBtn.Text = "🟢 CUSTOM SPY (ĐANG TÌM SKILL)"
     else
         ToggleSpyBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        ToggleSpyBtn.Text = "🔴 ĐANG TẮT CUSTOM SPY"
+        ToggleSpyBtn.Text = "🔴 CUSTOM SPY NHẸ (TẮT)"
     end
 end)
 
@@ -151,7 +174,6 @@ oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
         local name = self.Name
         local isSpam = name:match("Move") or name:match("Walk") or name:match("Mouse") or name:match("Ping")
         
-        -- Lọc mấy cái ping mạng rác đi, chỉ giữ lại hành động tấn công
         if not isSpam then
             local argsStr = ""
             for i, v in ipairs(args) do
@@ -161,7 +183,6 @@ oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
             
             local fullCode = string.format('game:GetService("ReplicatedStorage").%s:%s(%s)', name, method, argsStr)
             
-            -- Đẩy ra UI bằng luồng khác để không kẹt FPS
             task.spawn(function()
                 local c = Color3.fromRGB(220, 220, 220)
                 if name:match("Skill") or name:match("Attack") or name:match("Combat") then c = Color3.fromRGB(255, 255, 50) end
