@@ -1,6 +1,5 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT (BẢN FIX LÕI FARM - QUAY VỀ LÕI CŨ SIÊU MƯỢT)
--- (CHỈ GIỮ GIAO DIỆN MỚI + TAB MỚI, KHÔNG SỬA LÕI FARM & TELEPORT CŨ)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V4 (FIX NẰM NGANG, FIX JUMP MOBILE, CLEANUP HOÀN TOÀN)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -14,7 +13,10 @@ local Workspace = game:GetService("Workspace")
 local GuiService = game:GetService("GuiService")
 local TweenService = game:GetService("TweenService")
 
+-- BIẾN HỦY DIỆT MỌI THỨ KHI TẮT MENU
 _G.YuiKillAllLoops = false
+if _G.YuiConnections then for _, conn in pairs(_G.YuiConnections) do conn:Disconnect() end end
+_G.YuiConnections = {}
 
 local SafeParent = pcall(gethui) and gethui() or LocalPlayer:WaitForChild("PlayerGui")
 if SafeParent:FindFirstChild("YuiHub_UI") then SafeParent["YuiHub_UI"]:Destroy() end
@@ -131,13 +133,9 @@ local function RenderScannerLog()
     if _G_V10.ScannerData and _G_V10.ScannerData.Bosses then
         for k, v in pairs(_G_V10.ScannerData.Bosses) do logStr = logStr .. string.format("<b><font color='#ffff55'>[%s]</font></b> | <font color='#ffffff'>%s (HP: %s)</font> | <font color='#55ff55'>%s</font>\n", v.Island, k, v.Level, v.Pos) end
     end
-    logStr = logStr .. "\n<b><font color='#55aaff' size='15'>=== 👾 DANH SÁCH QUÁI THƯỜNG ===</font></b>\n"
+    logStr = logStr .. "\n<b><font color='#55aaff' size='15'>=== 👾 DANH SÁCH QUÁI ===</font></b>\n"
     if _G_V10.ScannerData and _G_V10.ScannerData.Mobs then
         for k, v in pairs(_G_V10.ScannerData.Mobs) do logStr = logStr .. string.format("<b><font color='#ffff55'>[%s]</font></b> | <font color='#ffffff'>%s</font> | <font color='#55ff55'>%s</font>\n", v.Island, k, v.Pos) end
-    end
-    logStr = logStr .. "\n<b><font color='#ffaa00' size='15'>=== 🛒 DANH SÁCH NPC ===</font></b>\n"
-    if _G_V10.ScannerData and _G_V10.ScannerData.NPCs then
-        for k, v in pairs(_G_V10.ScannerData.NPCs) do logStr = logStr .. string.format("<b><font color='#ffff55'>[%s]</font></b> | <font color='#ffffff'>%s</font> | <font color='#55ff55'>%s</font>\n", v.Island, k, v.Pos) end
     end
     txtLog.Text = logStr
     if txtLog.Parent then txtLog.Parent.CanvasSize = UDim2.new(0, 0, 0, txtLog.TextBounds.Y + 50) end
@@ -211,14 +209,11 @@ local ServerUptimeLbl = Instance.new("TextLabel", TopBar)
 ServerUptimeLbl.Size = UDim2.new(0.3, 0, 1, 0); ServerUptimeLbl.Position = UDim2.new(0.45, 0, 0, 0)
 ServerUptimeLbl.BackgroundTransparency = 1; ServerUptimeLbl.TextColor3 = Color3.fromRGB(100, 255, 100)
 ServerUptimeLbl.Font = Enum.Font.GothamBold; ServerUptimeLbl.TextSize = 14; ServerUptimeLbl.TextXAlignment = Enum.TextXAlignment.Right
-task.spawn(function()
-    while task.wait(1) do
-        if _G.YuiKillAllLoops then break end
-        local t = workspace.DistributedGameTime
-        local h = math.floor(t / 3600); local m = math.floor((t % 3600) / 60); local s = math.floor(t % 60)
-        ServerUptimeLbl.Text = string.format("🕒 Server Uptime: %02d:%02d:%02d", h, m, s)
-    end
-end)
+table.insert(_G.YuiConnections, RunService.Stepped:Connect(function()
+    local t = workspace.DistributedGameTime
+    local h = math.floor(t / 3600); local m = math.floor((t % 3600) / 60); local s = math.floor(t % 60)
+    ServerUptimeLbl.Text = string.format("🕒 Server Uptime: %02d:%02d:%02d", h, m, s)
+end))
 
 _G.IsPinned = false
 local PinBtn = Instance.new("TextButton", TopBar)
@@ -236,15 +231,31 @@ MinBtn.Size = UDim2.new(0, 35, 0, 35); MinBtn.Position = UDim2.new(1, -75, 0, 7.
 MinBtn.Text = "-"; MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255); MinBtn.Font = Enum.Font.GothamBold; MinBtn.TextSize = 24
 Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(1, 0)
 
--- NÚT X ĐỎ: TẮT HOÀN TOÀN MỌI SCRIPT
+-- ================= HÀM XÓA HỦY DIỆN (NÚT X ĐỎ) =================
+local function KillAllScriptsAndUI()
+    _G.YuiKillAllLoops = true
+    -- Ngắt toàn bộ Event
+    if _G.YuiConnections then for _, conn in pairs(_G.YuiConnections) do conn:Disconnect() end end
+    _G.YuiConnections = {}
+    
+    -- Xóa các Lực tàng hình ghim trên nhân vật
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local hrp = char.HumanoidRootPart
+        if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall:Destroy() end
+        if hrp:FindFirstChild("V10_FreeFlyBV") then hrp.V10_FreeFlyBV:Destroy() end
+        -- Trả lại thuộc tính đi xuyên tường
+        for _, v in pairs(char:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = true end end
+    end
+    -- Xóa UI
+    if ScreenGui then ScreenGui:Destroy() end
+end
+
 local CloseBtn = Instance.new("TextButton", TopBar)
 CloseBtn.Size = UDim2.new(0, 35, 0, 35); CloseBtn.Position = UDim2.new(1, -35, 0, 7.5); CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 CloseBtn.Text = "X"; CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255); CloseBtn.Font = Enum.Font.GothamBold; CloseBtn.TextSize = 16
 Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(1, 0)
-CloseBtn.MouseButton1Click:Connect(function()
-    _G.YuiKillAllLoops = true
-    ScreenGui:Destroy()
-end)
+CloseBtn.MouseButton1Click:Connect(KillAllScriptsAndUI)
 
 local TabsFrame = Instance.new("ScrollingFrame", MainFrame)
 TabsFrame.Name = "TabsFrame"; TabsFrame.Size = UDim2.new(0.28, 0, 1, -50); TabsFrame.Position = UDim2.new(0, 0, 0, 50)
@@ -312,13 +323,11 @@ local function CreateTab(name)
     Btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35); Btn.TextColor3 = Color3.fromRGB(200, 200, 200)
     Btn.Text = "  " .. name; Btn.Font = Enum.Font.GothamBold; Btn.TextSize = 12; Btn.TextXAlignment = Enum.TextXAlignment.Left
     Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 10)
-    
     local Page = Instance.new("ScrollingFrame", ContentFrame)
     Page.Size = UDim2.new(1, 0, 1, 0); Page.BackgroundTransparency = 1; Page.ScrollBarThickness = 2; Page.Visible = false
     Instance.new("UIListLayout", Page).Padding = UDim.new(0, 8)
     local pad = Instance.new("UIPadding", Page); pad.PaddingTop, pad.PaddingLeft, pad.PaddingRight, pad.PaddingBottom = UDim.new(0,10), UDim.new(0,10), UDim.new(0,10), UDim.new(0,10)
     Pages[name] = {Btn = Btn, Page = Page}
-    
     Btn.MouseButton1Click:Connect(function()
         for n, p in pairs(Pages) do
             p.Page.Visible = (n == name)
@@ -498,7 +507,7 @@ Pages["⚙️ Cài Đặt Chung & Skill"].Btn.BackgroundColor3 = Color3.fromRGB(
 Pages["⚙️ Cài Đặt Chung & Skill"].Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 TabSettings.Visible = true
 
--- --- TAB: SETTINGS (CHIA 2 CỘT) ---
+-- --- TAB: SETTINGS (CHIA 2 CỘT SONG SONG) ---
 local TwoColFrame = Instance.new("Frame", TabSettings)
 TwoColFrame.Size = UDim2.new(1, 0, 1, 0); TwoColFrame.BackgroundTransparency = 1
 local TwoColLayout = Instance.new("UIListLayout", TwoColFrame); TwoColLayout.FillDirection = Enum.FillDirection.Horizontal; TwoColLayout.Padding = UDim.new(0, 10)
@@ -540,15 +549,12 @@ CreateButton(SecWepFix, "🎒 Quét Túi Cập Nhật Lại", function()
     DropWeapons(weps); DropPriWeapon(weps); DropSecWeapon(weps)
 end)
 
-task.spawn(function()
-    while task.wait(1) do
-        if _G.YuiKillAllLoops then break end
-        pcall(function()
-            local maxH = math.max(LeftLayout.AbsoluteContentSize.Y, RightLayout.AbsoluteContentSize.Y)
-            TabSettings.CanvasSize = UDim2.new(0, 0, 0, maxH + 20)
-        end)
-    end
-end)
+table.insert(_G.YuiConnections, RunService.Stepped:Connect(function()
+    pcall(function()
+        local maxH = math.max(LeftLayout.AbsoluteContentSize.Y, RightLayout.AbsoluteContentSize.Y)
+        TabSettings.CanvasSize = UDim2.new(0, 0, 0, maxH + 20)
+    end)
+end))
 
 -- --- TAB: MAIN FARM ---
 local LblInfo = Instance.new("TextLabel", TabMainFarm)
@@ -640,7 +646,7 @@ CreateButton(SecIslandSelect, "🏝️ Quét Danh Sách Đảo", function()
     table.sort(islands); DropIslands(islands)
 end)
 local DropSpawnPoints = CreateDropdown(SecIslandSelect, "Chọn Điểm Hồi Sinh", {}, "SelectedSpawnPoint", false)
-CreateButton(SecIslandSelect, "🔄 Cập nhật danh sách", function()
+CreateButton(SecIslandSelect, "🔄 Cập nhật danh sách Điểm Hồi Sinh", function()
     local sp = {}
     if workspace:FindFirstChild("SetSpawnPoints") then for _, v in pairs(workspace.SetSpawnPoints:GetChildren()) do table.insert(sp, v.Name) end end
     table.sort(sp); DropSpawnPoints(sp)
@@ -660,10 +666,10 @@ CreateButton(SecIslandSelect, "🚀 Dịch Chuyển Đến Điểm Đã Chọn",
 end)
 
 -- --- TAB: NHÂN VẬT ---
-local SecPlayerMod = CreateSection(TabPlayer, "MOD DI CHUYỂN", Color3.fromRGB(255, 150, 50))
+local SecPlayerMod = CreateSection(TabPlayer, "MOD DI CHUYỂN & NHẢY", Color3.fromRGB(255, 150, 50))
 CreateToggleSwitch(SecPlayerMod, "Xuyên Tường & Địa Hình (Noclip)", "Noclip")
 CreateToggleSwitch(SecPlayerMod, "Đi Bộ Trên Mặt Nước (Water Walk)", "WaterWalk")
-CreateToggleSwitch(SecPlayerMod, "Auto Nhảy Liên Tục", "AutoJump")
+CreateToggleSwitch(SecPlayerMod, "Auto Nhảy Liên Tục (Mobile Touch)", "AutoJump")
 CreateToggleSwitch(SecPlayerMod, "Bật Hack Tốc Độ Chạy", "EnableSpeed")
 CreateSlider(SecPlayerMod, "Tốc Độ Chạy (WalkSpeed)", 16, 250, "WalkSpeed")
 CreateToggleSwitch(SecPlayerMod, "Bật Hack Nhảy Cao", "EnableJump")
@@ -702,7 +708,6 @@ CreateButton(SecServerProt, "🚀 Boost FPS (Xóa Đồ Họa Mượt Game)", fu
 end)
 CreateToggleSwitch(SecServerProt, "Màn Hình Đen (Giảm Lag Treo Máy)", "EnableBlackScreen")
 
--- --- TAB: MÁY QUÉT (NOTE & SCAN) ---
 local SecScanMap = CreateSection(TabScanner, "HỆ THỐNG QUÉT MAP", Color3.fromRGB(200, 100, 255))
 CreateToggleSwitch(SecScanMap, "Bật Máy Quét Map Thông Minh", "AutoScanMap")
 local ScanLogFrame = Instance.new("ScrollingFrame", SecScanMap)
@@ -717,7 +722,6 @@ CreateButton(SecScanMap, "📋 COPY TOÀN BỘ DATA MÁY QUÉT", function()
     end
 end)
 
--- --- TAB: CONFIG ---
 local SecCfgLoad = CreateSection(TabConfig, "QUẢN LÝ CẤU HÌNH", Color3.fromRGB(255, 200, 50))
 local DropConfigs = CreateDropdown(SecCfgLoad, "Chọn Bản Lưu", GetConfigsList(), "SelectedConfig", false)
 local ConfigNameInput = "DefaultConfig"
@@ -744,8 +748,8 @@ local WaterPart = Instance.new("Part", workspace)
 WaterPart.Size = Vector3.new(5, 1, 5)
 WaterPart.Transparency = 1; WaterPart.Anchored = true; WaterPart.CanCollide = false
 
-RunService.Stepped:Connect(function()
-    if _G.YuiKillAllLoops then WaterPart:Destroy() return end
+table.insert(_G.YuiConnections, RunService.Stepped:Connect(function()
+    if _G.YuiKillAllLoops then WaterPart:Destroy(); return end
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
         if _G_V10.Noclip then
@@ -760,10 +764,10 @@ RunService.Stepped:Connect(function()
             WaterPart.CanCollide = false; WaterPart.CFrame = CFrame.new(0, -9999, 0)
         end
     end
-end)
+end))
 
 -- ==========================================
--- ENGINE LÕI CŨ (BẤM VẬT LÝ, BẤM REMOTE VŨ KHÍ)
+-- ENGINE LÕI (BẤM VẬT LÝ, BẤM REMOTE VŨ KHÍ)
 -- ==========================================
 local function PhysicalClick(guiObj)
     if _G.YuiKillAllLoops then return end
@@ -823,7 +827,7 @@ end
 local function MonitorChatForBosses()
     local ChatSys = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("Chat")
     if ChatSys then
-        ChatSys.DescendantAdded:Connect(function(descendant)
+        table.insert(_G.YuiConnections, ChatSys.DescendantAdded:Connect(function(descendant)
             if _G.YuiKillAllLoops then return end
             if descendant:IsA("TextLabel") and descendant.Text then
                 local txt = string.lower(descendant.Text)
@@ -831,7 +835,7 @@ local function MonitorChatForBosses()
                     _G_V10.BossCheckDelay = 0.5 
                 end
             end
-        end)
+        end))
     end
 end
 pcall(MonitorChatForBosses)
@@ -1027,7 +1031,6 @@ task.spawn(function()
                     if buyBtn then PhysicalClick(buyBtn) end
                 end
             end
-            
             if _G_V10.AutoTeleEntrance and os.clock() - lastRaidTeleport >= _G_V10.RaidEntranceDelay then
                 hrp.CFrame = CFrame.new(-1346, 79, 3989); lastRaidTeleport = os.clock()
             end
@@ -1036,7 +1039,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- ENGINE: FARM CŨ + TỌA ĐỘ AI + ANTI-FALL (CHỈ BODYVELOCITY)
+-- ENGINE: FARM LEVEL, FLY, AUTO JUMP VÀ LÕI CŨ
 -- ==========================================
 task.spawn(function()
     while task.wait(1) do
@@ -1053,35 +1056,43 @@ task.spawn(function()
     end
 end)
 
+table.insert(_G.YuiConnections, LocalPlayer.Idled:Connect(function()
+    if _G_V10.AntiAFK and not _G.YuiKillAllLoops then VIM:SendKeyEvent(true, Enum.KeyCode.Space, false, game); task.wait(0.5); VIM:SendKeyEvent(false, Enum.KeyCode.Space, false, game) end
+end))
+
+-- FIX JUMP TỪ HÌNH ẢNH MOBILE CỦA BẠN 
 task.spawn(function()
-    while task.wait(0.5) do
+    while task.wait(0.1) do
         if _G.YuiKillAllLoops then break end
         local char = LocalPlayer.Character
         if char then
             local hum = char:FindFirstChildWhichIsA("Humanoid")
             if hum and not hum:GetAttribute("HooksAdded") then
                 hum:SetAttribute("HooksAdded", true)
-                hum:GetPropertyChangedSignal("WalkSpeed"):Connect(function() if _G_V10.EnableSpeed then hum.WalkSpeed = _G_V10.WalkSpeed end end)
-                hum:GetPropertyChangedSignal("JumpPower"):Connect(function() if _G_V10.EnableJump then hum.JumpPower = _G_V10.JumpPower end end)
+                table.insert(_G.YuiConnections, hum:GetPropertyChangedSignal("WalkSpeed"):Connect(function() if _G_V10.EnableSpeed then hum.WalkSpeed = _G_V10.WalkSpeed end end))
+                table.insert(_G.YuiConnections, hum:GetPropertyChangedSignal("JumpPower"):Connect(function() if _G_V10.EnableJump then hum.JumpPower = _G_V10.JumpPower end end))
             end
             if hum then
                 if _G_V10.EnableSpeed then hum.WalkSpeed = _G_V10.WalkSpeed end
                 if _G_V10.EnableJump then hum.UseJumpPower = true; hum.JumpPower = _G_V10.JumpPower end
-                if _G_V10.AutoJump and hum.FloorMaterial ~= Enum.Material.Air then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+                if _G_V10.AutoJump then 
+                    hum.Jump = true
+                    if hum.FloorMaterial ~= Enum.Material.Air then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+                end
             end
         end
     end
 end)
 
-UIS.JumpRequest:Connect(function()
+table.insert(_G.YuiConnections, UIS.JumpRequest:Connect(function()
     if _G.YuiKillAllLoops then return end
     if _G_V10.InfJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
         LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
     end
-end)
+end))
 
 local flyKeys = {W = 0, A = 0, S = 0, D = 0, Up = 0, Down = 0}
-UIS.InputBegan:Connect(function(k, gp)
+table.insert(_G.YuiConnections, UIS.InputBegan:Connect(function(k, gp)
     if _G.YuiKillAllLoops then return end
     if _G_V10.DashNoCD and k.KeyCode == Enum.KeyCode.Q then
         local HRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
@@ -1092,11 +1103,11 @@ UIS.InputBegan:Connect(function(k, gp)
     end
     if gp then return end
     if k.KeyCode == Enum.KeyCode.W then flyKeys.W = 1 elseif k.KeyCode == Enum.KeyCode.S then flyKeys.S = 1 elseif k.KeyCode == Enum.KeyCode.A then flyKeys.A = 1 elseif k.KeyCode == Enum.KeyCode.D then flyKeys.D = 1 elseif k.KeyCode == Enum.KeyCode.Space then flyKeys.Up = 1 elseif k.KeyCode == Enum.KeyCode.LeftControl then flyKeys.Down = 1 end
-end)
-UIS.InputEnded:Connect(function(k, gp)
+end))
+table.insert(_G.YuiConnections, UIS.InputEnded:Connect(function(k, gp)
     if _G.YuiKillAllLoops or gp then return end
     if k.KeyCode == Enum.KeyCode.W then flyKeys.W = 0 elseif k.KeyCode == Enum.KeyCode.S then flyKeys.S = 0 elseif k.KeyCode == Enum.KeyCode.A then flyKeys.A = 0 elseif k.KeyCode == Enum.KeyCode.D then flyKeys.D = 0 elseif k.KeyCode == Enum.KeyCode.Space then flyKeys.Up = 0 elseif k.KeyCode == Enum.KeyCode.LeftControl then flyKeys.Down = 0 end
-end)
+end))
 
 local function EnableAntiFall(HRP)
     if not HRP:FindFirstChild("FarmAntiFall") then
@@ -1104,15 +1115,16 @@ local function EnableAntiFall(HRP)
     end
 end
 
-RunService.RenderStepped:Connect(function()
+table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
     if _G.YuiKillAllLoops then return end
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
         local hrp = char.HumanoidRootPart
         local hum = char.Humanoid
         
-        -- LÕI ANTI-FALL ĐÃ ĐƯỢC CHỮA (CŨ, MƯỢT MÀ, KHÔNG KHÓA ASSEMBLY)
         local isNormalFarming = _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm or _G_V10.AutoFarmFree or _G_V10.FarmAll or _G_V10.AutoFarmRaid or _G_V10.AutoCoordMob or _G_V10.AutoCoordBoss or _G_V10.AutoFarmRaidHard
+        
+        -- DÙNG CHỈ BODYVELOCITY (BẢN V1 CŨ MƯỢT MÀ) ĐỂ ANTI-FALL
         if isNormalFarming and not _G_V10.FreeFly then
             EnableAntiFall(hrp)
             if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall.Velocity = Vector3.new(0, 0, 0) end
@@ -1137,7 +1149,7 @@ RunService.RenderStepped:Connect(function()
             if hum:GetState() == Enum.HumanoidStateType.Physics then hum:ChangeState(Enum.HumanoidStateType.GettingUp) end
         end
     end
-end)
+end))
 
 local function GetPlayerLevel()
     local lvl = 1
@@ -1163,7 +1175,7 @@ local function RepeatQuestRemote()
 end
 
 -- ==========================================
--- LÕI COMBAT V1: TÌM QUÁI & XẢ SKILL
+-- MAIN COMBAT ENGINE (LÕI V1 + TỌA ĐỘ AI CẢI TIẾN)
 -- ==========================================
 local currentSwapState = 1
 local lastSwapTime = os.clock()
@@ -1171,6 +1183,7 @@ local lastSkillSpamTime = os.clock()
 
 local currentCheckBossIndex = 1
 local lastBossCheckTime = os.clock()
+_G.BossWaitStarted = nil -- Tránh kẹt khi check boss
 
 local lastRaidDodge = os.clock()
 local isRaidDodging = false
@@ -1206,7 +1219,7 @@ task.spawn(function()
             local shortestDist = math.huge
             local targetWaitPos = nil
             
-            -- ================= LÕI TÌM MỤC TIÊU =================
+            -- ================= TÌM MỤC TIÊU =================
             if not (_G_V10.AutoSea and _G_V10.IsFightingSea) then
                 
                 -- ƯU TIÊN 1: BOSS TỌA ĐỘ
@@ -1223,15 +1236,25 @@ task.spawn(function()
                         targetMobInstance = foundBoss
                         LblCoordInfo.Text = "Tọa độ: Đang đấm " .. foundBoss.Name
                         lastBossCheckTime = os.clock() 
+                        _G.BossWaitStarted = nil
                     else
+                        -- Fix Đơ Cứng Khi Boss Check
                         if os.clock() - lastBossCheckTime >= _G_V10.BossCheckDelay then
                             if currentCheckBossIndex > #_G_V10.SelectedCoordBosses then currentCheckBossIndex = 1 end
                             local bossToCheck = _G_V10.SelectedCoordBosses[currentCheckBossIndex]
                             local dbInfo = CoordDB.Bosses[bossToCheck]
                             if dbInfo then
-                                LblCoordInfo.Text = "Tọa độ: Đang bay đi check " .. bossToCheck
                                 targetWaitPos = dbInfo.Pos
-                                task.spawn(function() task.wait(1.5); currentCheckBossIndex = currentCheckBossIndex + 1; lastBossCheckTime = os.clock() end)
+                                LblCoordInfo.Text = "Tọa độ: Đang bay đi check " .. bossToCheck
+                                
+                                if (HRP.Position - dbInfo.Pos).Magnitude <= 150 then -- Nếu đã đến nơi
+                                    if not _G.BossWaitStarted then _G.BossWaitStarted = os.clock()
+                                    elseif os.clock() - _G.BossWaitStarted >= 2 then -- Chờ 2s để map load
+                                        currentCheckBossIndex = currentCheckBossIndex + 1
+                                        lastBossCheckTime = os.clock()
+                                        _G.BossWaitStarted = nil
+                                    end
+                                end
                             end
                         else
                             LblCoordInfo.Text = string.format("Tọa độ: Đợi %d s để check Boss...", math.floor(_G_V10.BossCheckDelay - (os.clock() - lastBossCheckTime)))
@@ -1330,6 +1353,8 @@ task.spawn(function()
 
             -- ================= XỬ LÝ HÀNH ĐỘNG CỦA NHÂN VẬT =================
             if targetMobInstance or (_G_V10.AutoSea and _G_V10.IsFightingSea) then
+                raidPatrolState = "Wait_C1"; raidPatrolTimer = os.clock()
+                
                 if not isRaidDodging then
                     if _G_V10.AutoSwapWeapon and _G_V10.PrimaryWeapon and _G_V10.SecondaryWeapon then
                         if currentSwapState == 1 then
@@ -1374,15 +1399,21 @@ task.spawn(function()
                         HRP.CFrame = CFrame.new(targetMobInstance.HumanoidRootPart.Position) * dodgeOffset
                     else
                         local mobPos = targetMobInstance.HumanoidRootPart.CFrame
-                        local offset = CFrame.new(0, _G_V10.AttackDistance, 0) * CFrame.Angles(math.rad(-90),0,0)
-                        if _G_V10.AttackPosition == "Đằng Sau" then offset = CFrame.new(0, 0, _G_V10.AttackDistance)
-                        elseif _G_V10.AttackPosition == "Dưới Chân" then offset = CFrame.new(0, -_G_V10.AttackDistance, 0) end
-                        HRP.CFrame = mobPos * offset
+                        -- FIX NẰM NGANG CHÉM TRÊN ĐẦU
+                        if _G_V10.AttackPosition == "Trên Đầu" then 
+                            HRP.CFrame = CFrame.new(mobPos.Position + Vector3.new(0, _G_V10.AttackDistance, 0), mobPos.Position)
+                        elseif _G_V10.AttackPosition == "Đằng Sau" then 
+                            HRP.CFrame = mobPos * CFrame.new(0, 0, _G_V10.AttackDistance)
+                        elseif _G_V10.AttackPosition == "Dưới Chân" then 
+                            HRP.CFrame = CFrame.new(mobPos.Position + Vector3.new(0, -_G_V10.AttackDistance, 0), mobPos.Position)
+                        end
                     end
                 end
             else
+                -- NẾU KHÔNG CÓ QUÁI CHUNG, LÀM VIỆC THEO TRẠNG THÁI
                 if targetWaitPos then
-                    if (HRP.Position - targetWaitPos).Magnitude > 50 then HRP.CFrame = CFrame.new(targetWaitPos) end
+                    if (HRP.Position - targetWaitPos).Magnitude > 50 then HRP.CFrame = CFrame.new(targetWaitPos) 
+                    else HRP.CFrame = CFrame.new(targetWaitPos) end -- Fix đơ đứng ngay tại chỗ
                 elseif _G_V10.AutoFarmRaid or _G_V10.AutoFarmRaidHard then
                     local distToRaidMap = (HRP.Position - Vector3.new(-123, 114, 407)).Magnitude
                     if distToRaidMap < 3000 then
@@ -1398,10 +1429,7 @@ task.spawn(function()
                         end
                     end
                 end
-                if HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall.Velocity = Vector3.new(0,0,0) end
             end
-        else
-            if HRP and HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall:Destroy() end
         end
     end
 end)
