@@ -1,5 +1,5 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V8 (FULL DATA, 3 TẦNG AI BOSS/MOB, FIX KẸT 0S, TELE NPC)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V9 (FULL BACKUP + AI 3 TẦNG + KHÔNG RỚT CHỨC NĂNG)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -172,36 +172,30 @@ local CoordDB = {
     }
 }
 
--- Sắp xếp List World Boss
+-- Sắp xếp Mảng Data
 local ListWorldBoss = {}
 for k, _ in pairs(CoordDB.WorldBosses) do table.insert(ListWorldBoss, k) end
 table.sort(ListWorldBoss)
 
--- Sắp xếp List Normal Boss
 local ListNormalBoss = {}
 for k, _ in pairs(CoordDB.NormalBosses) do table.insert(ListNormalBoss, k) end
 table.sort(ListNormalBoss)
 
--- Sắp xếp Mobs theo Format: [Island] MobName
 local ListMobs = {}
-for name, data in pairs(CoordDB.Mobs) do
-    table.insert(ListMobs, string.format("[%s] %s", data.Island, name))
-end
+for name, data in pairs(CoordDB.Mobs) do table.insert(ListMobs, string.format("[%s] %s", data.Island, name)) end
 table.sort(ListMobs, function(a, b)
     local islandA = a:match("%[(.-)%]"); local islandB = b:match("%[(.-)%]")
     if islandA == islandB then
         local lvlA = tonumber(a:match("%[Lv%.(%d+)%]")) or 0
         local lvlB = tonumber(b:match("%[Lv%.(%d+)%]")) or 0
-        return lvlA > lvlB -- Level cao nhất ưu tiên lên đầu
+        return lvlA > lvlB 
     end
     return islandA < islandB
 end)
 
--- Sắp xếp List NPC
 local ListNPCs = {}
 for name, data in pairs(CoordDB.NPCs) do table.insert(ListNPCs, string.format("[%s] %s", data.Island, name)) end
 table.sort(ListNPCs)
-
 
 local QuestDB = {
     {Level = 1, QuestName = "Bandit [Lv. 1]", MobName = "Bandit"},
@@ -210,6 +204,7 @@ local QuestDB = {
 }
 local QuestListNames = {}; for i, v in ipairs(QuestDB) do table.insert(QuestListNames, v.QuestName) end
 
+-- CONFIG MẶC ĐỊNH
 local DefaultConfig = {
     AutoFarmFree = false, FarmAll = false, SelectedMonsters = {}, ExcludedMobs = {"dummy", "test dmg", "testdmg"},
     AutoFarmLevel = false, ManualQuestFarm = false, SelectedManualQuest = nil, CurrentTargetMob = nil,
@@ -229,8 +224,6 @@ local DefaultConfig = {
     AutoFarmRaidHard = false, RaidHardUseHP = false, RaidHardMinHP = 30, RaidHardUseTimer = false, RaidHardFightTime = 15, RaidHardCircleFly = true, RaidHardAirTime = 5, RaidHardDodgeRadius = 50,
     
     AutoBypassMenu = true, BypassDuration = 10,
-    
-    -- Farm Tọa Độ Vars (MỚI)
     AutoCoordMob = false, SelectedCoordMobs = {},
     AutoWorldBoss = false, SelectedWorldBosses = {}, 
     AutoNormalBoss = false, SelectedNormalBosses = {},
@@ -305,7 +298,7 @@ local function GetConfigsList()
 end
 
 -- ==========================================
--- GIAO DIỆN CHÍNH (YUI HUB V8)
+-- GIAO DIỆN CHÍNH (YUI HUB V9)
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui", SafeParent)
 ScreenGui.Name = "YuiHub_UI"; ScreenGui.ResetOnSpawn = false
@@ -352,7 +345,7 @@ end)
 local MinBtn = Instance.new("TextButton", TopBar)
 MinBtn.Size = UDim2.new(0, 35, 0, 35); MinBtn.Position = UDim2.new(1, -75, 0, 7.5); MinBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 55); MinBtn.Text = "-"; MinBtn.TextColor3 = Color3.fromRGB(255, 255, 255); MinBtn.Font = Enum.Font.GothamBold; MinBtn.TextSize = 24; Instance.new("UICorner", MinBtn).CornerRadius = UDim.new(1, 0)
 
--- ================= HÀM XÓA HỦY DIỆT CHUẨN =================
+-- NÚT X ĐỎ (CLEANUP HOÀN TOÀN)
 local function KillAllScriptsAndUI()
     _G.YuiKillAllLoops = true
     if _G.YuiConnections then for _, conn in pairs(_G.YuiConnections) do pcall(function() conn:Disconnect() end) end end
@@ -600,6 +593,7 @@ local TabSeaEvent = CreateTab("🌊 Sự Kiện Biển")
 local TabIsland = CreateTab("🏝️ Đảo & Bay & NPC")
 local TabPlayer = CreateTab("🏃 Nhân Vật")
 local TabServer = CreateTab("🌐 Server System")
+local TabScanner = CreateTab("📝 Note & Scan Map")
 local TabConfig = CreateTab("💾 Config (Save/Load)")
 
 Pages["⚙️ Cài Đặt Chung & Skill"].Btn.BackgroundColor3 = Color3.fromRGB(255, 100, 200)
@@ -678,9 +672,6 @@ CreateToggleSwitch(SecFarmLv, "Bật Đánh Quest Đã Chọn", "ManualQuestFarm
 
 local SecFarmCstm = CreateSection(TabMainFarm, "FARM TÙY CHỌN & CÀN QUÉT (ƯU TIÊN CUỐI)", Color3.fromRGB(100, 255, 100))
 local DropMonsters = CreateDropdown(SecFarmCstm, "Chọn Quái Cần Đánh", _G_V10.ScannedMonstersList, "SelectedMonsters", true)
-CreateButton(SecFarmCstm, "🔍 Tải Lại Danh Sách Quái Tự Quét", function()
-    table.sort(_G_V10.ScannedMonstersList); DropMonsters(_G_V10.ScannedMonstersList); AutoSaveTrigger()
-end)
 CreateToggleSwitch(SecFarmCstm, "Bật Free Farm (Danh sách trên)", "AutoFarmFree")
 CreateToggleSwitch(SecFarmCstm, "Bật Farm ALL (Càn quét Map)", "FarmAll")
 
@@ -733,7 +724,7 @@ CreateToggleSwitch(TabSeaEvent, "Săn Sea Monster (Bay Vòng Tròn)", "HuntSeaMo
 CreateToggleSwitch(TabSeaEvent, "Săn Thuyền Ma (The Starving Ghost)", "HuntGhost")
 CreateToggleSwitch(TabSeaEvent, "Tự Động Ngồi Lái Thuyền", "AutoSitBoat")
 
--- --- TAB: ĐẢO & BAY & NPC (FIX THÊM TELEPORT NPC) ---
+-- --- TAB: ĐẢO & BAY & NPC (CÓ TELEPORT NPC) ---
 local SecIslandPatrol = CreateSection(TabIsland, "TUẦN TRA ĐẢO (ISLAND PATROL)", Color3.fromRGB(0, 255, 200))
 local DropPatrolIslands = CreateDropdown(SecIslandPatrol, "Chọn Các Đảo Tuần Tra", {}, "SelectedPatrolIslands", true, true)
 CreateToggleSwitch(SecIslandPatrol, "Bật Auto Tuần Tra Đảo", "AutoPatrolIsland")
@@ -742,7 +733,7 @@ CreateSlider(SecIslandPatrol, "Bán Kính Vòng Lượn Quanh Đảo", 50, 500, 
 CreateSlider(SecIslandPatrol, "Tốc Độ Lượn Vòng", 1, 20, "PatrolIslandSpeed")
 CreateSlider(SecIslandPatrol, "Độ Cao Lượn (Y Offset) (0=Đất)", 0, 500, "PatrolIslandHeight")
 
-local SecIslandSelect = CreateSection(TabIsland, "CHỌN & QUÉT ĐẢO", Color3.fromRGB(100, 255, 150))
+local SecIslandSelect = CreateSection(TabIsland, "CHỌN & QUÉT ĐẢO (TELEPORT)", Color3.fromRGB(100, 255, 150))
 local DropIslands = CreateDropdown(SecIslandSelect, "Chọn Đảo (Island)", {}, "SelectedIsland", false)
 CreateButton(SecIslandSelect, "🏝️ Quét Danh Sách Đảo Mới", function()
     local islands = {}
@@ -751,7 +742,7 @@ CreateButton(SecIslandSelect, "🏝️ Quét Danh Sách Đảo Mới", function(
     table.sort(islands); DropIslands(islands); DropPatrolIslands(islands)
 end)
 local DropSpawnPoints = CreateDropdown(SecIslandSelect, "Chọn Điểm Hồi Sinh", {}, "SelectedSpawnPoint", false)
-CreateButton(SecIslandSelect, "🔄 Cập nhật danh sách Điểm Hồi Sinh", function()
+CreateButton(SecIslandSelect, "🔄 Cập nhật Điểm Hồi Sinh", function()
     local sp = {}
     if workspace:FindFirstChild("SetSpawnPoints") then for _, v in pairs(workspace.SetSpawnPoints:GetChildren()) do table.insert(sp, v.Name) end end
     table.sort(sp); DropSpawnPoints(sp)
@@ -764,6 +755,7 @@ local function InstantTeleport(targetCFrame)
     local HRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if HRP then HRP.CFrame = targetCFrame end
 end
+
 CreateButton(TabIsland, "🚀 DỊCH CHUYỂN ĐẾN MỤC ĐÃ CHỌN BÊN TRÊN", function()
     if _G_V10.SelectedIsland then
         local isl = workspace:FindFirstChild("All") and workspace.All:FindFirstChild("Island") and workspace.All.Island:FindFirstChild(_G_V10.SelectedIsland)
@@ -821,6 +813,27 @@ CreateButton(SecServerProt, "🚀 Boost FPS (Xóa Đồ Họa Mượt Game)", fu
 end)
 CreateToggleSwitch(SecServerProt, "Màn Hình Đen (Giảm Lag Treo Máy)", "EnableBlackScreen")
 
+-- --- TAB: MÁY QUÉT MAP ---
+local SecScanMap = CreateSection(TabScanner, "HỆ THỐNG QUÉT MAP", Color3.fromRGB(200, 100, 255))
+CreateToggleSwitch(SecScanMap, "Bật Máy Quét Map Thông Minh", "AutoScanMap")
+local ScanLogFrame = Instance.new("ScrollingFrame", SecScanMap)
+ScanLogFrame.Size = UDim2.new(1, 0, 0, 200); ScanLogFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20); ScanLogFrame.ScrollBarThickness = 3
+txtLog = Instance.new("TextLabel", ScanLogFrame)
+txtLog.Size = UDim2.new(1, -10, 1, 0); txtLog.BackgroundTransparency = 1; txtLog.RichText = true; txtLog.Text = "Đang chờ quét..."
+txtLog.TextXAlignment = Enum.TextXAlignment.Left; txtLog.TextYAlignment = Enum.TextYAlignment.Top; txtLog.Font = Enum.Font.GothamBold; txtLog.TextSize = 12; txtLog.TextWrapped = true; txtLog.Position = UDim2.new(0, 5, 0, 5)
+
+CreateButton(SecScanMap, "📋 COPY TOÀN BỘ DATA MÁY QUÉT", function()
+    if setclipboard then
+        local cleanTxt = string.gsub(txtLog.Text, "<[^>]+>", "")
+        setclipboard(cleanTxt); game.StarterGui:SetCore("SendNotification", {Title = "Đã Copy", Text = "Dữ liệu đã nằm trong bộ nhớ tạm!", Duration = 3})
+    end
+end)
+-- NÚT LÀM MỚI DANH SÁCH MÁY QUÉT (KHÔI PHỤC)
+CreateButton(SecScanMap, "🔄 Làm Mới Dữ Liệu Máy Quét", function()
+    RenderScannerLog()
+end)
+
+-- --- TAB: CONFIG ---
 local SecCfgLoad = CreateSection(TabConfig, "QUẢN LÝ CẤU HÌNH", Color3.fromRGB(255, 200, 50))
 local DropConfigs = CreateDropdown(SecCfgLoad, "Chọn Bản Lưu", GetConfigsList(), "SelectedConfig", false)
 local ConfigNameInput = "DefaultConfig"
@@ -832,9 +845,17 @@ CreateToggleSwitch(SecCfgBypass, "Bật Auto Lưu (Lưu mỗi khi thay đổi)",
 CreateToggleSwitch(SecCfgBypass, "Bật Auto Load (Khi vào lại game)", "AutoLoadConfig")
 CreateToggleSwitch(SecCfgBypass, "Bật Auto Bypass Load Data Lúc Mới Mở", "AutoBypassMenu")
 CreateSlider(SecCfgBypass, "Thời Gian Chạy Bypass Lúc Đầu (Giây)", 1, 100, "BypassDuration")
+-- NÚT RESET MENU VỀ MẶC ĐỊNH (KHÔI PHỤC)
+CreateButton(SecCfgBypass, "⚠️ RESET TOÀN BỘ MENU VỀ MẶC ĐỊNH", function()
+    for k, v in pairs(DefaultConfig) do if k ~= "ScannedMonstersList" and k ~= "ScannerData" then _G_V10[k] = v end end
+    for _, updater in pairs(_G_UI_Updaters) do pcall(updater) end
+    SaveConfig(_G_V10.SelectedConfig); game.StarterGui:SetCore("SendNotification", {Title = "Reset", Text = "Đã làm mới toàn bộ Menu!", Duration = 3})
+end, Color3.fromRGB(200, 50, 50))
+
+RenderScannerLog()
 
 -- ==========================================
--- ENGINE LÕI: NOCLIP & WATER WALK (ĐÃ FIX KHÔNG BAY LÊN TRỜI)
+-- ENGINE LÕI: NOCLIP & WATER WALK
 -- ==========================================
 local WaterPart = Instance.new("Part", workspace)
 WaterPart.Size = Vector3.new(15, 2, 15)
@@ -948,7 +969,6 @@ local function MonitorChatForBosses()
     end
 end
 pcall(MonitorChatForBosses)
-
 
 -- ==========================================
 -- ENGINE: AUTO BYPASS MAIN MENU
@@ -1087,60 +1107,6 @@ task.spawn(function()
             if _G_V10.AutoTeleEntrance and os.clock() - lastRaidTeleport >= _G_V10.RaidEntranceDelay then
                 hrp.CFrame = CFrame.new(-1346, 79, 3989); lastRaidTeleport = os.clock()
             end
-        end
-    end
-end)
-
--- ==========================================
--- ENGINE: TUẦN TRA ĐẢO (ISLAND PATROL MỚI CÓ SLIDER Y)
--- ==========================================
-local patrolIndex = 1
-local patrolArrivalTime = 0
-local currentPatrolIsland = nil
-
-task.spawn(function()
-    while task.wait() do
-        if _G.YuiKillAllLoops then break end
-        if not _G_V10.AutoPatrolIsland or #_G_V10.SelectedPatrolIslands == 0 then 
-            currentPatrolIsland = nil
-            continue 
-        end
-        
-        local char = LocalPlayer.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if not hrp then continue end
-        
-        if patrolIndex > #_G_V10.SelectedPatrolIslands then patrolIndex = 1 end
-        local islandName = _G_V10.SelectedPatrolIslands[patrolIndex]
-        
-        local islFolder = workspace:FindFirstChild("All") and workspace.All:FindFirstChild("Island")
-        local targetIsland = islFolder and islFolder:FindFirstChild(islandName)
-        
-        if targetIsland then
-            local islandPos = targetIsland:GetPivot().Position
-            
-            if currentPatrolIsland ~= islandName then
-                currentPatrolIsland = islandName
-                patrolArrivalTime = os.clock()
-                hrp.CFrame = CFrame.new(islandPos + Vector3.new(0, tonumber(_G_V10.PatrolIslandHeight) or 0, 0))
-                task.wait(1)
-            end
-            
-            if os.clock() - patrolArrivalTime < tonumber(_G_V10.PatrolIslandTime) then
-                local angle = tick() * (tonumber(_G_V10.PatrolIslandSpeed) / 5)
-                local radius = tonumber(_G_V10.PatrolIslandRadius)
-                local yOffset = tonumber(_G_V10.PatrolIslandHeight) or 0
-                local offset = Vector3.new(math.cos(angle) * radius, yOffset, math.sin(angle) * radius)
-                hrp.CFrame = CFrame.new(islandPos + offset, islandPos)
-                if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall.Velocity = Vector3.new(0,0,0) end
-            else
-                patrolIndex = patrolIndex + 1
-                currentPatrolIsland = nil
-            end
-        else
-            patrolIndex = patrolIndex + 1
-            currentPatrolIsland = nil
-            task.wait(1)
         end
     end
 end)
@@ -1292,7 +1258,6 @@ local lastSkillSpamTime = os.clock()
 
 _G.CheckWorldBossIdx = 1
 _G.WorldBossWaitStarted = nil
-
 _G.CheckNormalBossIdx = 1
 _G.NormalBossWaitStarted = nil
 
@@ -1414,7 +1379,6 @@ task.spawn(function()
                                 end
                             end
                         else
-                            -- Ẩn thông báo đi nếu đang hiện của WorldBoss
                             if not _G_V10.AutoWorldBoss or #_G_V10.SelectedWorldBosses == 0 then
                                 local timeLeft = math.max(0, math.floor(delay - (os.clock() - lastNormalBossCheckTime)))
                                 LblCoordInfo.Text = string.format("Normal Boss: Đợi %d s để check...", timeLeft)
@@ -1428,7 +1392,6 @@ task.spawn(function()
                     local bestMob = nil; local maxLvlFound = -1
                     for _, v in pairs(workspace:GetDescendants()) do
                         if isValidMobByDatabase(v) then
-                            -- Parse name from UI Format "[Island] MobName [Lv.X]" to real name
                             for _, selMobStr in ipairs(_G_V10.SelectedCoordMobs) do
                                 local realName = selMobStr:match("%[.-%]%s+(.+)") or selMobStr
                                 if v.Name == realName then
@@ -1550,7 +1513,6 @@ task.spawn(function()
                         HRP.CFrame = CFrame.new(targetMobInstance.HumanoidRootPart.Position) * dodgeOffset
                     else
                         local mobPos = targetMobInstance.HumanoidRootPart.Position
-                        -- NẰM NGANG SONG SONG MẶT ĐẤT
                         if _G_V10.AttackPosition == "Trên Đầu" then 
                             HRP.CFrame = CFrame.new(mobPos + Vector3.new(0, _G_V10.AttackDistance, 0), mobPos) * CFrame.Angles(math.rad(-90), 0, 0)
                         elseif _G_V10.AttackPosition == "Dưới Chân" then 
