@@ -1,5 +1,5 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V6 (FIX BOSS SPAWN, PATROL HEIGHT, FLY, WATERWALK)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V8 (FULL DATA, 3 TẦNG AI BOSS/MOB, FIX KẸT 0S, TELE NPC)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -14,66 +14,194 @@ local GuiService = game:GetService("GuiService")
 local TweenService = game:GetService("TweenService")
 
 _G.YuiKillAllLoops = false
-if _G.YuiConnections then for _, conn in pairs(_G.YuiConnections) do conn:Disconnect() end end
+if _G.YuiConnections then for _, conn in pairs(_G.YuiConnections) do pcall(function() conn:Disconnect() end) end end
 _G.YuiConnections = {}
 
 local SafeParent = pcall(gethui) and gethui() or LocalPlayer:WaitForChild("PlayerGui")
 if SafeParent:FindFirstChild("YuiHub_UI") then SafeParent["YuiHub_UI"]:Destroy() end
 
 -- ==========================================
--- 📚 DATABASE TỌA ĐỘ VÀ LEVEL
+-- 📚 DATABASE FULL TỪ USER
 -- ==========================================
 local CoordDB = {
-    Bosses = {
-        ["God of Cold [Lv.50000]"] = {Level = 50000, Pos = Vector3.new(-370, 637, 9004)},
-        ["Moria [Lv.1200]"] = {Level = 1200, Pos = Vector3.new(-10421, 62, -2497)},
-        ["Shadow Master [Lv.1450]"] = {Level = 1450, Pos = Vector3.new(-10022, 75, -2991)},
-        ["Hawkeye [Lv.999]"] = {Level = 999, Pos = Vector3.new(-1831, 77, 3674)}
+    WorldBosses = {
+        ["Hawkeye [Lv.999]"] = {Level = 999, Pos = Vector3.new(-1782, 77, 3671), Island = "Dark Castle"},
+        ["God of Cold [Lv.50000]"] = {Level = 50000, Pos = Vector3.new(-374, 637, 8865), Island = "Snowy Mountain"},
+        ["Chief Warden [Lv.1425]"] = {Level = 1425, Pos = Vector3.new(-16057, 207, 12158), Island = "UnderWater Jail"},
+        ["Kudannaki [Lv.1750]"] = {Level = 1750, Pos = Vector3.new(-602, 230, 6674), Island = "Sakura Island"},
+        ["Red Prince [Lv.1000]"] = {Level = 1000, Pos = Vector3.new(5318, 100, -8066), Island = "Red Centipede"},
+        ["Moria [Lv.1200]"] = {Level = 1200, Pos = Vector3.new(-10421, 62, -2497), Island = "Thriller Bark"},
+        ["Shadow Master [Lv.1450]"] = {Level = 1450, Pos = Vector3.new(-10022, 75, -2991), Island = "Thriller Bark"}
+    },
+    NormalBosses = {
+        ["Naval Rating Student [Lv.10]"] = {Level = 10, Pos = Vector3.new(1089, 87, -371), Island = "Starter Island"},
+        ["MyO"] = {Level = 0, Pos = Vector3.new(1549, 144, -302), Island = "Starter Island"},
+        ["Luminous Admiral"] = {Level = 0, Pos = Vector3.new(-20398, 274, 499), Island = "Marineford"},
+        ["Galactic Overseer"] = {Level = 0, Pos = Vector3.new(-20370, 383, 280), Island = "Marineford"},
+        ["Infernal Admiral"] = {Level = 0, Pos = Vector3.new(-20328, 274, 500), Island = "Marineford"},
+        ["Glacier Admiral"] = {Level = 0, Pos = Vector3.new(-20402, 274, 436), Island = "Marineford"}
     },
     Mobs = {
-        ["Elf [Lv.1300]"] = {Level=1300, Pos=Vector3.new(1134, 49, 6107)},
-        ["Seaman [Lv.50]"] = {Level=50, Pos=Vector3.new(1149, 69, -3504)},
-        ["Ryuma [Lv.675]"] = {Level=675, Pos=Vector3.new(-10365, 63, -2891)},
-        ["Section Chef [Lv.475]"] = {Level=475, Pos=Vector3.new(-3496, 43, -3253)},
-        ["Chef de Cuisine [Lv.1350]"] = {Level=1350, Pos=Vector3.new(-15997, 131, 11956)},
-        ["Head Jailer [Lv.1375]"] = {Level=1375, Pos=Vector3.new(-15928, 131, 11976)},
-        ["Desert Bandit [Lv.150]"] = {Level=150, Pos=Vector3.new(-5577, 54, -1272)},
-        ["Vampire [Lv.650]"] = {Level=650, Pos=Vector3.new(-10060, 62, -2206)},
-        ["Axe Captain [Lv.75]"] = {Level=75, Pos=Vector3.new(1007, 88, -3725)},
-        ["Vice Warden [Lv.1400]"] = {Level=1400, Pos=Vector3.new(-16182, 131, 12002)},
-        ["Hydra Leader [Lv.1025]"] = {Level=1025, Pos=Vector3.new(7375, 411, -651)},
-        ["Lieutenant Commander [Lv.1500]"] = {Level=1500, Pos=Vector3.new(-20505, 105, 1478)},
-        ["Lieutenant [Lv.1450]"] = {Level=1450, Pos=Vector3.new(-20414, 105, 1398)},
-        ["Rookie [Lv.700]"] = {Level=700, Pos=Vector3.new(4300, 96, 3017)},
-        ["SkyAssaster [Lv.400]"] = {Level=400, Pos=Vector3.new(-7741, 462, 1154)},
-        ["Hydra SwordsMan [Lv.900]"] = {Level=900, Pos=Vector3.new(8618, 189, -628)},
-        ["Captain [Lv.1600]"] = {Level=1600, Pos=Vector3.new(-20087, 103, 726)},
-        ["Apprentice [Lv.450]"] = {Level=450, Pos=Vector3.new(-3596, 36, -3254)},
-        ["Gorilla [Lv.1150]"] = {Level=1150, Pos=Vector3.new(-1191, 61, -5812)},
-        ["Guard [Lv.1]"] = {Level=1, Pos=Vector3.new(1063, 104, 441)},
-        ["Baboon [Lv.1100]"] = {Level=1100, Pos=Vector3.new(-1270, 52, -5545)},
-        ["Hydra Bandit [Lv.975]"] = {Level=975, Pos=Vector3.new(8856, 154, 122)},
-        ["Gunner [Lv.1200]"] = {Level=1200, Pos=Vector3.new(-3596, 52, 7021)},
-        ["Chimpanzee [Lv.1125]"] = {Level=1125, Pos=Vector3.new(-1421, 61, -5672)},
-        ["Black Bandit [Lv.130]"] = {Level=130, Pos=Vector3.new(-1188, 78, 3400)},
-        ["Black Elf [Lv.1325]"] = {Level=1325, Pos=Vector3.new(1026, 68, 6470)},
-        ["Rear Admiral [Lv.725]"] = {Level=725, Pos=Vector3.new(3774, 54, 3315)},
-        ["Marine [Lv.525]"] = {Level=525, Pos=Vector3.new(-5464, 55, 3982)},
-        ["Desert Royal [Lv.200]"] = {Level=200, Pos=Vector3.new(-4907, 54, -1579)},
-        ["Pirate Hydra [Lv.850]"] = {Level=850, Pos=Vector3.new(6792, 55, -816)},
-        ["Smoky [Lv.25]"] = {Level=25, Pos=Vector3.new(966, 99, -438)},
-        ["Second Chef [Lv.500]"] = {Level=500, Pos=Vector3.new(-3413, 74, -3201)},
-        ["Robot [Lv.775]"] = {Level=775, Pos=Vector3.new(3565, 132, 3588)},
-        ["ProSharkPirate [Lv.275]"] = {Level=275, Pos=Vector3.new(-5742, 43, -5765)},
-        ["Zombie [Lv.625]"] = {Level=625, Pos=Vector3.new(-9745, 63, -2566)},
-        ["Arlung [Lv.300]"] = {Level=300, Pos=Vector3.new(-5891, 48, -5192)},
-        ["Hydra Protector [Lv.875]"] = {Level=875, Pos=Vector3.new(8860, 155, -620)},
-        ["SharkPirate [Lv.250]"] = {Level=250, Pos=Vector3.new(-5461, 46, -5416)}
+        ["Elf [Lv.1300]"] = {Level=1300, Pos=Vector3.new(1212, 49, 5998), Island="Rovaniemi Town"},
+        ["Seaman [Lv.50]"] = {Level=50, Pos=Vector3.new(1074, 69, -3396), Island="Shell Island"},
+        ["Ryuma [Lv.675]"] = {Level=675, Pos=Vector3.new(-10365, 63, -2891), Island="Thriller Bark"},
+        ["Bruno [Lv.600]"] = {Level=600, Pos=Vector3.new(-6217, 51, 3846), Island="Enies Lobby"},
+        ["Section Chef [Lv.475]"] = {Level=475, Pos=Vector3.new(-3358, 43, -3203), Island="Ocean Feast"},
+        ["Vampire [Lv.650]"] = {Level=650, Pos=Vector3.new(-10259, 62, -2168), Island="Thriller Bark"},
+        ["Rifleman [Lv.1225]"] = {Level=1225, Pos=Vector3.new(-3352, 52, 7109), Island="Marksmanship Village"},
+        ["Desert Bandit [Lv.150]"] = {Level=150, Pos=Vector3.new(-5452, 54, -1272), Island="Desert Island"},
+        ["SharkPirate [Lv.250]"] = {Level=250, Pos=Vector3.new(-5461, 46, -5416), Island="SharkPark"},
+        ["Axe Captain [Lv.75]"] = {Level=75, Pos=Vector3.new(1007, 88, -3725), Island="Shell Island"},
+        ["Lieutenant [Lv.1450]"] = {Level=1450, Pos=Vector3.new(-20096, 103, 1560), Island="Marineford"},
+        ["Hydra Leader [Lv.1025]"] = {Level=1025, Pos=Vector3.new(7375, 411, -651), Island="Amazonia"},
+        ["Gorilla [Lv.1150]"] = {Level=1150, Pos=Vector3.new(-1266, 61, -5808), Island="Monkey Island"},
+        ["Baboon [Lv.1100]"] = {Level=1100, Pos=Vector3.new(-1283, 52, -5472), Island="Monkey Island"},
+        ["Rookie [Lv.700]"] = {Level=700, Pos=Vector3.new(4217, 96, 2975), Island="Mangroveland"},
+        ["SkyAssaster [Lv.400]"] = {Level=400, Pos=Vector3.new(-7715, 463, 1094), Island="SkyPark"},
+        ["Hydra SwordsMan [Lv.900]"] = {Level=900, Pos=Vector3.new(8618, 189, -628), Island="Amazonia"},
+        ["Captain [Lv.1600]"] = {Level=1600, Pos=Vector3.new(-20061, 105, 996), Island="Marineford"},
+        ["Black Elf [Lv.1325]"] = {Level=1325, Pos=Vector3.new(1026, 68, 6470), Island="Rovaniemi Town"},
+        ["Head Jailer [Lv.1375]"] = {Level=1375, Pos=Vector3.new(-15928, 131, 11976), Island="UnderWater Jail"},
+        ["Guard [Lv.1]"] = {Level=1, Pos=Vector3.new(1028, 73, 334), Island="Starter Island"},
+        ["Lieutenant Commander [Lv.1500]"] = {Level=1500, Pos=Vector3.new(-20505, 105, 1478), Island="Marineford"},
+        ["Hydra Bandit [Lv.975]"] = {Level=975, Pos=Vector3.new(9091, 154, 145), Island="Amazonia"},
+        ["Gunner [Lv.1200]"] = {Level=1200, Pos=Vector3.new(-3637, 52, 7077), Island="Marksmanship Village"},
+        ["Buggy [Lv.80]"] = {Level=80, Pos=Vector3.new(4004, 60, -5254), Island="Orange Village"},
+        ["Black Bandit [Lv.130]"] = {Level=130, Pos=Vector3.new(-1166, 78, 3584), Island="Dark Castle"},
+        ["Chef de Cuisine [Lv.1350]"] = {Level=1350, Pos=Vector3.new(-16116, 131, 12080), Island="UnderWater Jail"},
+        ["Rear Admiral [Lv.725]"] = {Level=725, Pos=Vector3.new(3773, 54, 3315), Island="Mangroveland"},
+        ["Marine [Lv.525]"] = {Level=525, Pos=Vector3.new(-5464, 55, 3982), Island="Enies Lobby"},
+        ["Desert Royal [Lv.200]"] = {Level=200, Pos=Vector3.new(-4907, 54, -1579), Island="Desert Island"},
+        ["Pirate Hydra [Lv.850]"] = {Level=850, Pos=Vector3.new(6941, 55, -857), Island="Amazonia"},
+        ["Smoky [Lv.25]"] = {Level=25, Pos=Vector3.new(966, 99, -438), Island="Starter Island"},
+        ["Second Chef [Lv.500]"] = {Level=500, Pos=Vector3.new(-3413, 74, -3201), Island="Ocean Feast"},
+        ["Robot [Lv.775]"] = {Level=775, Pos=Vector3.new(3565, 132, 3588), Island="Mangroveland"},
+        ["Bear [Lv.825]"] = {Level=825, Pos=Vector3.new(4185, 60, 3263), Island="Mangroveland"},
+        ["Zombie [Lv.625]"] = {Level=625, Pos=Vector3.new(-9815, 63, -2557), Island="Thriller Bark"},
+        ["Vice Warden [Lv.1400]"] = {Level=1400, Pos=Vector3.new(-16182, 131, 12002), Island="UnderWater Jail"},
+        ["Hydra Protector [Lv.875]"] = {Level=875, Pos=Vector3.new(8877, 155, -577), Island="Amazonia"},
+        ["Demon [Lv.1650]"] = {Level=1650, Pos=Vector3.new(1517, 62, -6019), Island="Haunted Mansion"},
+        ["Snow Bandit [Lv.105]"] = {Level=105, Pos=Vector3.new(-3215, 59, 1493), Island="Snow Island"},
+        ["Demon [Lv.500]"] = {Level=500, Pos=Vector3.new(1552, 136, -327), Island="Starter Island"},
+        ["Mountain Gorilla [Lv.1175]"] = {Level=1175, Pos=Vector3.new(-1662, 93, -5771), Island="Monkey Island"},
+        ["Apprentice [Lv.450]"] = {Level=450, Pos=Vector3.new(-3584, 36, -3123), Island="Ocean Feast"},
+        ["SkyBandit [Lv.325]"] = {Level=325, Pos=Vector3.new(-7145, 52, 696), Island="SkyPark"},
+        ["Buggy Pirate [Lv.75]"] = {Level=75, Pos=Vector3.new(3985, 42, -5140), Island="Orange Village"},
+        ["Hancook [Lv.1075]"] = {Level=1075, Pos=Vector3.new(8213, 411, -268), Island="Amazonia"},
+        ["Thunder God [Lv.425]"] = {Level=425, Pos=Vector3.new(-7293, 637, 780), Island="SkyPark"},
+        ["SkyRoyal [Lv.375]"] = {Level=375, Pos=Vector3.new(-7743, 512, 1775), Island="SkyPark"},
+        ["Swordman [Lv.1250]"] = {Level=1250, Pos=Vector3.new(-3320, 55, 7168), Island="Marksmanship Village"},
+        ["Yeti [Lv.115]"] = {Level=115, Pos=Vector3.new(-3550, 152, 1571), Island="Snow Island"},
+        ["Spandam [Lv.575]"] = {Level=575, Pos=Vector3.new(-6521, 192, 3845), Island="Enies Lobby"},
+        ["Kuro [Lv.1275]"] = {Level=1275, Pos=Vector3.new(-3659, 53, 7454), Island="Marksmanship Village"},
+        ["ProSharkPirate [Lv.275]"] = {Level=275, Pos=Vector3.new(-5742, 43, -5765), Island="SharkPark"},
+        ["Naval Cadet [Lv.30]"] = {Level=30, Pos=Vector3.new(785, 69, -3927), Island="Shell Island"},
+        ["CP5 [Lv.550]"] = {Level=550, Pos=Vector3.new(-5810, 55, 3950), Island="Enies Lobby"},
+        ["Arlung [Lv.300]"] = {Level=300, Pos=Vector3.new(-5891, 48, -5192), Island="SharkPark"},
+        ["ProSkyBandit [Lv.350]"] = {Level=350, Pos=Vector3.new(-7457, 512, 1782), Island="SkyPark"},
+        ["Chimpanzee [Lv.1125]"] = {Level=1125, Pos=Vector3.new(-1374, 61, -5742), Island="Monkey Island"},
+        ["Alligator [Lv.225]"] = {Level=225, Pos=Vector3.new(-5646, 55, -1772), Island="Desert Island"},
+        ["Master Hydra [Lv.1000]"] = {Level=1000, Pos=Vector3.new(7764, 408, 139), Island="Amazonia"},
+        ["Hydra Caption [Lv.925]"] = {Level=925, Pos=Vector3.new(8688, 157, -220), Island="Amazonia"}
+    },
+    NPCs = {
+        ["Arctic"] = {Pos=Vector3.new(835, 131, 6652), Island="Rovaniemi Town"}, ["Clara"] = {Pos=Vector3.new(7342, 408, -41), Island="Amazonia"},
+        ["Linetta"] = {Pos=Vector3.new(1264, 102, 285), Island="Starter Island"}, ["Betty"] = {Pos=Vector3.new(-3512, 129, 1131), Island="Snow Island"},
+        ["Sebastia"] = {Pos=Vector3.new(1330, 106, 6809), Island="Rovaniemi Town"}, ["Quest Giver 25"] = {Pos=Vector3.new(1365, 62, -5879), Island="Haunted Mansion"},
+        ["Cecil"] = {Pos=Vector3.new(-16096, 116, 12341), Island="UnderWater Jail"}, ["Yuno"] = {Pos=Vector3.new(853, 68, -3484), Island="Shell Island"},
+        ["Percy"] = {Pos=Vector3.new(-16057, 423, 11503), Island="UnderWater Jail"}, ["Melina"] = {Pos=Vector3.new(-3479, 52, 7128), Island="Marksmanship Village"},
+        ["Cashier"] = {Pos=Vector3.new(-1279, 52, -797), Island="Shopland"}, ["SetSpawnPoint 15"] = {Pos=Vector3.new(-1416, 37, -5309), Island="Monkey Island"},
+        ["Cleak"] = {Pos=Vector3.new(1004, 85, -3568), Island="Shell Island"}, ["Luna"] = {Pos=Vector3.new(7420, 408, -37), Island="Amazonia"},
+        ["SetSpawnPoint 5"] = {Pos=Vector3.new(-1473, 77, 3520), Island="Dark Castle"}, ["SetSpawnPoint 9"] = {Pos=Vector3.new(-3435, 108, -3197), Island="Ocean Feast"},
+        ["Lily"] = {Pos=Vector3.new(1357, 102, -209), Island="Starter Island"}, ["The person behind the door"] = {Pos=Vector3.new(952, 68, 6469), Island="Rovaniemi Town"},
+        ["SetSpawnPoint 8"] = {Pos=Vector3.new(-7354, 323, 1396), Island="SkyPark"}, ["Arthur"] = {Pos=Vector3.new(-15972, 92, 11908), Island="UnderWater Jail"},
+        ["SetSpawnPoint 10"] = {Pos=Vector3.new(-5344, 55, 3902), Island="Enies Lobby"}, ["Quest Giver 2"] = {Pos=Vector3.new(826, 80, -3711), Island="Shell Island"},
+        ["Stone Statue"] = {Pos=Vector3.new(-1382, 77, 3901), Island="Dark Castle"}, ["Roland"] = {Pos=Vector3.new(-9535, 63, -2596), Island="Thriller Bark"},
+        ["Ember"] = {Pos=Vector3.new(1291, 62, -5827), Island="Haunted Mansion"}, ["Richard"] = {Pos=Vector3.new(-15945, 58, 12165), Island="UnderWater Jail"},
+        ["BoatSpawner"] = {Pos=Vector3.new(3943, 42, -4756), Island="Orange Village"}, ["Quest Giver 23"] = {Pos=Vector3.new(-15989, 132, 12112), Island="UnderWater Jail"},
+        ["Neko"] = {Pos=Vector3.new(-3154, 60, 1432), Island="Snow Island"}, ["Quest Giver 14"] = {Pos=Vector3.new(-5962, 55, 3886), Island="Enies Lobby"},
+        ["Stale"] = {Pos=Vector3.new(857, 68, 6521), Island="Rovaniemi Town"}, ["Gilligan"] = {Pos=Vector3.new(4246, 77, -5056), Island="Orange Village"},
+        ["SetSpawnPoint 14"] = {Pos=Vector3.new(7317, 408, -483), Island="Amazonia"}, ["Shizui Master"] = {Pos=Vector3.new(-5423, 285, -1581), Island="Desert Island"},
+        ["Quest Giver 4"] = {Pos=Vector3.new(-3476, 164, 1329), Island="Snow Island"}, ["James"] = {Pos=Vector3.new(-16168, 92, 11937), Island="UnderWater Jail"},
+        ["Michael"] = {Pos=Vector3.new(-16146, 102, 12055), Island="UnderWater Jail"}, ["Quest Giver 17"] = {Pos=Vector3.new(6588, 67, -828), Island="Amazonia"},
+        ["Charlotte"] = {Pos=Vector3.new(7292, 138, 482), Island="Amazonia"}, ["Trent"] = {Pos=Vector3.new(-6076, 168, -5948), Island="SharkPark"},
+        ["Lantern Seller"] = {Pos=Vector3.new(1078, 87, 27), Island="Starter Island"}, ["William"] = {Pos=Vector3.new(-16057, 356, 11929), Island="UnderWater Jail"},
+        ["Dazzl"] = {Pos=Vector3.new(-1370, 79, 3985), Island="Dark Castle"}, ["SetSpawnPoint 16"] = {Pos=Vector3.new(-3749, 52, 6918), Island="Marksmanship Village"},
+        ["SetSpawnPoint 4"] = {Pos=Vector3.new(-3260, 59, 1485), Island="Snow Island"}, ["Shay"] = {Pos=Vector3.new(3849, 77, -5223), Island="Orange Village"},
+        ["Quest Giver 18"] = {Pos=Vector3.new(8890, 154, -335), Island="Amazonia"}, ["Remaruki"] = {Pos=Vector3.new(-710, 306, 6956), Island="Sakura Island"},
+        ["SetSpawnPoint 7"] = {Pos=Vector3.new(-5677, 47, -5103), Island="SharkPark"}, ["Finn"] = {Pos=Vector3.new(4367, 105, -5246), Island="Orange Village"},
+        ["Old Man"] = {Pos=Vector3.new(-3700, 51, 6978), Island="Marksmanship Village"}, ["Karate Master"] = {Pos=Vector3.new(-5904, 150, -5271), Island="SharkPark"},
+        ["Quest Giver 3"] = {Pos=Vector3.new(3944, 42, -5093), Island="Orange Village"}, ["Philips"] = {Pos=Vector3.new(-6151, 65, 4065), Island="Enies Lobby"},
+        ["Quest Giver 19"] = {Pos=Vector3.new(7410, 408, -482), Island="Amazonia"}, ["Babo"] = {Pos=Vector3.new(1419, 93, 6737), Island="Rovaniemi Town"},
+        ["SetSpawnPoint 18"] = {Pos=Vector3.new(-19882, 104, 604), Island="Marineford"}, ["Petty Officer First Class"] = {Pos=Vector3.new(1064, 86, -3544), Island="Shell Island"},
+        ["Quest Giver 11"] = {Pos=Vector3.new(-7645, 481, 1115), Island="SkyPark"}, ["John"] = {Pos=Vector3.new(-16183, 57, 12070), Island="UnderWater Jail"},
+        ["Rosary"] = {Pos=Vector3.new(-9882, 62, -2848), Island="Thriller Bark"}, ["Bright"] = {Pos=Vector3.new(1223, 48, 6062), Island="Rovaniemi Town"},
+        ["LogPose Seller"] = {Pos=Vector3.new(-16193, 92, 12140), Island="UnderWater Jail"}, ["Quest Giver 7"] = {Pos=Vector3.new(-5670, 48, -5506), Island="SharkPark"},
+        ["Mrak"] = {Pos=Vector3.new(760, 68, -3630), Island="Shell Island"}, ["BlackLeg Teacher"] = {Pos=Vector3.new(-3401, 321, -3090), Island="Ocean Feast"},
+        ["FruitShop"] = {Pos=Vector3.new(1480, 128, -6), Island="Starter Island"}, ["Mia"] = {Pos=Vector3.new(6457, 88, 63), Island="Amazonia"},
+        ["Carter"] = {Pos=Vector3.new(-7426, 636, 705), Island="SkyPark"}, ["xdggkit"] = {Pos=Vector3.new(838, 63, -250), Island="Starter Island"},
+        ["Joseph"] = {Pos=Vector3.new(-16196, 54, 12171), Island="UnderWater Jail"}, ["Shion"] = {Pos=Vector3.new(-5642, 55, -1532), Island="Desert Island"},
+        ["Bernard"] = {Pos=Vector3.new(-16174, 54, 12171), Island="UnderWater Jail"}, ["Poppy"] = {Pos=Vector3.new(9471, 36, 1078), Island="Amazonia"},
+        ["Diego"] = {Pos=Vector3.new(1442, 51, 6237), Island="Rovaniemi Town"}, ["Belle"] = {Pos=Vector3.new(958, 67, 6456), Island="Rovaniemi Town"},
+        ["Travis"] = {Pos=Vector3.new(-5332, 54, -1517), Island="Desert Island"}, ["Thragg"] = {Pos=Vector3.new(-1469, 77, 3976), Island="Dark Castle"},
+        ["SetSpawnPoint 2"] = {Pos=Vector3.new(736, 69, -3558), Island="Shell Island"}, ["thai_TH3"] = {Pos=Vector3.new(-6414, 122, 3480), Island="Enies Lobby"},
+        ["Quest Giver 15"] = {Pos=Vector3.new(-9567, 63, -2606), Island="Thriller Bark"}, ["Haki Editor"] = {Pos=Vector3.new(1401, 160, -90), Island="Starter Island"},
+        ["Shadow 1"] = {Pos=Vector3.new(-10367, 100, -3518), Island="Thriller Bark"}, ["Jimmie"] = {Pos=Vector3.new(797, 51, 6168), Island="Rovaniemi Town"},
+        ["Nerine"] = {Pos=Vector3.new(9116, 154, -832), Island="Amazonia"}, ["Waco"] = {Pos=Vector3.new(-6123, 73, 3633), Island="Enies Lobby"},
+        ["Rio"] = {Pos=Vector3.new(-1283, 232, 4145), Island="Dark Castle"}, ["Vincent"] = {Pos=Vector3.new(-6370, 107, 4095), Island="Enies Lobby"},
+        ["Elias"] = {Pos=Vector3.new(-9529, 62, -2410), Island="Thriller Bark"}, ["Quest Giver 13"] = {Pos=Vector3.new(-5580, 55, 3789), Island="Enies Lobby"},
+        ["Nico"] = {Pos=Vector3.new(967, 335, -5701), Island="Haunted Mansion"}, ["Payton"] = {Pos=Vector3.new(-9666, 143, -3481), Island="Thriller Bark"},
+        ["FALC0N_ST"] = {Pos=Vector3.new(-4035, 58, 7123), Island="Marksmanship Village"}, ["SetSpawnPoint 17"] = {Pos=Vector3.new(-15934, 54, 11971), Island="UnderWater Jail"},
+        ["Edward"] = {Pos=Vector3.new(-15938, 92, 12168), Island="UnderWater Jail"}, ["Mina"] = {Pos=Vector3.new(-3738, 52, 7157), Island="Marksmanship Village"},
+        ["KenHaki"] = {Pos=Vector3.new(-7883, 816, 497), Island="SkyPark"}, ["KINGNONKD"] = {Pos=Vector3.new(-6496, 108, 4195), Island="Enies Lobby"},
+        ["Cherry"] = {Pos=Vector3.new(-3460, 152, 1728), Island="Snow Island"}, ["Pipe seller"] = {Pos=Vector3.new(990, 106, -3549), Island="Shell Island"},
+        ["SetSpawnPoint 11"] = {Pos=Vector3.new(-9445, 63, -2552), Island="Thriller Bark"}, ["SaraburiTokyo"] = {Pos=Vector3.new(1121, 109, 494), Island="Starter Island"},
+        ["Vexa"] = {Pos=Vector3.new(7544, 408, -31), Island="Amazonia"}, ["Quest Giver 1"] = {Pos=Vector3.new(1178, 101, -57), Island="Starter Island"},
+        ["Blacksmith"] = {Pos=Vector3.new(1314, 100, 235), Island="Starter Island"}, ["Stats Reset"] = {Pos=Vector3.new(797, 64, -123), Island="Starter Island"},
+        ["Quest Giver 20"] = {Pos=Vector3.new(-1461, 56, -5587), Island="Monkey Island"}, ["Quest Giver 12"] = {Pos=Vector3.new(-3478, 74, -3203), Island="Ocean Feast"},
+        ["Vanessa"] = {Pos=Vector3.new(-5529, 55, -1795), Island="Desert Island"}, ["Kalea"] = {Pos=Vector3.new(7568, 408, -469), Island="Amazonia"},
+        ["Sword Seller"] = {Pos=Vector3.new(1076, 87, -42), Island="Starter Island"}, ["Frederick"] = {Pos=Vector3.new(-16216, 92, 12174), Island="UnderWater Jail"},
+        ["Quest Giver 21"] = {Pos=Vector3.new(-3648, 52, 7174), Island="Marksmanship Village"}, ["Quest Giver 5"] = {Pos=Vector3.new(-1240, 90, 3442), Island="Dark Castle"},
+        ["Robert"] = {Pos=Vector3.new(-15948, 92, 12034), Island="UnderWater Jail"}, ["The person behind the door 2"] = {Pos=Vector3.new(-9972, 143, -2389), Island="Thriller Bark"},
+        ["SetSpawnPoint 3"] = {Pos=Vector3.new(3895, 42, -4957), Island="Orange Village"}, ["Alias Changer"] = {Pos=Vector3.new(1224, 104, 221), Island="Starter Island"},
+        ["Winter Retainer"] = {Pos=Vector3.new(1364, 125, 27765), Island="Tundra"}, ["RandomFruits"] = {Pos=Vector3.new(1504, 160, -1), Island="Starter Island"},
+        ["Awakenings Toggle"] = {Pos=Vector3.new(1400, 160, 74), Island="Starter Island"}, ["SetSpawnPoint 1"] = {Pos=Vector3.new(1417, 128, 21), Island="Starter Island"},
+        ["Henry"] = {Pos=Vector3.new(-15945, 92, 11980), Island="UnderWater Jail"}, ["Lieutenant Commander"] = {Pos=Vector3.new(1056, 115, -3552), Island="Shell Island"},
+        ["Asgore"] = {Pos=Vector3.new(-6297, 92, 3613), Island="Enies Lobby"}, ["Small Gumiho"] = {Pos=Vector3.new(-3748, 185, 1352), Island="Snow Island"},
+        ["DeLand"] = {Pos=Vector3.new(798, 64, 102), Island="Starter Island"}
     }
 }
-local CoordBossNames = {}; for k, _ in pairs(CoordDB.Bosses) do table.insert(CoordBossNames, k) end
-local CoordMobNames = {}; for k, _ in pairs(CoordDB.Mobs) do table.insert(CoordMobNames, k) end
-table.sort(CoordBossNames); table.sort(CoordMobNames)
+
+-- Sắp xếp List World Boss
+local ListWorldBoss = {}
+for k, _ in pairs(CoordDB.WorldBosses) do table.insert(ListWorldBoss, k) end
+table.sort(ListWorldBoss)
+
+-- Sắp xếp List Normal Boss
+local ListNormalBoss = {}
+for k, _ in pairs(CoordDB.NormalBosses) do table.insert(ListNormalBoss, k) end
+table.sort(ListNormalBoss)
+
+-- Sắp xếp Mobs theo Format: [Island] MobName
+local ListMobs = {}
+for name, data in pairs(CoordDB.Mobs) do
+    table.insert(ListMobs, string.format("[%s] %s", data.Island, name))
+end
+table.sort(ListMobs, function(a, b)
+    local islandA = a:match("%[(.-)%]"); local islandB = b:match("%[(.-)%]")
+    if islandA == islandB then
+        local lvlA = tonumber(a:match("%[Lv%.(%d+)%]")) or 0
+        local lvlB = tonumber(b:match("%[Lv%.(%d+)%]")) or 0
+        return lvlA > lvlB -- Level cao nhất ưu tiên lên đầu
+    end
+    return islandA < islandB
+end)
+
+-- Sắp xếp List NPC
+local ListNPCs = {}
+for name, data in pairs(CoordDB.NPCs) do table.insert(ListNPCs, string.format("[%s] %s", data.Island, name)) end
+table.sort(ListNPCs)
+
 
 local QuestDB = {
     {Level = 1, QuestName = "Bandit [Lv. 1]", MobName = "Bandit"},
@@ -101,14 +229,17 @@ local DefaultConfig = {
     AutoFarmRaidHard = false, RaidHardUseHP = false, RaidHardMinHP = 30, RaidHardUseTimer = false, RaidHardFightTime = 15, RaidHardCircleFly = true, RaidHardAirTime = 5, RaidHardDodgeRadius = 50,
     
     AutoBypassMenu = true, BypassDuration = 10,
+    
+    -- Farm Tọa Độ Vars (MỚI)
     AutoCoordMob = false, SelectedCoordMobs = {},
-    AutoCoordBoss = false, SelectedCoordBosses = {}, BossCheckDelay = 5,
+    AutoWorldBoss = false, SelectedWorldBosses = {}, 
+    AutoNormalBoss = false, SelectedNormalBosses = {},
+    BossCheckDelay = 5,
 
     AutoSpawnMihawk = false, MihawkAmount = "x1", AutoGiveShadow = false, ShadowItem = "Shadow Spirit", ShadowAmount = "x1",
     
-    SelectedIsland = nil, SelectedSpawnPoint = nil,
-    AutoPatrolIsland = false, SelectedPatrolIslands = {}, PatrolIslandTime = 30, PatrolIslandRadius = 150, PatrolIslandSpeed = 5, 
-    PatrolIslandHeight = 0, -- NEW: CHỈNH ĐỘ CAO LƯỢN ĐẢO (MẶC ĐỊNH 0 = DƯỚI ĐẤT)
+    SelectedIsland = nil, SelectedSpawnPoint = nil, SelectedNPC = nil,
+    AutoPatrolIsland = false, SelectedPatrolIslands = {}, PatrolIslandTime = 30, PatrolIslandRadius = 150, PatrolIslandSpeed = 5, PatrolIslandHeight = 0,
     
     EnableSpeed = false, WalkSpeed = 50, EnableJump = false, JumpPower = 100, InfJump = false, DashNoCD = false, FreeFly = false, FreeFlySpeed = 50,
     AutoJump = false, Noclip = false, WaterWalk = false,
@@ -129,17 +260,13 @@ if isfolder and not isfolder(ConfigFolder) then makefolder(ConfigFolder) end
 local txtLog
 local function RenderScannerLog()
     if not txtLog then return end
-    local logStr = "<b><font color='#ff5555' size='15'>=== 👹 DANH SÁCH BOSS ===</font></b>\n"
+    local logStr = "<b><font color='#ff5555' size='15'>=== 👹 DANH SÁCH BOSS SCAN ĐƯỢC ===</font></b>\n"
     if _G_V10.ScannerData and _G_V10.ScannerData.Bosses then
         for k, v in pairs(_G_V10.ScannerData.Bosses) do logStr = logStr .. string.format("<b><font color='#ffff55'>[%s]</font></b> | <font color='#ffffff'>%s (HP: %s)</font> | <font color='#55ff55'>%s</font>\n", v.Island, k, v.Level, v.Pos) end
     end
-    logStr = logStr .. "\n<b><font color='#55aaff' size='15'>=== 👾 DANH SÁCH QUÁI ===</font></b>\n"
+    logStr = logStr .. "\n<b><font color='#55aaff' size='15'>=== 👾 DANH SÁCH QUÁI SCAN ĐƯỢC ===</font></b>\n"
     if _G_V10.ScannerData and _G_V10.ScannerData.Mobs then
         for k, v in pairs(_G_V10.ScannerData.Mobs) do logStr = logStr .. string.format("<b><font color='#ffff55'>[%s]</font></b> | <font color='#ffffff'>%s</font> | <font color='#55ff55'>%s</font>\n", v.Island, k, v.Pos) end
-    end
-    logStr = logStr .. "\n<b><font color='#ffaa00' size='15'>=== 🛒 DANH SÁCH NPC ===</font></b>\n"
-    if _G_V10.ScannerData and _G_V10.ScannerData.NPCs then
-        for k, v in pairs(_G_V10.ScannerData.NPCs) do logStr = logStr .. string.format("<b><font color='#ffff55'>[%s]</font></b> | <font color='#ffffff'>%s</font> | <font color='#55ff55'>%s</font>\n", v.Island, k, v.Pos) end
     end
     txtLog.Text = logStr
     if txtLog.Parent then txtLog.Parent.CanvasSize = UDim2.new(0, 0, 0, txtLog.TextBounds.Y + 50) end
@@ -178,7 +305,7 @@ local function GetConfigsList()
 end
 
 -- ==========================================
--- GIAO DIỆN CHÍNH (YUI HUB V6)
+-- GIAO DIỆN CHÍNH (YUI HUB V8)
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui", SafeParent)
 ScreenGui.Name = "YuiHub_UI"; ScreenGui.ResetOnSpawn = false
@@ -219,8 +346,7 @@ PinBtn.Size = UDim2.new(0, 35, 0, 35); PinBtn.Position = UDim2.new(1, -120, 0, 7
 PinBtn.Text = "📌"; PinBtn.TextColor3 = Color3.fromRGB(255, 255, 255); PinBtn.Font = Enum.Font.GothamBold; PinBtn.TextSize = 18; Instance.new("UICorner", PinBtn).CornerRadius = UDim.new(1, 0)
 PinBtn.MouseButton1Click:Connect(function()
     _G.IsPinned = not _G.IsPinned; MainFrame.Draggable = not _G.IsPinned
-    PinBtn.BackgroundColor3 = _G.IsPinned and Color3.fromRGB(200, 50, 50) or Color3.fromRGB(50, 50, 55)
-    PinBtn.Text = _G.IsPinned and "📍" or "📌"
+    PinBtn.BackgroundColor3 = _G.IsPinned and Color3.fromRGB(200, 50, 50) or Color3.fromRGB(50, 50, 55); PinBtn.Text = _G.IsPinned and "📍" or "📌"
 end)
 
 local MinBtn = Instance.new("TextButton", TopBar)
@@ -231,7 +357,6 @@ local function KillAllScriptsAndUI()
     _G.YuiKillAllLoops = true
     if _G.YuiConnections then for _, conn in pairs(_G.YuiConnections) do pcall(function() conn:Disconnect() end) end end
     _G.YuiConnections = {}
-    
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
         local hrp = char.HumanoidRootPart
@@ -472,10 +597,9 @@ local TabMainFarm = CreateTab("⚔️ Main Farm (All in 1)")
 local TabRaidHub = CreateTab("🏰 Raid Hub (Thường/Hard)")
 local TabBoss = CreateTab("👹 Boss & Spawn")
 local TabSeaEvent = CreateTab("🌊 Sự Kiện Biển")
-local TabIsland = CreateTab("🏝️ Đảo & Bay")
+local TabIsland = CreateTab("🏝️ Đảo & Bay & NPC")
 local TabPlayer = CreateTab("🏃 Nhân Vật")
 local TabServer = CreateTab("🌐 Server System")
-local TabScanner = CreateTab("📝 Note & Scan Map")
 local TabConfig = CreateTab("💾 Config (Save/Load)")
 
 Pages["⚙️ Cài Đặt Chung & Skill"].Btn.BackgroundColor3 = Color3.fromRGB(255, 100, 200)
@@ -525,6 +649,7 @@ CreateButton(SecWepFix, "🎒 Quét Túi Cập Nhật Lại", function()
 end)
 
 table.insert(_G.YuiConnections, RunService.Stepped:Connect(function()
+    if _G.YuiKillAllLoops then return end
     pcall(function()
         local maxH = math.max(LeftLayout.AbsoluteContentSize.Y, RightLayout.AbsoluteContentSize.Y)
         TabSettings.CanvasSize = UDim2.new(0, 0, 0, maxH + 20)
@@ -535,37 +660,25 @@ end))
 local LblInfo = Instance.new("TextLabel", TabMainFarm)
 LblInfo.Size = UDim2.new(1, 0, 0, 20); LblInfo.BackgroundTransparency = 1; LblInfo.TextColor3 = Color3.fromRGB(255, 255, 100); LblInfo.Font = Enum.Font.Gotham; LblInfo.TextSize = 13; LblInfo.TextXAlignment = Enum.TextXAlignment.Left; LblInfo.Text = "Trạng thái Farm: Đang chờ..."
 
-local SecFarmLv = CreateSection(TabMainFarm, "FARM LEVEL (NHIỆM VỤ)", Color3.fromRGB(50, 200, 255))
-CreateToggleSwitch(SecFarmLv, "Bật Auto Farm Level (Tự Chuyển Bãi)", "AutoFarmLevel")
-CreateDropdown(SecFarmLv, "Chọn Quest Bằng Tay", QuestListNames, "SelectedManualQuest", false)
-CreateToggleSwitch(SecFarmLv, "Bật Đánh Quest Đã Chọn Trên", "ManualQuestFarm")
-
-local SecFarmCoord = CreateSection(TabMainFarm, "FARM TỌA ĐỘ (ƯU TIÊN BOSS TUYỆT ĐỐI)", Color3.fromRGB(255, 100, 200))
+local SecFarmCoord = CreateSection(TabMainFarm, "FARM TỌA ĐỘ (ƯU TIÊN TUYỆT ĐỐI)", Color3.fromRGB(255, 100, 200))
 local LblCoordInfo = Instance.new("TextLabel", SecFarmCoord)
 LblCoordInfo.Size = UDim2.new(1, -10, 0, 20); LblCoordInfo.BackgroundTransparency = 1; LblCoordInfo.TextColor3 = Color3.fromRGB(255, 150, 150); LblCoordInfo.Font = Enum.Font.Gotham; LblCoordInfo.TextSize = 12; LblCoordInfo.TextXAlignment = Enum.TextXAlignment.Left; LblCoordInfo.Text = "Trạng thái AI Tọa Độ: Đang rảnh..."
-CreateDropdown(SecFarmCoord, "Chọn Boss Cần Săn (Ưu tiên thứ tự)", CoordBossNames, "SelectedCoordBosses", true, true)
-CreateToggleSwitch(SecFarmCoord, "Bật Tự Động Săn Boss Tọa Độ", "AutoCoordBoss")
+CreateDropdown(SecFarmCoord, "ƯU TIÊN 1: Boss Thế Giới", ListWorldBoss, "SelectedWorldBosses", true, true)
+CreateToggleSwitch(SecFarmCoord, "Bật Auto Săn Boss Thế Giới", "AutoWorldBoss")
+CreateDropdown(SecFarmCoord, "ƯU TIÊN 2: Boss Thường (Ko có Level/Máu trâu)", ListNormalBoss, "SelectedNormalBosses", true, true)
+CreateToggleSwitch(SecFarmCoord, "Bật Auto Săn Boss Thường", "AutoNormalBoss")
 CreateSlider(SecFarmCoord, "Delay Lặp Lại Check Boss (Min 0.5s)", 0.5, 100, "BossCheckDelay")
-CreateDropdown(SecFarmCoord, "Chọn Bãi Quái (Tự tìm con Lv cao nhất)", CoordMobNames, "SelectedCoordMobs", true, false)
-CreateToggleSwitch(SecFarmCoord, "Bật Tự Động Farm Quái Tọa Độ", "AutoCoordMob")
+CreateDropdown(SecFarmCoord, "ƯU TIÊN 3: Quái Tọa Độ (Tự tìm Max Lv)", ListMobs, "SelectedCoordMobs", true, false)
+CreateToggleSwitch(SecFarmCoord, "Bật Auto Săn Quái Tọa Độ", "AutoCoordMob")
 
-local SecFarmCstm = CreateSection(TabMainFarm, "FARM TÙY CHỌN & CÀN QUÉT MAP", Color3.fromRGB(100, 255, 100))
+local SecFarmLv = CreateSection(TabMainFarm, "FARM LEVEL CHUẨN (ƯU TIÊN 4)", Color3.fromRGB(50, 200, 255))
+CreateToggleSwitch(SecFarmLv, "Bật Auto Farm Level (Tự Chuyển Bãi)", "AutoFarmLevel")
+CreateDropdown(SecFarmLv, "Chọn Quest Bằng Tay", QuestListNames, "SelectedManualQuest", false)
+CreateToggleSwitch(SecFarmLv, "Bật Đánh Quest Đã Chọn", "ManualQuestFarm")
+
+local SecFarmCstm = CreateSection(TabMainFarm, "FARM TÙY CHỌN & CÀN QUÉT (ƯU TIÊN CUỐI)", Color3.fromRGB(100, 255, 100))
 local DropMonsters = CreateDropdown(SecFarmCstm, "Chọn Quái Cần Đánh", _G_V10.ScannedMonstersList, "SelectedMonsters", true)
-CreateButton(SecFarmCstm, "🔍 Quét Map Thêm Quái Lạ", function()
-    local folders = {}
-    if workspace:FindFirstChild("Monster") then table.insert(folders, workspace.Monster) end
-    if workspace:FindFirstChild("Enemies") then table.insert(folders, workspace.Enemies) end
-    if workspace:FindFirstChild("NPC") then table.insert(folders, workspace.NPC) end
-    
-    for _, folder in ipairs(folders) do
-        for _, v in pairs(folder:GetChildren()) do
-            if v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Name ~= LocalPlayer.Name then
-                local isEx = false
-                for _, ex in pairs(_G_V10.ExcludedMobs) do if string.find(string.lower(v.Name), ex) then isEx = true; break end end
-                if not isEx and not table.find(_G_V10.ScannedMonstersList, v.Name) then table.insert(_G_V10.ScannedMonstersList, v.Name) end
-            end
-        end
-    end
+CreateButton(SecFarmCstm, "🔍 Tải Lại Danh Sách Quái Tự Quét", function()
     table.sort(_G_V10.ScannedMonstersList); DropMonsters(_G_V10.ScannedMonstersList); AutoSaveTrigger()
 end)
 CreateToggleSwitch(SecFarmCstm, "Bật Free Farm (Danh sách trên)", "AutoFarmFree")
@@ -602,7 +715,7 @@ CreateSlider(SecRaidTele, "Delay Tele Ra Cửa (Giây)", 1, 10, "RaidEntranceDel
 CreateToggleSwitch(SecRaidTele, "Teleport Re-Raid (Chỉ khi sạch quái)", "AutoTeleReRaid")
 CreateSlider(SecRaidTele, "Delay Re-Raid (Giây)", 1, 10, "RaidReRaidDelay")
 
--- --- TAB: BOSS & SPAWN (FIX NÚT) ---
+-- --- TAB: BOSS & SPAWN ---
 local SecBossSpawn = CreateSection(TabBoss, "AUTO SPAWN MIHAWK", Color3.fromRGB(150, 100, 255))
 CreateToggleSwitch(SecBossSpawn, "Bật Auto Spawn Mihawk", "AutoSpawnMihawk")
 CreateDropdown(SecBossSpawn, "Chọn Lượng Spawn Mihawk", {"x100", "x10", "x1"}, "MihawkAmount", false)
@@ -620,26 +733,22 @@ CreateToggleSwitch(TabSeaEvent, "Săn Sea Monster (Bay Vòng Tròn)", "HuntSeaMo
 CreateToggleSwitch(TabSeaEvent, "Săn Thuyền Ma (The Starving Ghost)", "HuntGhost")
 CreateToggleSwitch(TabSeaEvent, "Tự Động Ngồi Lái Thuyền", "AutoSitBoat")
 
--- --- TAB: ĐẢO & BAY (CÓ UPDATE ISLAND PATROL MỚI & ĐỘ CAO LƯỢN) ---
+-- --- TAB: ĐẢO & BAY & NPC (FIX THÊM TELEPORT NPC) ---
 local SecIslandPatrol = CreateSection(TabIsland, "TUẦN TRA ĐẢO (ISLAND PATROL)", Color3.fromRGB(0, 255, 200))
 local DropPatrolIslands = CreateDropdown(SecIslandPatrol, "Chọn Các Đảo Tuần Tra", {}, "SelectedPatrolIslands", true, true)
 CreateToggleSwitch(SecIslandPatrol, "Bật Auto Tuần Tra Đảo", "AutoPatrolIsland")
 CreateSlider(SecIslandPatrol, "Thời Gian Ở Lại 1 Đảo (s)", 10, 300, "PatrolIslandTime")
 CreateSlider(SecIslandPatrol, "Bán Kính Vòng Lượn Quanh Đảo", 50, 500, "PatrolIslandRadius")
 CreateSlider(SecIslandPatrol, "Tốc Độ Lượn Vòng", 1, 20, "PatrolIslandSpeed")
-CreateSlider(SecIslandPatrol, "Độ Cao Lượn (Y Offset) (0=Đất)", 0, 500, "PatrolIslandHeight") -- FIX 1
+CreateSlider(SecIslandPatrol, "Độ Cao Lượn (Y Offset) (0=Đất)", 0, 500, "PatrolIslandHeight")
 
-local SecIslandSelect = CreateSection(TabIsland, "CHỌN & QUÉT ĐẢO (TELEPORT THỦ CÔNG)", Color3.fromRGB(100, 255, 150))
+local SecIslandSelect = CreateSection(TabIsland, "CHỌN & QUÉT ĐẢO", Color3.fromRGB(100, 255, 150))
 local DropIslands = CreateDropdown(SecIslandSelect, "Chọn Đảo (Island)", {}, "SelectedIsland", false)
-CreateButton(SecIslandSelect, "🏝️ Quét Danh Sách Đảo", function()
+CreateButton(SecIslandSelect, "🏝️ Quét Danh Sách Đảo Mới", function()
     local islands = {}
     local islandsFolder = workspace:FindFirstChild("All") and workspace.All:FindFirstChild("Island")
-    if islandsFolder then 
-        for _, island in ipairs(islandsFolder:GetChildren()) do table.insert(islands, island.Name) end 
-    end
-    table.sort(islands)
-    DropIslands(islands)
-    DropPatrolIslands(islands)
+    if islandsFolder then for _, island in ipairs(islandsFolder:GetChildren()) do table.insert(islands, island.Name) end end
+    table.sort(islands); DropIslands(islands); DropPatrolIslands(islands)
 end)
 local DropSpawnPoints = CreateDropdown(SecIslandSelect, "Chọn Điểm Hồi Sinh", {}, "SelectedSpawnPoint", false)
 CreateButton(SecIslandSelect, "🔄 Cập nhật danh sách Điểm Hồi Sinh", function()
@@ -647,17 +756,25 @@ CreateButton(SecIslandSelect, "🔄 Cập nhật danh sách Điểm Hồi Sinh",
     if workspace:FindFirstChild("SetSpawnPoints") then for _, v in pairs(workspace.SetSpawnPoints:GetChildren()) do table.insert(sp, v.Name) end end
     table.sort(sp); DropSpawnPoints(sp)
 end)
+
+local SecNPC = CreateSection(TabIsland, "DỊCH CHUYỂN ĐẾN NPC TRONG DATA", Color3.fromRGB(255, 200, 50))
+CreateDropdown(SecNPC, "Chọn NPC Cần Tìm", ListNPCs, "SelectedNPC", false)
+
 local function InstantTeleport(targetCFrame)
     local HRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if HRP then HRP.CFrame = targetCFrame end
 end
-CreateButton(SecIslandSelect, "🚀 Dịch Chuyển Đến Điểm Đã Chọn", function()
+CreateButton(TabIsland, "🚀 DỊCH CHUYỂN ĐẾN MỤC ĐÃ CHỌN BÊN TRÊN", function()
     if _G_V10.SelectedIsland then
         local isl = workspace:FindFirstChild("All") and workspace.All:FindFirstChild("Island") and workspace.All.Island:FindFirstChild(_G_V10.SelectedIsland)
         if isl then InstantTeleport(isl:GetPivot() + Vector3.new(0, 50, 0)) end
     elseif _G_V10.SelectedSpawnPoint then
         local sp = workspace:FindFirstChild("SetSpawnPoints") and workspace.SetSpawnPoints:FindFirstChild(_G_V10.SelectedSpawnPoint)
         if sp then InstantTeleport(sp.CFrame + Vector3.new(0, 5, 0)) end
+    elseif _G_V10.SelectedNPC then
+        local realNPCName = _G_V10.SelectedNPC:match("%[.-%]%s+(.+)") or _G_V10.SelectedNPC
+        local dbInfo = CoordDB.NPCs[realNPCName]
+        if dbInfo then InstantTeleport(CFrame.new(dbInfo.Pos + Vector3.new(0, 5, 0))) end
     end
 end)
 
@@ -665,7 +782,7 @@ end)
 local SecPlayerMod = CreateSection(TabPlayer, "MOD DI CHUYỂN & NHẢY", Color3.fromRGB(255, 150, 50))
 CreateToggleSwitch(SecPlayerMod, "Xuyên Tường & Địa Hình (Noclip)", "Noclip")
 CreateToggleSwitch(SecPlayerMod, "Đi Bộ Trên Mặt Nước (Water Walk)", "WaterWalk")
-CreateToggleSwitch(SecPlayerMod, "Auto Nhảy Liên Tục (Mobile Touch)", "AutoJump")
+CreateToggleSwitch(SecPlayerMod, "Auto Nhảy Liên Tục (Chống Anti-Cheat)", "AutoJump")
 CreateToggleSwitch(SecPlayerMod, "Bật Hack Tốc Độ Chạy", "EnableSpeed")
 CreateSlider(SecPlayerMod, "Tốc Độ Chạy (WalkSpeed)", 16, 250, "WalkSpeed")
 CreateToggleSwitch(SecPlayerMod, "Bật Hack Nhảy Cao", "EnableJump")
@@ -704,21 +821,6 @@ CreateButton(SecServerProt, "🚀 Boost FPS (Xóa Đồ Họa Mượt Game)", fu
 end)
 CreateToggleSwitch(SecServerProt, "Màn Hình Đen (Giảm Lag Treo Máy)", "EnableBlackScreen")
 
-local SecScanMap = CreateSection(TabScanner, "HỆ THỐNG QUÉT MAP (FIX SIÊU TỐC)", Color3.fromRGB(200, 100, 255))
-CreateToggleSwitch(SecScanMap, "Bật Máy Quét Map Thông Minh", "AutoScanMap")
-local ScanLogFrame = Instance.new("ScrollingFrame", SecScanMap)
-ScanLogFrame.Size = UDim2.new(1, 0, 0, 200); ScanLogFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20); ScanLogFrame.ScrollBarThickness = 3
-txtLog = Instance.new("TextLabel", ScanLogFrame)
-txtLog.Size = UDim2.new(1, -10, 1, 0); txtLog.BackgroundTransparency = 1; txtLog.RichText = true; txtLog.Text = "Đang chờ quét..."
-txtLog.TextXAlignment = Enum.TextXAlignment.Left; txtLog.TextYAlignment = Enum.TextYAlignment.Top; txtLog.Font = Enum.Font.GothamBold; txtLog.TextSize = 12; txtLog.TextWrapped = true; txtLog.Position = UDim2.new(0, 5, 0, 5)
-CreateButton(SecScanMap, "📋 COPY TOÀN BỘ DATA MÁY QUÉT", function()
-    if setclipboard then
-        local cleanTxt = string.gsub(txtLog.Text, "<[^>]+>", "")
-        setclipboard(cleanTxt); game.StarterGui:SetCore("SendNotification", {Title = "Đã Copy", Text = "Dữ liệu đã nằm trong bộ nhớ tạm!", Duration = 3})
-    end
-end)
-CreateButton(SecScanMap, "🔄 Tải Lại Dữ Liệu Lên Bảng UI", function() RenderScannerLog() end)
-
 local SecCfgLoad = CreateSection(TabConfig, "QUẢN LÝ CẤU HÌNH", Color3.fromRGB(255, 200, 50))
 local DropConfigs = CreateDropdown(SecCfgLoad, "Chọn Bản Lưu", GetConfigsList(), "SelectedConfig", false)
 local ConfigNameInput = "DefaultConfig"
@@ -730,8 +832,6 @@ CreateToggleSwitch(SecCfgBypass, "Bật Auto Lưu (Lưu mỗi khi thay đổi)",
 CreateToggleSwitch(SecCfgBypass, "Bật Auto Load (Khi vào lại game)", "AutoLoadConfig")
 CreateToggleSwitch(SecCfgBypass, "Bật Auto Bypass Load Data Lúc Mới Mở", "AutoBypassMenu")
 CreateSlider(SecCfgBypass, "Thời Gian Chạy Bypass Lúc Đầu (Giây)", 1, 100, "BypassDuration")
-
-RenderScannerLog()
 
 -- ==========================================
 -- ENGINE LÕI: NOCLIP & WATER WALK (ĐÃ FIX KHÔNG BAY LÊN TRỜI)
@@ -829,6 +929,9 @@ end
 -- ==========================================
 -- ENGINE: BẮT CHAT SYSTEM CHECK BOSS SPAWN NHANH
 -- ==========================================
+local lastWorldBossCheckTime = os.clock()
+local lastNormalBossCheckTime = os.clock()
+
 local function MonitorChatForBosses()
     local ChatSys = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("Chat")
     if ChatSys then
@@ -837,7 +940,8 @@ local function MonitorChatForBosses()
             if descendant:IsA("TextLabel") and descendant.Text then
                 local txt = string.lower(descendant.Text)
                 if string.find(txt, "trăng máu") or string.find(txt, "blood moon") or string.find(txt, "shadow") or string.find(txt, "boss") then
-                    _G_V10.BossCheckDelay = 0.5 
+                    lastWorldBossCheckTime = 0
+                    lastNormalBossCheckTime = 0 
                 end
             end
         end))
@@ -845,64 +949,6 @@ local function MonitorChatForBosses()
 end
 pcall(MonitorChatForBosses)
 
--- ==========================================
--- ENGINE: MÁY QUÉT MAP (FIX SCANNER VỚI FOLDERS CỤ THỂ GIẢM LAG)
--- ==========================================
-local function GetClosestIsland(pos)
-    local islandsFolder = Workspace:FindFirstChild("All") and Workspace.All:FindFirstChild("Island")
-    if not islandsFolder then return "Map" end
-    local closest = "Map"; local minDist = math.huge
-    for _, isl in pairs(islandsFolder:GetChildren()) do
-        local dist = (isl:GetPivot().Position - pos).Magnitude
-        if dist < minDist then minDist = dist; closest = isl.Name end
-    end
-    return closest
-end
-
-task.spawn(function()
-    while task.wait(5) do
-        if _G.YuiKillAllLoops then break end
-        if not _G_V10.AutoScanMap then continue end
-        local hasNewData = false
-        
-        local folders = {}
-        if workspace:FindFirstChild("Monster") then table.insert(folders, workspace.Monster) end
-        if workspace:FindFirstChild("Enemies") then table.insert(folders, workspace.Enemies) end
-        if workspace:FindFirstChild("NPC") then table.insert(folders, workspace.NPC) end
-        if workspace:FindFirstChild("NPCs") then table.insert(folders, workspace.NPCs) end
-        
-        for _, folder in ipairs(folders) do
-            for _, v in pairs(folder:GetChildren()) do
-                if v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Name ~= LocalPlayer.Name then
-                    local hrp = v:FindFirstChild("HumanoidRootPart"); local hum = v:FindFirstChild("Humanoid")
-                    if hrp and hum and hum.Health > 0 then
-                        local nameStr = v.Name
-                        local isEx = false
-                        for _, ex in pairs(_G_V10.ExcludedMobs) do if string.find(string.lower(nameStr), ex) then isEx = true; break end end
-                        
-                        if not isEx and not _G_V10.ScannerData.Mobs[nameStr] and not _G_V10.ScannerData.Bosses[nameStr] then
-                            local isl = GetClosestIsland(hrp.Position)
-                            local pos = string.format("Vector3.new(%.0f, %.0f, %.0f)", hrp.Position.X, hrp.Position.Y, hrp.Position.Z)
-                            if hum.MaxHealth > 50000 then _G_V10.ScannerData.Bosses[nameStr] = {Island = isl, Pos = pos, Level = hum.MaxHealth}
-                            else _G_V10.ScannerData.Mobs[nameStr] = {Island = isl, Pos = pos, Level = hum.MaxHealth} end
-                            hasNewData = true
-                        end
-                    end
-                end
-                if v:IsA("Model") and (v.Name == "NPC" or v.Parent and v.Parent.Name == "NPC") and v:FindFirstChild("HumanoidRootPart") then
-                    local nameStr = v.Name
-                    if not _G_V10.ScannerData.NPCs[nameStr] then
-                        local isl = GetClosestIsland(v.HumanoidRootPart.Position)
-                        local pos = string.format("Vector3.new(%.0f, %.0f, %.0f)", v.HumanoidRootPart.Position.X, v.HumanoidRootPart.Position.Y, v.HumanoidRootPart.Position.Z)
-                        _G_V10.ScannerData.NPCs[nameStr] = {Island = isl, Pos = pos}
-                        hasNewData = true
-                    end
-                end
-            end
-        end
-        if hasNewData then AutoSaveTrigger(); RenderScannerLog() end
-    end
-end)
 
 -- ==========================================
 -- ENGINE: AUTO BYPASS MAIN MENU
@@ -925,32 +971,33 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- ENGINE: MUA RAID, TUẦN TRA & SPAWN BOSS (FIX LOGIC BẤM)
+-- ENGINE: MUA RAID, TUẦN TRA & SPAWN BOSS
 -- ==========================================
+task.spawn(function()
+    while task.wait(0.2) do
+        if _G.YuiKillAllLoops then break end
+        if _G_V10.AutoSpawnMihawk or _G_V10.AutoGiveShadow or _G_V10.AutoBuyRaid then
+            local talkingGui = LocalPlayer.PlayerGui:FindFirstChild("Talking")
+            if talkingGui then TapSafeEdge() end
+        end
+    end
+end)
+
 task.spawn(function()
     while task.wait(0.5) do 
         if _G.YuiKillAllLoops then break end
         if not _G_V10.AutoSpawnMihawk then continue end
         local char = LocalPlayer.Character; local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if not hrp then continue end
-        
         local target = Vector3.new(-1380, 77, 3904)
-        if (hrp.Position - target).Magnitude > 20 then 
-            hrp.CFrame = CFrame.new(target)
-            task.wait(1)
-        end
-        
+        if (hrp.Position - target).Magnitude > 50 then hrp.CFrame = CFrame.new(target); task.wait(1.5) end
         local talkingGui = LocalPlayer.PlayerGui:FindFirstChild("Talking")
         if not talkingGui then
             local npc = Workspace:FindFirstChild("NPC") and Workspace.NPC:FindFirstChild("Stone Statue")
             if npc then task.spawn(function() pcall(function() ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(npc, npc, npc) end) end) end
         else
             local amtBtn = SmartFindButton(talkingGui, _G_V10.MihawkAmount)
-            if amtBtn then 
-                PhysicalClick(amtBtn) 
-            else
-                TapSafeEdge() -- Chỉ chọc màn hình skip chữ khi chưa thấy nút x1, x10
-            end
+            if amtBtn then PhysicalClick(amtBtn) end
         end
     end
 end)
@@ -961,13 +1008,8 @@ task.spawn(function()
         if not _G_V10.AutoGiveShadow then continue end
         local char = LocalPlayer.Character; local hrp = char and char:FindFirstChild("HumanoidRootPart")
         if not hrp then continue end
-        
         local target = Vector3.new(-10371, 100, -3519)
-        if (hrp.Position - target).Magnitude > 20 then 
-            hrp.CFrame = CFrame.new(target)
-            task.wait(1)
-        end
-        
+        if (hrp.Position - target).Magnitude > 50 then hrp.CFrame = CFrame.new(target); task.wait(1.5) end
         local talkingGui = LocalPlayer.PlayerGui:FindFirstChild("Talking")
         if not talkingGui then
             local npc = Workspace:FindFirstChild("NPC") and Workspace.NPC:FindFirstChild("Shadow 1")
@@ -975,22 +1017,26 @@ task.spawn(function()
         else
             local itemBtn = SmartFindButton(talkingGui, _G_V10.ShadowItem)
             local amtBtn = SmartFindButton(talkingGui, _G_V10.ShadowAmount)
-            if itemBtn then PhysicalClick(itemBtn) 
-            elseif amtBtn then PhysicalClick(amtBtn) 
-            else TapSafeEdge() end
+            if itemBtn then PhysicalClick(itemBtn) elseif amtBtn then PhysicalClick(amtBtn) end
         end
     end
 end)
 
--- ==========================================
--- ENGINE: PATROL RAID (C1-C2-C3)
--- ==========================================
 local raidPatrolState = "Wait_C1"
 local raidPatrolTimer = os.clock()
 local C1 = CFrame.new(-77, 119, -258)
 local C2 = CFrame.new(-101, 114, 382)
 local C3 = CFrame.new(-124, 114, 404)
 local lastRaidTeleport = os.clock()
+
+local function IsRaidClear()
+    local monsterFolder = Workspace:FindFirstChild("Monster")
+    if not monsterFolder then return true end
+    for _, v in pairs(monsterFolder:GetChildren()) do
+        if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then return false end
+    end
+    return true
+end
 
 task.spawn(function()
     while task.wait(0.5) do
@@ -1004,6 +1050,7 @@ task.spawn(function()
         if not char or not hrp or char.Humanoid.Health <= 0 then continue end
         
         local distToRaidMap = (hrp.Position - Vector3.new(-123, 114, 407)).Magnitude
+        
         if distToRaidMap < 3000 then 
             if _G_V10.AutoStartRaid then pcall(function() ReplicatedStorage.Assets.Remote.RemoteEvent.Starto:FireServer() end) end
             if _G_V10.AutoBuyRaid then
@@ -1019,7 +1066,7 @@ task.spawn(function()
                     end
                 else
                     local buyBtn = SmartFindButton(talkingGui, "Buy with Beli")
-                    if buyBtn then PhysicalClick(buyBtn) else TapSafeEdge() end
+                    if buyBtn then PhysicalClick(buyBtn) end
                 end
             end
         else
@@ -1034,7 +1081,7 @@ task.spawn(function()
                     end
                 else
                     local buyBtn = SmartFindButton(talkingGui, "Buy with Beli")
-                    if buyBtn then PhysicalClick(buyBtn) else TapSafeEdge() end
+                    if buyBtn then PhysicalClick(buyBtn) end
                 end
             end
             if _G_V10.AutoTeleEntrance and os.clock() - lastRaidTeleport >= _G_V10.RaidEntranceDelay then
@@ -1134,6 +1181,7 @@ task.spawn(function()
             if hum then
                 if _G_V10.EnableSpeed then hum.WalkSpeed = _G_V10.WalkSpeed end
                 if _G_V10.EnableJump then hum.UseJumpPower = true; hum.JumpPower = _G_V10.JumpPower end
+                
                 if _G_V10.AutoJump then 
                     hum.Jump = true
                     if hum.FloorMaterial ~= Enum.Material.Air then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
@@ -1184,8 +1232,8 @@ table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
         local hrp = char.HumanoidRootPart; local hum = char.Humanoid
-        local isNormalFarming = _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm or _G_V10.AutoFarmFree or _G_V10.FarmAll or _G_V10.AutoFarmRaid or _G_V10.AutoCoordMob or _G_V10.AutoCoordBoss or _G_V10.AutoFarmRaidHard
         
+        local isNormalFarming = _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm or _G_V10.AutoFarmFree or _G_V10.FarmAll or _G_V10.AutoFarmRaid or _G_V10.AutoCoordMob or _G_V10.AutoWorldBoss or _G_V10.AutoNormalBoss or _G_V10.AutoFarmRaidHard
         if isNormalFarming and not _G_V10.FreeFly and not _G_V10.AutoPatrolIsland then
             EnableAntiFall(hrp)
             if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall.Velocity = Vector3.new(0, 0, 0) end
@@ -1236,15 +1284,17 @@ local function RepeatQuestRemote()
 end
 
 -- ==========================================
--- MAIN COMBAT ENGINE (AI TỌA ĐỘ VÀ BOSS CHUẨN)
+-- MAIN COMBAT ENGINE (3 TẦNG AI MỚI NHẤT & MƯỢT NHẤT)
 -- ==========================================
 local currentSwapState = 1
 local lastSwapTime = os.clock()
 local lastSkillSpamTime = os.clock()
 
-local currentCheckBossIndex = 1
-local lastBossCheckTime = os.clock()
-_G.BossWaitStarted = nil
+_G.CheckWorldBossIdx = 1
+_G.WorldBossWaitStarted = nil
+
+_G.CheckNormalBossIdx = 1
+_G.NormalBossWaitStarted = nil
 
 local lastRaidDodge = os.clock()
 local isRaidDodging = false
@@ -1268,12 +1318,17 @@ task.spawn(function()
         local HRP = char:FindFirstChild("HumanoidRootPart")
         local Hum = char:FindFirstChild("Humanoid")
         
+        -- FIX TRIX KẸT 0s: Reset toàn bộ Timer nếu nhân vật Chết
         if not HRP or not Hum or Hum.Health <= 0 then 
             if HRP and HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall:Destroy() end
+            lastWorldBossCheckTime = os.clock()
+            lastNormalBossCheckTime = os.clock()
+            _G.WorldBossWaitStarted = nil
+            _G.NormalBossWaitStarted = nil
             task.wait(1); continue 
         end
 
-        local isNormalFarming = _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm or _G_V10.AutoFarmFree or _G_V10.FarmAll or _G_V10.AutoFarmRaid or _G_V10.AutoCoordBoss or _G_V10.AutoCoordMob or _G_V10.AutoFarmRaidHard
+        local isNormalFarming = _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm or _G_V10.AutoFarmFree or _G_V10.FarmAll or _G_V10.AutoFarmRaid or _G_V10.AutoCoordBoss or _G_V10.AutoNormalBoss or _G_V10.AutoCoordMob or _G_V10.AutoFarmRaidHard
         local isFarmingAction = isNormalFarming or (_G_V10.AutoSea and _G_V10.IsFightingSea)
         
         if isFarmingAction and not _G_V10.FreeFly then
@@ -1282,11 +1337,13 @@ task.spawn(function()
             local shortestDist = math.huge
             local targetWaitPos = nil
             
-            -- ================= LỌC TÌM MỤC TIÊU =================
+            -- ================= LỌC TÌM MỤC TIÊU 3 TẦNG AI =================
             if not (_G_V10.AutoSea and _G_V10.IsFightingSea) then
-                if _G_V10.AutoCoordBoss and #_G_V10.SelectedCoordBosses > 0 then
+                
+                -- TẦNG 1: WORLD BOSS TỌA ĐỘ
+                if _G_V10.AutoWorldBoss and #_G_V10.SelectedWorldBosses > 0 then
                     local foundBoss = nil
-                    for _, bossName in ipairs(_G_V10.SelectedCoordBosses) do
+                    for _, bossName in ipairs(_G_V10.SelectedWorldBosses) do
                         for _, v in pairs(workspace:GetDescendants()) do
                             if isValidMobByDatabase(v) and v.Name == bossName then foundBoss = v; break end
                         end
@@ -1295,38 +1352,90 @@ task.spawn(function()
                     
                     if foundBoss then
                         targetMobInstance = foundBoss
-                        LblCoordInfo.Text = "Tọa độ: Đang đấm " .. foundBoss.Name
-                        lastBossCheckTime = os.clock() 
-                        _G.BossWaitStarted = nil
+                        LblCoordInfo.Text = "World Boss: Đang chém " .. foundBoss.Name
+                        lastWorldBossCheckTime = os.clock() 
+                        _G.WorldBossWaitStarted = nil
                     else
-                        if os.clock() - lastBossCheckTime >= tonumber(_G_V10.BossCheckDelay) then
-                            if currentCheckBossIndex > #_G_V10.SelectedCoordBosses then currentCheckBossIndex = 1 end
-                            local bossToCheck = _G_V10.SelectedCoordBosses[currentCheckBossIndex]
-                            local dbInfo = CoordDB.Bosses[bossToCheck]
+                        local delay = math.max(0.5, tonumber(_G_V10.BossCheckDelay) or 5)
+                        if os.clock() - lastWorldBossCheckTime >= delay then
+                            if _G.CheckWorldBossIdx > #_G_V10.SelectedWorldBosses then _G.CheckWorldBossIdx = 1 end
+                            local bossToCheck = _G_V10.SelectedWorldBosses[_G.CheckWorldBossIdx]
+                            local dbInfo = CoordDB.WorldBosses[bossToCheck]
                             if dbInfo then
                                 targetWaitPos = dbInfo.Pos
-                                LblCoordInfo.Text = "Tọa độ: Bay Check Boss " .. bossToCheck
+                                LblCoordInfo.Text = "World Boss: Bay Check " .. bossToCheck
                                 if (HRP.Position - dbInfo.Pos).Magnitude <= 150 then
-                                    if not _G.BossWaitStarted then _G.BossWaitStarted = os.clock()
-                                    elseif os.clock() - _G.BossWaitStarted >= 2 then
-                                        currentCheckBossIndex = currentCheckBossIndex + 1
-                                        lastBossCheckTime = os.clock()
-                                        _G.BossWaitStarted = nil
+                                    if not _G.WorldBossWaitStarted then _G.WorldBossWaitStarted = os.clock()
+                                    elseif os.clock() - _G.WorldBossWaitStarted >= 1.5 then
+                                        _G.CheckWorldBossIdx = _G.CheckWorldBossIdx + 1
+                                        lastWorldBossCheckTime = os.clock()
+                                        _G.WorldBossWaitStarted = nil
                                     end
                                 end
                             end
                         else
-                            LblCoordInfo.Text = string.format("Tọa độ: Đợi %d s để check vòng lặp Boss...", math.floor(tonumber(_G_V10.BossCheckDelay) - (os.clock() - lastBossCheckTime)))
+                            local timeLeft = math.max(0, math.floor(delay - (os.clock() - lastWorldBossCheckTime)))
+                            LblCoordInfo.Text = string.format("World Boss: Đợi %d s để check...", timeLeft)
+                        end
+                    end
+                end
+
+                -- TẦNG 2: NORMAL BOSS TỌA ĐỘ (Chỉ chạy khi ko có mục tiêu Tầng 1)
+                if not targetMobInstance and not targetWaitPos and _G_V10.AutoNormalBoss and #_G_V10.SelectedNormalBosses > 0 then
+                    local foundBoss = nil
+                    for _, bossName in ipairs(_G_V10.SelectedNormalBosses) do
+                        for _, v in pairs(workspace:GetDescendants()) do
+                            if isValidMobByDatabase(v) and v.Name == bossName then foundBoss = v; break end
+                        end
+                        if foundBoss then break end
+                    end
+                    
+                    if foundBoss then
+                        targetMobInstance = foundBoss
+                        LblCoordInfo.Text = "Normal Boss: Đang chém " .. foundBoss.Name
+                        lastNormalBossCheckTime = os.clock() 
+                        _G.NormalBossWaitStarted = nil
+                    else
+                        local delay = math.max(0.5, tonumber(_G_V10.BossCheckDelay) or 5)
+                        if os.clock() - lastNormalBossCheckTime >= delay then
+                            if _G.CheckNormalBossIdx > #_G_V10.SelectedNormalBosses then _G.CheckNormalBossIdx = 1 end
+                            local bossToCheck = _G_V10.SelectedNormalBosses[_G.CheckNormalBossIdx]
+                            local dbInfo = CoordDB.NormalBosses[bossToCheck]
+                            if dbInfo then
+                                targetWaitPos = dbInfo.Pos
+                                LblCoordInfo.Text = "Normal Boss: Bay Check " .. bossToCheck
+                                if (HRP.Position - dbInfo.Pos).Magnitude <= 150 then
+                                    if not _G.NormalBossWaitStarted then _G.NormalBossWaitStarted = os.clock()
+                                    elseif os.clock() - _G.NormalBossWaitStarted >= 1.5 then
+                                        _G.CheckNormalBossIdx = _G.CheckNormalBossIdx + 1
+                                        lastNormalBossCheckTime = os.clock()
+                                        _G.NormalBossWaitStarted = nil
+                                    end
+                                end
+                            end
+                        else
+                            -- Ẩn thông báo đi nếu đang hiện của WorldBoss
+                            if not _G_V10.AutoWorldBoss or #_G_V10.SelectedWorldBosses == 0 then
+                                local timeLeft = math.max(0, math.floor(delay - (os.clock() - lastNormalBossCheckTime)))
+                                LblCoordInfo.Text = string.format("Normal Boss: Đợi %d s để check...", timeLeft)
+                            end
                         end
                     end
                 end
                 
+                -- TẦNG 3: QUÁI TỌA ĐỘ MAX LV (Chỉ chạy khi ko có Tầng 1, Tầng 2)
                 if not targetMobInstance and not targetWaitPos and _G_V10.AutoCoordMob and #_G_V10.SelectedCoordMobs > 0 then
                     local bestMob = nil; local maxLvlFound = -1
                     for _, v in pairs(workspace:GetDescendants()) do
-                        if isValidMobByDatabase(v) and table.find(_G_V10.SelectedCoordMobs, v.Name) then
-                            local dbInfo = CoordDB.Mobs[v.Name]; local lvl = dbInfo and dbInfo.Level or 0
-                            if lvl > maxLvlFound then maxLvlFound = lvl; bestMob = v end
+                        if isValidMobByDatabase(v) then
+                            -- Parse name from UI Format "[Island] MobName [Lv.X]" to real name
+                            for _, selMobStr in ipairs(_G_V10.SelectedCoordMobs) do
+                                local realName = selMobStr:match("%[.-%]%s+(.+)") or selMobStr
+                                if v.Name == realName then
+                                    local dbInfo = CoordDB.Mobs[realName]; local lvl = dbInfo and dbInfo.Level or 0
+                                    if lvl > maxLvlFound then maxLvlFound = lvl; bestMob = v end
+                                end
+                            end
                         end
                     end
                     if bestMob then 
@@ -1334,15 +1443,17 @@ task.spawn(function()
                         LblCoordInfo.Text = "Tọa độ: Đang dọn " .. bestMob.Name .. " (Lv " .. maxLvlFound .. ")"
                     else
                         local waitLvl = -1
-                        for _, mName in ipairs(_G_V10.SelectedCoordMobs) do
-                            local dbInfo = CoordDB.Mobs[mName]
+                        for _, selMobStr in ipairs(_G_V10.SelectedCoordMobs) do
+                            local realName = selMobStr:match("%[.-%]%s+(.+)") or selMobStr
+                            local dbInfo = CoordDB.Mobs[realName]
                             if dbInfo and dbInfo.Level > waitLvl then waitLvl = dbInfo.Level; targetWaitPos = dbInfo.Pos end
                         end
                         if waitLvl ~= -1 then LblCoordInfo.Text = "Tọa độ: Chờ Mobs (Lv " .. waitLvl .. ") ra..." end
                     end
                 end
 
-                if not _G_V10.AutoCoordBoss and not _G_V10.AutoCoordMob then
+                -- FARM TÙY CHỌN / CÀN QUÉT MAP / LEVEL / RAID
+                if not _G_V10.AutoWorldBoss and not _G_V10.AutoNormalBoss and not _G_V10.AutoCoordMob then
                     if _G_V10.AutoFarmLevel then
                         local mob, qName = GetMobForCurrentLevel(); _G_V10.CurrentTargetMob = {mob}; LblInfo.Text = "Farm Level: " .. qName
                     elseif _G_V10.ManualQuestFarm and _G_V10.SelectedManualQuest then
@@ -1439,7 +1550,7 @@ task.spawn(function()
                         HRP.CFrame = CFrame.new(targetMobInstance.HumanoidRootPart.Position) * dodgeOffset
                     else
                         local mobPos = targetMobInstance.HumanoidRootPart.Position
-                        -- FIX 100% NẰM NGANG SONG SONG MẶT ĐẤT
+                        -- NẰM NGANG SONG SONG MẶT ĐẤT
                         if _G_V10.AttackPosition == "Trên Đầu" then 
                             HRP.CFrame = CFrame.new(mobPos + Vector3.new(0, _G_V10.AttackDistance, 0), mobPos) * CFrame.Angles(math.rad(-90), 0, 0)
                         elseif _G_V10.AttackPosition == "Dưới Chân" then 
