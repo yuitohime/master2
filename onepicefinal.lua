@@ -1,6 +1,6 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V10 (SMART DROPDOWN, MULTI-NOTE SCANNER, FIX NPC TELEPORT)
--- (QUÁI CHIA ĐẢO MÀU CẦU VỒNG, TÁCH NOTE COPY NHỎ GỌN CHO MOBILE)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V11 (SMART DROPDOWN, FLAT HORIZONTAL ATTACK, CYCLE PRIORITY)
+-- (FIX LỖI NHẤP NHỔM ĐỨNG DẬY, THÊM KIỂU ĐÁNH XOAY TRÒN, ƯU TIÊN QUÁI CHUẨN XÁC)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -186,6 +186,7 @@ local ListNPCs = {}
 for name, data in pairs(CoordDB.NPCs) do table.insert(ListNPCs, string.format("[%s] %s", data.Island, name)) end
 table.sort(ListNPCs)
 
+-- UI QUÁI CHIA ĐẢO CÓ CẦU VỒNG (V11)
 local IslandMobs = {}
 for name, data in pairs(CoordDB.Mobs) do
     if not IslandMobs[data.Island] then IslandMobs[data.Island] = {} end
@@ -208,7 +209,7 @@ end
 
 local ListMobs = {}
 for _, isl in ipairs(sortedIslands) do
-    table.insert(ListMobs, {Value = "HEADER_" .. isl, Display = string.format("<font color='#00ffff'><b>--- 🏝️ ĐẢO: %s ---</b></font>", string.upper(isl))})
+    table.insert(ListMobs, {Value = "HEADER_" .. isl, Display = string.format("<font color='#55ff55'><b>=== 🏝️ ĐẢO: %s ===</b></font>", string.upper(isl))})
     local mobs = IslandMobs[isl]
     table.sort(mobs, function(a, b) return a.Level > b.Level end)
     for i, m in ipairs(mobs) do
@@ -259,70 +260,8 @@ local ConfigFolder = "YuiHub_Configs"
 local MasterFile = ConfigFolder .. "/MasterSettings.json"
 if isfolder and not isfolder(ConfigFolder) then makefolder(ConfigFolder) end
 
-local ScanLogFrame
-local function RenderScannerLog()
-    if not ScanLogFrame then return end
-    for _, v in pairs(ScanLogFrame:GetChildren()) do if v:IsA("Frame") then v:Destroy() end end
-    
-    local function AddChunk(title, content)
-        if content == "" then return end
-        local chunkText = string.format("=== %s ===\n%s", title, content)
-        local chunkFrame = Instance.new("Frame", ScanLogFrame); chunkFrame.Size = UDim2.new(1, -10, 0, 100); chunkFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Instance.new("UICorner", chunkFrame).CornerRadius = UDim.new(0, 6)
-        local txt = Instance.new("TextBox", chunkFrame); txt.Size = UDim2.new(1, -50, 1, -10); txt.Position = UDim2.new(0, 5, 0, 5); txt.BackgroundTransparency = 1; txt.Text = chunkText; txt.TextColor3 = Color3.fromRGB(220, 220, 220); txt.Font = Enum.Font.Code; txt.TextSize = 10; txt.TextXAlignment = Enum.TextXAlignment.Left; txt.TextYAlignment = Enum.TextYAlignment.Top; txt.ClearTextOnFocus = false; txt.TextEditable = false; txt.TextWrapped = true
-        local copyBtn = Instance.new("TextButton", chunkFrame); copyBtn.Size = UDim2.new(0, 40, 0, 40); copyBtn.Position = UDim2.new(1, -45, 0.5, -20); copyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255); copyBtn.Text = "COPY"; copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255); copyBtn.Font = Enum.Font.GothamBold; Instance.new("UICorner", copyBtn).CornerRadius = UDim.new(0, 6)
-        copyBtn.MouseButton1Click:Connect(function() if setclipboard then setclipboard(chunkText); copyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100); copyBtn.Text = "OK"; task.wait(1); copyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255); copyBtn.Text = "COPY" end end)
-        txt:GetPropertyChangedSignal("TextBounds"):Connect(function() chunkFrame.Size = UDim2.new(1, -10, 0, math.max(60, txt.TextBounds.Y + 20)) end)
-    end
-    
-    local bStr = ""
-    if _G_V10.ScannerData.Bosses then for k, v in pairs(_G_V10.ScannerData.Bosses) do bStr = bStr .. string.format("[%s] | %s (HP: %s) | %s\n", v.Island, k, v.Level, v.Pos) end end
-    AddChunk("👹 DANH SÁCH BOSS", bStr)
-    
-    local mLines = {}
-    if _G_V10.ScannerData.Mobs then for k, v in pairs(_G_V10.ScannerData.Mobs) do table.insert(mLines, string.format("[%s] | %s | %s", v.Island, k, v.Pos)) end end
-    local chunkSize = 15
-    for i = 1, #mLines, chunkSize do
-        local chunkStr = ""
-        for j = i, math.min(i + chunkSize - 1, #mLines) do chunkStr = chunkStr .. mLines[j] .. "\n" end
-        AddChunk("👾 QUÁI (PHẦN " .. math.ceil(i/chunkSize) .. ")", chunkStr)
-    end
-    
-    local nStr = ""
-    if _G_V10.ScannerData.NPCs then for k, v in pairs(_G_V10.ScannerData.NPCs) do nStr = nStr .. string.format("[%s] | %s | %s\n", v.Island, k, v.Pos) end end
-    AddChunk("🛒 DANH SÁCH NPC", nStr)
-end
-
-local function SaveConfig(name)
-    if not writefile then return end
-    name = name or "DefaultConfig"; _G_V10.SelectedConfig = name
-    writefile(ConfigFolder.."/"..name..".json", HttpService:JSONEncode(_G_V10))
-    writefile(MasterFile, HttpService:JSONEncode({AutoLoadConfig = _G_V10.AutoLoadConfig, LastConfig = name}))
-end
-
-local function LoadConfig(name)
-    if not readfile or not isfile(ConfigFolder.."/"..name..".json") then return end
-    local s, decoded = pcall(function() return HttpService:JSONDecode(readfile(ConfigFolder.."/"..name..".json")) end)
-    if s and type(decoded) == "table" then
-        for k, v in pairs(decoded) do _G_V10[k] = v end
-        if not _G_V10.ScannerData then _G_V10.ScannerData = {Mobs = {}, Bosses = {}, NPCs = {}} end
-        for _, updater in pairs(_G_UI_Updaters) do pcall(updater) end
-        RenderScannerLog()
-    end
-end
-
-if readfile and isfile(MasterFile) then
-    local s, masterData = pcall(function() return HttpService:JSONDecode(readfile(MasterFile)) end)
-    if s and type(masterData) == "table" and masterData.AutoLoadConfig and masterData.LastConfig then _G_V10.AutoLoadConfig = true; LoadConfig(masterData.LastConfig) end
-end
-local function AutoSaveTrigger() if _G_V10.AutoSaveConfig then SaveConfig(_G_V10.SelectedConfig) end end
-local function GetConfigsList()
-    local list = {}
-    if listfiles and isfolder(ConfigFolder) then for _, file in pairs(listfiles(ConfigFolder)) do local name = file:match("([^/%\\]+)%.json$") or file; if name ~= "MasterSettings" then table.insert(list, name) end end end 
-    return list
-end
-
 -- ==========================================
--- GIAO DIỆN CHÍNH (YUI HUB)
+-- GIAO DIỆN CHÍNH (YUI HUB V11)
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui", SafeParent)
 ScreenGui.Name = "YuiHub_UI"; ScreenGui.ResetOnSpawn = false
@@ -438,7 +377,7 @@ MinBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- UI COMPONENTS (BOX)
+-- HÀM TẠO UI COMPONENTS (DẠNG BOX)
 -- ==========================================
 local Pages = {}
 local function CreateTab(name)
@@ -500,37 +439,33 @@ local function CreateDropdown(parent, title, itemsList, globalVar, multiSelect, 
     local Frame = Instance.new("Frame", parent)
     Frame.Size = UDim2.new(1, 0, 0, 35); Frame.BackgroundColor3 = Color3.fromRGB(35, 35, 40); Frame.ClipsDescendants = true; Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 8)
     local MainBtn = Instance.new("TextButton", Frame)
-    MainBtn.Size = UDim2.new(1, 0, 0, 35); MainBtn.BackgroundTransparency = 1; MainBtn.Text = "  " .. title .. " ▼"; MainBtn.TextColor3 = Color3.fromRGB(255, 255, 255); MainBtn.Font = Enum.Font.Gotham; MainBtn.TextSize = 12; MainBtn.TextXAlignment = Enum.TextXAlignment.Left
+    MainBtn.Size = UDim2.new(1, 0, 0, 35); MainBtn.BackgroundTransparency = 1; MainBtn.Text = "  " .. title .. " ▼"; MainBtn.TextColor3 = Color3.fromRGB(255, 255, 255); MainBtn.Font = Enum.Font.Gotham; MainBtn.TextSize = 12; MainBtn.TextXAlignment = Enum.TextXAlignment.Left; MainBtn.RichText = true
     local Drop = Instance.new("ScrollingFrame", Frame)
-    Drop.Size = UDim2.new(1, 0, 0, 115); Drop.Position = UDim2.new(0, 0, 0, 35); Drop.BackgroundTransparency = 1; Drop.ScrollBarThickness = 2; Instance.new("UIListLayout", Drop)
+    Drop.Size = UDim2.new(1, 0, 0, 150); Drop.Position = UDim2.new(0, 0, 0, 35); Drop.BackgroundTransparency = 1; Drop.ScrollBarThickness = 2; Instance.new("UIListLayout", Drop)
 
     local function UpdateVisuals()
         if multiSelect then
             local val = _G_V10[globalVar] or {}
             MainBtn.Text = "  " .. title .. ": [" .. #val .. " Chọn] ▼"
             for _, btn in pairs(Drop:GetChildren()) do
-                if btn:IsA("TextButton") and not btn.Name:match("^HEADER_") then 
+                if btn:IsA("TextButton") and not string.find(btn.Name, "^HEADER_") then 
                     local idx = table.find(val, btn.Name)
-                    if idx then 
-                        btn.BackgroundColor3 = Color3.fromRGB(255, 100, 200)
-                        -- Text can't be easily overwritten if RichText is complex, so we just light it up
-                    else btn.BackgroundColor3 = Color3.fromRGB(45, 45, 50) end
+                    if idx then btn.BackgroundColor3 = Color3.fromRGB(255, 100, 200) else btn.BackgroundColor3 = Color3.fromRGB(45, 45, 50) end
                 end
             end
         else
             local val = _G_V10[globalVar]
             MainBtn.Text = "  " .. title .. ": " .. (val and tostring(val) or "Chưa chọn") .. " ▼"
             for _, btn in pairs(Drop:GetChildren()) do
-                if btn:IsA("TextButton") and not btn.Name:match("^HEADER_") then 
-                    if val == btn.Name then btn.BackgroundColor3 = Color3.fromRGB(255, 100, 200)
-                    else btn.BackgroundColor3 = Color3.fromRGB(45, 45, 50) end
+                if btn:IsA("TextButton") and not string.find(btn.Name, "^HEADER_") then 
+                    if val == btn.Name then btn.BackgroundColor3 = Color3.fromRGB(255, 100, 200) else btn.BackgroundColor3 = Color3.fromRGB(45, 45, 50) end
                 end
             end
         end
     end
     _G_UI_Updaters[globalVar] = UpdateVisuals
 
-    MainBtn.MouseButton1Click:Connect(function() Frame.Size = Frame.Size.Y.Offset == 35 and UDim2.new(1, 0, 0, 150) or UDim2.new(1, 0, 0, 35) end)
+    MainBtn.MouseButton1Click:Connect(function() Frame.Size = Frame.Size.Y.Offset == 35 and UDim2.new(1, 0, 0, 185) or UDim2.new(1, 0, 0, 35) end)
 
     local function Refresh(newList)
         if newList then itemsList = newList end
@@ -547,8 +482,7 @@ local function CreateDropdown(parent, title, itemsList, globalVar, multiSelect, 
             else
                 Btn.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
                 Btn.MouseButton1Click:Connect(function()
-                    if multiSelect then 
-                        _G_V10[globalVar] = _G_V10[globalVar] or {}; local idx = table.find(_G_V10[globalVar], itemVal); if idx then table.remove(_G_V10[globalVar], idx) else table.insert(_G_V10[globalVar], itemVal) end
+                    if multiSelect then _G_V10[globalVar] = _G_V10[globalVar] or {}; local idx = table.find(_G_V10[globalVar], itemVal); if idx then table.remove(_G_V10[globalVar], idx) else table.insert(_G_V10[globalVar], itemVal) end
                     else _G_V10[globalVar] = itemVal; Frame.Size = UDim2.new(1, 0, 0, 35) end
                     UpdateVisuals(); AutoSaveTrigger()
                 end)
@@ -562,7 +496,8 @@ end
 
 local function CreateButton(parent, text, callback, color)
     local Btn = Instance.new("TextButton", parent)
-    Btn.Size = UDim2.new(1, 0, 0, 35); Btn.BackgroundColor3 = color or Color3.fromRGB(255, 100, 200); Btn.TextColor3 = Color3.fromRGB(255, 255, 255); Btn.Text = text; Btn.Font = Enum.Font.GothamBold; Btn.TextSize = 12; Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
+    Btn.Size = UDim2.new(1, 0, 0, 35); Btn.BackgroundColor3 = color or Color3.fromRGB(255, 100, 200)
+    Btn.TextColor3 = Color3.fromRGB(255, 255, 255); Btn.Text = text; Btn.Font = Enum.Font.GothamBold; Btn.TextSize = 12; Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
     Btn.MouseButton1Click:Connect(callback)
 end
 
@@ -599,8 +534,7 @@ local function CreateSkillGrid(parent, labelText, varPrefix)
     local Lbl = Instance.new("TextLabel", Container)
     Lbl.Size = UDim2.new(1, -10, 0, 20); Lbl.Position = UDim2.new(0, 10, 0, 5); Lbl.BackgroundTransparency = 1; Lbl.Text = labelText; Lbl.TextColor3 = Color3.fromRGB(255, 255, 100); Lbl.Font = Enum.Font.GothamBold; Lbl.TextSize = 11; Lbl.TextXAlignment = Enum.TextXAlignment.Left
     local Grid = Instance.new("Frame", Container)
-    Grid.Size = UDim2.new(1, -10, 0, 25); Grid.Position = UDim2.new(0, 10, 0, 25); Grid.BackgroundTransparency = 1
-    local layout = Instance.new("UIListLayout", Grid); layout.FillDirection = Enum.FillDirection.Horizontal; layout.Padding = UDim.new(0, 5)
+    Grid.Size = UDim2.new(1, -10, 0, 25); Grid.Position = UDim2.new(0, 10, 0, 25); Grid.BackgroundTransparency = 1; local layout = Instance.new("UIListLayout", Grid); layout.FillDirection = Enum.FillDirection.Horizontal; layout.Padding = UDim.new(0, 5)
     local skills = {"Z", "X", "C", "V", "B", "F"}
     for _, key in ipairs(skills) do
         local Btn = Instance.new("TextButton", Grid)
@@ -621,7 +555,7 @@ local function CreateTextBox(parent, placeholder, callback)
 end
 
 -- ==========================================
--- XÂY DỰNG TABS 
+-- XÂY DỰNG TABS
 -- ==========================================
 local TabSettings = CreateTab("⚙️ Cài Đặt Chung & Skill")
 local TabMainFarm = CreateTab("⚔️ Main Farm (All in 1)")
@@ -646,7 +580,7 @@ local LeftCol = Instance.new("Frame", TwoColFrame); LeftCol.Size = UDim2.new(0.5
 local RightCol = Instance.new("Frame", TwoColFrame); RightCol.Size = UDim2.new(0.5, -5, 1, 0); RightCol.BackgroundTransparency = 1; local RightLayout = Instance.new("UIListLayout", RightCol); RightLayout.Padding = UDim.new(0, 8)
 
 local SecCombo = CreateSection(LeftCol, "KIỂU ĐÁNH & CHUNG", Color3.fromRGB(0, 200, 255))
-CreateDropdown(SecCombo, "Kiểu Đánh", {"Trên Đầu", "Đằng Sau", "Dưới Chân"}, "AttackPosition", false)
+CreateDropdown(SecCombo, "Kiểu Đánh", {"Trên Đầu", "Đằng Sau", "Dưới Chân", "Xoay Tròn"}, "AttackPosition", false)
 CreateSlider(SecCombo, "Khoảng Cách Đánh", 5, 40, "AttackDistance")
 CreateSlider(SecCombo, "Tốc Độ Bay Chung", 100, 500, "FlySpeed")
 CreateToggleSwitch(SecCombo, "Bật Tự Động Đánh (Click)", "AutoClick")
@@ -695,7 +629,7 @@ CreateToggleSwitch(SecFarmCoord, "Bật Auto Săn Boss Thế Giới", "AutoWorld
 CreateDropdown(SecFarmCoord, "ƯU TIÊN 2: Boss Thường", ListNormalBoss, "SelectedNormalBosses", true, true)
 CreateToggleSwitch(SecFarmCoord, "Bật Auto Săn Boss Thường", "AutoNormalBoss")
 CreateSlider(SecFarmCoord, "Delay Lặp Lại Check Boss (Min 0.5s)", 0.5, 100, "BossCheckDelay")
-CreateDropdown(SecFarmCoord, "ƯU TIÊN 3: Quái (Tự tìm Max Lv)", ListMobs, "SelectedCoordMobs", true, false)
+CreateDropdown(SecFarmCoord, "ƯU TIÊN 3: Quái (Ưu tiên theo thứ tự chọn)", ListMobs, "SelectedCoordMobs", true, true)
 CreateToggleSwitch(SecFarmCoord, "Bật Auto Săn Quái Tọa Độ", "AutoCoordMob")
 
 local SecFarmLv = CreateSection(TabMainFarm, "FARM LEVEL CHUẨN (ƯU TIÊN 4)", Color3.fromRGB(50, 200, 255))
@@ -756,7 +690,7 @@ CreateToggleSwitch(TabSeaEvent, "Săn Sea Monster (Bay Vòng Tròn)", "HuntSeaMo
 CreateToggleSwitch(TabSeaEvent, "Săn Thuyền Ma (The Starving Ghost)", "HuntGhost")
 CreateToggleSwitch(TabSeaEvent, "Tự Động Ngồi Lái Thuyền", "AutoSitBoat")
 
--- --- TAB: ĐẢO & BAY & NPC (FIX TELE NPC) ---
+-- --- TAB: ĐẢO & BAY & NPC ---
 local SecIslandPatrol = CreateSection(TabIsland, "TUẦN TRA ĐẢO (ISLAND PATROL)", Color3.fromRGB(0, 255, 200))
 local DropPatrolIslands = CreateDropdown(SecIslandPatrol, "Chọn Các Đảo Tuần Tra", {}, "SelectedPatrolIslands", true, true)
 CreateToggleSwitch(SecIslandPatrol, "Bật Auto Tuần Tra Đảo", "AutoPatrolIsland")
@@ -765,7 +699,7 @@ CreateSlider(SecIslandPatrol, "Bán Kính Vòng Lượn Quanh Đảo", 50, 500, 
 CreateSlider(SecIslandPatrol, "Tốc Độ Lượn Vòng", 1, 20, "PatrolIslandSpeed")
 CreateSlider(SecIslandPatrol, "Độ Cao Lượn (Y Offset) (0=Đất)", 0, 500, "PatrolIslandHeight")
 
-local SecIslandSelect = CreateSection(TabIsland, "CHỌN & QUÉT ĐẢO", Color3.fromRGB(100, 255, 150))
+local SecIslandSelect = CreateSection(TabIsland, "CHỌN & QUÉT ĐẢO (TELEPORT)", Color3.fromRGB(100, 255, 150))
 local DropIslands = CreateDropdown(SecIslandSelect, "Chọn Đảo (Island)", {}, "SelectedIsland", false)
 CreateButton(SecIslandSelect, "🏝️ Quét Danh Sách Đảo Mới", function()
     local islands = {}
@@ -788,7 +722,7 @@ local function InstantTeleport(targetCFrame)
     if HRP then HRP.CFrame = targetCFrame end
 end
 
-CreateButton(TabIsland, "🚀 DỊCH CHUYỂN ĐẾN MỤC ĐÃ CHỌN TRONG TAB NÀY", function()
+CreateButton(TabIsland, "🚀 DỊCH CHUYỂN ĐẾN MỤC ĐÃ CHỌN BÊN TRÊN", function()
     if _G_V10.SelectedIsland then
         local isl = workspace:FindFirstChild("All") and workspace.All:FindFirstChild("Island") and workspace.All.Island:FindFirstChild(_G_V10.SelectedIsland)
         if isl then InstantTeleport(isl:GetPivot() + Vector3.new(0, 50, 0)) end
@@ -796,8 +730,7 @@ CreateButton(TabIsland, "🚀 DỊCH CHUYỂN ĐẾN MỤC ĐÃ CHỌN TRONG TAB
         local sp = workspace:FindFirstChild("SetSpawnPoints") and workspace.SetSpawnPoints:FindFirstChild(_G_V10.SelectedSpawnPoint)
         if sp then InstantTeleport(sp.CFrame + Vector3.new(0, 5, 0)) end
     elseif _G_V10.SelectedNPC then
-        -- Lọc ra đúng tên thật của NPC (Xóa phần [Island] đi)
-        local realNPCName = _G_V10.SelectedNPC:gsub("^%[.-%]%s+", "")
+        local realNPCName = _G_V10.SelectedNPC:match("%] (.*)$") or _G_V10.SelectedNPC:match("%] (.*)") or _G_V10.SelectedNPC:gsub("^%[.-%]%s+", "")
         local dbInfo = CoordDB.NPCs[realNPCName]
         if dbInfo then InstantTeleport(CFrame.new(dbInfo.Pos + Vector3.new(0, 5, 0))) end
     end
@@ -846,7 +779,7 @@ CreateButton(SecServerProt, "🚀 Boost FPS (Xóa Đồ Họa Mượt Game)", fu
 end)
 CreateToggleSwitch(SecServerProt, "Màn Hình Đen (Giảm Lag Treo Máy)", "EnableBlackScreen")
 
--- --- TAB: MÁY QUÉT MAP (FIX SPLIT CHUNKS) ---
+-- --- TAB: MÁY QUÉT MAP (PAGINATION - CHIA NHỎ ĐỂ COPY) ---
 local SecScanMap = CreateSection(TabScanner, "HỆ THỐNG QUÉT & LẤY TỌA ĐỘ", Color3.fromRGB(200, 100, 255))
 CreateToggleSwitch(SecScanMap, "Bật Máy Quét Map Thông Minh", "AutoScanMap")
 ScanLogFrame = Instance.new("ScrollingFrame", SecScanMap)
@@ -875,7 +808,7 @@ end, Color3.fromRGB(200, 50, 50))
 RenderScannerLog()
 
 -- ==========================================
--- ENGINE LÕI: NOCLIP & WATER WALK (ĐÃ FIX KHÔNG BAY LÊN TRỜI)
+-- ENGINE LÕI: NOCLIP & WATER WALK
 -- ==========================================
 local WaterPart = Instance.new("Part", workspace)
 WaterPart.Size = Vector3.new(15, 2, 15)
@@ -1069,15 +1002,6 @@ local C2 = CFrame.new(-101, 114, 382)
 local C3 = CFrame.new(-124, 114, 404)
 local lastRaidTeleport = os.clock()
 
-local function IsRaidClear()
-    local monsterFolder = Workspace:FindFirstChild("Monster")
-    if not monsterFolder then return true end
-    for _, v in pairs(monsterFolder:GetChildren()) do
-        if v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then return false end
-    end
-    return true
-end
-
 task.spawn(function()
     while task.wait(0.5) do
         if _G.YuiKillAllLoops then break end
@@ -1132,7 +1056,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- ENGINE: TUẦN TRA ĐẢO (ISLAND PATROL MỚI CÓ SLIDER Y)
+-- ENGINE: TUẦN TRA ĐẢO
 -- ==========================================
 local patrolIndex = 1
 local patrolArrivalTime = 0
@@ -1186,7 +1110,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- ENGINE: LÕI DI CHUYỂN, JUMP & ANTI-FALL V1 
+-- ENGINE: LÕI JUMP & ANTI-FALL CHỐNG NHẤP NHỔM
 -- ==========================================
 task.spawn(function()
     while task.wait(1) do
@@ -1221,7 +1145,6 @@ task.spawn(function()
             if hum then
                 if _G_V10.EnableSpeed then hum.WalkSpeed = _G_V10.WalkSpeed end
                 if _G_V10.EnableJump then hum.UseJumpPower = true; hum.JumpPower = _G_V10.JumpPower end
-                
                 if _G_V10.AutoJump then 
                     hum.Jump = true
                     if hum.FloorMaterial ~= Enum.Material.Air then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
@@ -1243,24 +1166,6 @@ table.insert(_G.YuiConnections, UIS.JumpRequest:Connect(function()
     end
 end))
 
-local flyKeys = {W = 0, A = 0, S = 0, D = 0, Up = 0, Down = 0}
-table.insert(_G.YuiConnections, UIS.InputBegan:Connect(function(k, gp)
-    if _G.YuiKillAllLoops then return end
-    if _G_V10.DashNoCD and k.KeyCode == Enum.KeyCode.Q then
-        local HRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if HRP then
-            local bv = Instance.new("BodyVelocity"); bv.MaxForce = Vector3.new(100000, 0, 100000); bv.Velocity = HRP.CFrame.lookVector * 150; bv.Parent = HRP
-            game.Debris:AddItem(bv, 0.2)
-        end
-    end
-    if gp then return end
-    if k.KeyCode == Enum.KeyCode.W then flyKeys.W = 1 elseif k.KeyCode == Enum.KeyCode.S then flyKeys.S = 1 elseif k.KeyCode == Enum.KeyCode.A then flyKeys.A = 1 elseif k.KeyCode == Enum.KeyCode.D then flyKeys.D = 1 elseif k.KeyCode == Enum.KeyCode.Space then flyKeys.Up = 1 elseif k.KeyCode == Enum.KeyCode.LeftControl then flyKeys.Down = 1 end
-end))
-table.insert(_G.YuiConnections, UIS.InputEnded:Connect(function(k, gp)
-    if _G.YuiKillAllLoops or gp then return end
-    if k.KeyCode == Enum.KeyCode.W then flyKeys.W = 0 elseif k.KeyCode == Enum.KeyCode.S then flyKeys.S = 0 elseif k.KeyCode == Enum.KeyCode.A then flyKeys.A = 0 elseif k.KeyCode == Enum.KeyCode.D then flyKeys.D = 0 elseif k.KeyCode == Enum.KeyCode.Space then flyKeys.Up = 0 elseif k.KeyCode == Enum.KeyCode.LeftControl then flyKeys.Down = 0 end
-end))
-
 local function EnableAntiFall(HRP)
     if not HRP:FindFirstChild("FarmAntiFall") then
         local AntiFall = Instance.new("BodyVelocity"); AntiFall.Name = "FarmAntiFall"; AntiFall.MaxForce = Vector3.new(9e9, 9e9, 9e9); AntiFall.Velocity = Vector3.new(0, 0, 0); AntiFall.Parent = HRP
@@ -1277,6 +1182,13 @@ table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
         if isNormalFarming and not _G_V10.FreeFly and not _G_V10.AutoPatrolIsland then
             EnableAntiFall(hrp)
             if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall.Velocity = Vector3.new(0, 0, 0) end
+            
+            -- FIX ĐÁNH TRÊN ĐẦU BỊ ĐỨNG DẬY
+            if _G_V10.AttackPosition == "Trên Đầu" or _G_V10.AttackPosition == "Dưới Chân" then
+                hum.PlatformStand = true
+            else
+                hum.PlatformStand = false
+            end
         end
 
         if isNormalFarming or (_G_V10.AutoSea and _G_V10.IsFightingSea) then
@@ -1284,7 +1196,7 @@ table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
         end
 
         if _G_V10.FreeFly then
-            hum:ChangeState(Enum.HumanoidStateType.Physics)
+            hum.PlatformStand = true
             if not hrp:FindFirstChild("V10_FreeFlyBV") then
                 local bv = Instance.new("BodyVelocity", hrp); bv.Name = "V10_FreeFlyBV"; bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
             end
@@ -1294,8 +1206,8 @@ table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
             if moveDir.Magnitude > 0 then bv.Velocity = cam.CFrame.LookVector * _G_V10.FreeFlySpeed else bv.Velocity = Vector3.new(0, 0, 0) end
             hrp.CFrame = CFrame.new(hrp.Position, hrp.Position + cam.CFrame.LookVector)
         else
+            if not isNormalFarming then hum.PlatformStand = false end
             if hrp:FindFirstChild("V10_FreeFlyBV") then hrp["V10_FreeFlyBV"]:Destroy() end
-            if hum:GetState() == Enum.HumanoidStateType.Physics then hum:ChangeState(Enum.HumanoidStateType.GettingUp) end
         end
     end
 end))
@@ -1315,20 +1227,17 @@ local function GetMobForCurrentLevel()
     return targetMob, targetQuest
 end
 
-local lastQuestTime = 0
-local function RepeatQuestRemote()
-    if os.clock() - lastQuestTime > 1 then
-        lastQuestTime = os.clock()
-        pcall(function() for _, v in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do if v:IsA("RemoteEvent") and v.Name == "Qu" then v:FireServer("Yes") end end end)
-    end
-end
-
 -- ==========================================
 -- MAIN COMBAT ENGINE (3 TẦNG AI TỐI THƯỢNG)
 -- ==========================================
 local currentSwapState = 1
 local lastSwapTime = os.clock()
 local lastSkillSpamTime = os.clock()
+
+_G.CheckWorldBossIdx = 1
+_G.WorldBossWaitStarted = nil
+_G.CheckNormalBossIdx = 1
+_G.NormalBossWaitStarted = nil
 
 local lastRaidDodge = os.clock()
 local isRaidDodging = false
@@ -1456,36 +1365,48 @@ task.spawn(function()
                     end
                 end
                 
-                -- TẦNG 3: QUÁI TỌA ĐỘ MAX LV 
+                -- TẦNG 3: QUÁI TỌA ĐỘ (ƯU TIÊN TUYỆT ĐỐI THEO THỨ TỰ LỰA CHỌN)
                 if not targetMobInstance and not targetWaitPos and _G_V10.AutoCoordMob and #_G_V10.SelectedCoordMobs > 0 then
-                    local bestMob = nil; local maxLvlFound = -1
-                    for _, v in pairs(workspace:GetDescendants()) do
-                        if isValidMobByDatabase(v) then
-                            for _, selMobStr in ipairs(_G_V10.SelectedCoordMobs) do
-                                -- Fix tách tên quái vì chuỗi bây giờ là "[Island] Tên Quái"
-                                local realName = selMobStr:match("%] (.*)$") or selMobStr:match("%] (.*)") or selMobStr:gsub("^%[.-%]%s+", "")
-                                if v.Name == realName then
-                                    local dbInfo = CoordDB.Mobs[realName]; local lvl = dbInfo and dbInfo.Level or 0
-                                    if lvl > maxLvlFound then maxLvlFound = lvl; bestMob = v end
-                                end
+                    local bestMob = nil
+                    local firstWaitPos = nil
+                    local bestMobName = ""
+                    
+                    -- Dò theo đúng thứ tự list bạn chọn
+                    for _, selMobStr in ipairs(_G_V10.SelectedCoordMobs) do
+                        local realName = selMobStr:match("%] (.*)$") or selMobStr:match("%] (.*)") or selMobStr:gsub("^%[.-%]%s+", "")
+                        local found = nil
+                        
+                        for _, v in pairs(workspace:GetDescendants()) do
+                            if isValidMobByDatabase(v) and v.Name == realName then
+                                found = v
+                                break
+                            end
+                        end
+                        
+                        if found then
+                            bestMob = found
+                            bestMobName = realName
+                            break -- Tìm thấy con ưu tiên là lấy luôn, bỏ qua các con phía sau
+                        else
+                            if not firstWaitPos then
+                                local dbInfo = CoordDB.Mobs[realName]
+                                if dbInfo then firstWaitPos = dbInfo.Pos end
                             end
                         end
                     end
+                    
                     if bestMob then 
                         targetMobInstance = bestMob
-                        LblCoordInfo.Text = "Tọa độ: Đang dọn " .. bestMob.Name .. " (Lv " .. maxLvlFound .. ")"
+                        LblCoordInfo.Text = "Tọa độ: Đang dọn " .. bestMobName
                     else
-                        local waitLvl = -1
-                        for _, selMobStr in ipairs(_G_V10.SelectedCoordMobs) do
-                            local realName = selMobStr:match("%] (.*)$") or selMobStr:match("%] (.*)") or selMobStr:gsub("^%[.-%]%s+", "")
-                            local dbInfo = CoordDB.Mobs[realName]
-                            if dbInfo and dbInfo.Level > waitLvl then waitLvl = dbInfo.Level; targetWaitPos = dbInfo.Pos end
+                        if firstWaitPos then 
+                            targetWaitPos = firstWaitPos 
+                            LblCoordInfo.Text = "Tọa độ: Chờ Quái ra..."
                         end
-                        if waitLvl ~= -1 then LblCoordInfo.Text = "Tọa độ: Chờ Mobs (Lv " .. waitLvl .. ") ra..." end
                     end
                 end
 
-                -- TẦNG 4: FARM TÙY CHỌN / CÀN QUÉT MAP / LEVEL / RAID
+                -- TẦNG 4: FARM TÙY CHỌN / CÀN QUÉT MAP / LEVEL
                 if not _G_V10.AutoWorldBoss and not _G_V10.AutoNormalBoss and not _G_V10.AutoCoordMob then
                     if _G_V10.AutoFarmLevel then
                         local mob, qName = GetMobForCurrentLevel(); _G_V10.CurrentTargetMob = {mob}; LblInfo.Text = "Farm Level: " .. qName
@@ -1583,11 +1504,18 @@ task.spawn(function()
                         HRP.CFrame = CFrame.new(targetMobInstance.HumanoidRootPart.Position) * dodgeOffset
                     else
                         local mobPos = targetMobInstance.HumanoidRootPart.Position
+                        
+                        -- FIX NẰM NGANG SONG SONG MẶT ĐẤT
                         if _G_V10.AttackPosition == "Trên Đầu" then 
-                            HRP.CFrame = CFrame.new(mobPos + Vector3.new(0, _G_V10.AttackDistance, 0), mobPos) * CFrame.Angles(math.rad(-90), 0, 0)
+                            HRP.CFrame = CFrame.new(mobPos + Vector3.new(0, _G_V10.AttackDistance, 0)) * CFrame.Angles(math.rad(-90), 0, 0)
                         elseif _G_V10.AttackPosition == "Dưới Chân" then 
-                            HRP.CFrame = CFrame.new(mobPos + Vector3.new(0, -_G_V10.AttackDistance, 0), mobPos) * CFrame.Angles(math.rad(90), 0, 0)
-                        elseif _G_V10.AttackPosition == "Đằng Sau" then 
+                            HRP.CFrame = CFrame.new(mobPos + Vector3.new(0, -_G_V10.AttackDistance, 0)) * CFrame.Angles(math.rad(90), 0, 0)
+                        elseif _G_V10.AttackPosition == "Xoay Tròn" then
+                            local angle = tick() * 3
+                            local radius = _G_V10.AttackDistance
+                            local offset = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+                            HRP.CFrame = CFrame.new(mobPos + offset, mobPos)
+                        else -- Đằng Sau
                             HRP.CFrame = targetMobInstance.HumanoidRootPart.CFrame * CFrame.new(0, 0, _G_V10.AttackDistance)
                         end
                     end
