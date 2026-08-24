@@ -1,6 +1,6 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V18 (PERFECT AI & STOP ALL BUTTON)
--- (FIX ĐỨNG IM, FIX TỌA ĐỘ CHUẨN THỨ TỰ, RAID BOSS SELUNA/PZOZO, GLOBAL SAFE HP)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V19 (FULL RECOVERY & STOP ALL BUTTON)
+-- (KHÔI PHỤC TOÀN BỘ GIAO DIỆN, THÊM STOP ALL, BỘ LỌC SCAN, FIX TỌA ĐỘ)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -185,7 +185,6 @@ local ListNPCs = {}
 for name, data in pairs(CoordDB.NPCs) do table.insert(ListNPCs, string.format("[%s] %s", data.Island, name)) end
 table.sort(ListNPCs)
 
--- QUÁI CHIA ĐẢO CÓ CẦU VỒNG
 local IslandMobs = {}
 for name, data in pairs(CoordDB.Mobs) do
     if not IslandMobs[data.Island] then IslandMobs[data.Island] = {} end
@@ -238,11 +237,11 @@ local DefaultConfig = {
     AutoBuyRaid = false, AutoStartRaid = false, AutoJoinGame = false, AutoFarmRaid = false, AutoSunBattery = false,
     AutoTeleEntrance = false, AutoTeleReRaid = false, RaidEntranceDelay = 2, RaidReRaidDelay = 2, RaidBuyTeleportDelay = 2, RaidWaitC1 = "10", RaidWaitC2 = "10", RaidWaitC3 = "15",
     
-    -- RAID BOSS SELUNA / PZOZO
+    -- BOSS RAID
     AutoFarmBossRaid = false, SelectedRaidBosses = {}, AlwaysSpinPzozo = false,
     
-    -- GLOBAL SAFE HP
-    GlobalSafeHP = false, GlobalSafeHP_Min = 30, GlobalSafeHP_Timer = false, GlobalSafeHP_Time = 15, GlobalSafeHP_Spin = true, GlobalSafeHP_Radius = 50,
+    -- GLOBAL SAFE HP (MỚI)
+    GlobalSafeHP = false, GlobalSafeHP_Min = 30, GlobalSafeHP_Timer = false, GlobalSafeHP_Time = 15, GlobalSafeHP_Spin = true, GlobalDodgeRadius = 50,
     
     AutoBypassMenu = true, BypassDuration = 10,
     AutoCoordMob = false, SelectedCoordMobs = {}, AutoWorldBoss = false, SelectedWorldBosses = {}, AutoNormalBoss = false, SelectedNormalBosses = {}, BossCheckDelay = 5,
@@ -333,7 +332,7 @@ local function GetConfigsList()
 end
 
 -- ==========================================
--- GIAO DIỆN CHÍNH (YUI HUB V18)
+-- GIAO DIỆN CHÍNH
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui", SafeParent)
 ScreenGui.Name = "YuiHub_UI"; ScreenGui.ResetOnSpawn = false
@@ -449,7 +448,7 @@ MinBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- HÀM TẠO UI COMPONENTS (DẠNG BOX)
+-- UI COMPONENTS (BOX)
 -- ==========================================
 local Pages = {}
 local function CreateTab(name)
@@ -627,7 +626,7 @@ local function CreateTextBox(parent, placeholder, callback)
 end
 
 -- ==========================================
--- XÂY DỰNG TABS ĐẦY ĐỦ
+-- XÂY DỰNG TABS ĐẦY ĐỦ (FULL MENU)
 -- ==========================================
 local TabSettings = CreateTab("⚙️ Cài Đặt Chung & Skill")
 local TabMainFarm = CreateTab("⚔️ Main Farm (All in 1)")
@@ -724,7 +723,7 @@ CreateToggleSwitch(SecFarmCoord, "Bật Auto Săn Boss Thế Giới", "AutoWorld
 CreateDropdown(SecFarmCoord, "ƯU TIÊN 2: Boss Thường", ListNormalBoss, "SelectedNormalBosses", true, true)
 CreateToggleSwitch(SecFarmCoord, "Bật Auto Săn Boss Thường", "AutoNormalBoss")
 CreateSlider(SecFarmCoord, "Delay Lặp Lại Check Boss (Min 0.5s)", 0.5, 100, "BossCheckDelay")
-CreateDropdown(SecFarmCoord, "ƯU TIÊN 3: Quái (Ưu tiên theo thứ tự chọn)", ListMobs, "SelectedCoordMobs", true, true)
+CreateDropdown(SecFarmCoord, "ƯU TIÊN 3: Quái (Ưu tiên đúng thứ tự click)", ListMobs, "SelectedCoordMobs", true, true)
 CreateToggleSwitch(SecFarmCoord, "Bật Auto Săn Quái Tọa Độ", "AutoCoordMob")
 
 local SecFarmLv = CreateSection(TabMainFarm, "FARM LEVEL CHUẨN (ƯU TIÊN 4)", Color3.fromRGB(50, 200, 255))
@@ -734,6 +733,22 @@ CreateToggleSwitch(SecFarmLv, "Bật Đánh Quest Đã Chọn", "ManualQuestFarm
 
 local SecFarmCstm = CreateSection(TabMainFarm, "FARM TÙY CHỌN & CÀN QUÉT MAP", Color3.fromRGB(100, 255, 100))
 local DropMonsters = CreateDropdown(SecFarmCstm, "Chọn Quái Cần Đánh", _G_V10.ScannedMonstersList, "SelectedMonsters", true)
+CreateButton(SecFarmCstm, "🔍 Quét Map Lấy Danh Sách Tùy Chọn", function()
+    local folders = {workspace}
+    if workspace:FindFirstChild("Monster") then table.insert(folders, workspace.Monster) end
+    if workspace:FindFirstChild("Enemies") then table.insert(folders, workspace.Enemies) end
+    if workspace:FindFirstChild("NPC") then table.insert(folders, workspace.NPC) end
+    for _, folder in ipairs(folders) do
+        for _, v in pairs(folder:GetChildren()) do
+            if v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Name ~= LocalPlayer.Name then
+                local isEx = false
+                for _, ex in pairs(_G_V10.ExcludedMobs) do if string.find(string.lower(v.Name), ex) then isEx = true; break end end
+                if not isEx and not table.find(_G_V10.ScannedMonstersList, v.Name) then table.insert(_G_V10.ScannedMonstersList, v.Name) end
+            end
+        end
+    end
+    table.sort(_G_V10.ScannedMonstersList); DropMonsters(_G_V10.ScannedMonstersList); AutoSaveTrigger()
+end)
 CreateToggleSwitch(SecFarmCstm, "Bật Free Farm (Danh sách trên)", "AutoFarmFree")
 CreateToggleSwitch(SecFarmCstm, "Bật Farm ALL (Càn quét Map)", "FarmAll")
 
@@ -805,7 +820,7 @@ CreateButton(SecIslandSelect, "🔄 Cập nhật Điểm Hồi Sinh", function()
     table.sort(sp); DropSpawnPoints(sp)
 end)
 
-local SecNPC = CreateSection(TabIsland, "DỊCH CHUYỂN ĐẾN NPC", Color3.fromRGB(255, 200, 50))
+local SecNPC = CreateSection(TabIsland, "DỊCH CHUYỂN ĐẾN NPC TRONG DATA", Color3.fromRGB(255, 200, 50))
 CreateDropdown(SecNPC, "Chọn NPC Cần Tìm", ListNPCs, "SelectedNPC", false)
 
 local function InstantTeleport(targetCFrame)
@@ -892,7 +907,7 @@ end)
 local SecScanData = CreateSection(TabScanner, "HỆ THỐNG MÁY QUÉT MAP", Color3.fromRGB(200, 100, 255))
 CreateDropdown(SecScanData, "Chế Độ Quét", {"Tất Cả", "Chỉ Boss", "Chỉ Quái", "Chỉ NPC"}, "ScanMode", false)
 CreateToggleSwitch(SecScanData, "Bật Quét Tự Động", "AutoScanMap")
-CreateButton(SecScanData, "🔄 Quét Ngay Bằng Tay & Tải Dữ Liệu", function() RenderScannerLog() end)
+CreateButton(SecScanData, "🔄 Quét Ngay Bằng Tay & Tải Dữ Liệu Lên Bảng Dưới", function() RenderScannerLog() end)
 
 ScanLogFrame = Instance.new("ScrollingFrame", SecScanData)
 ScanLogFrame.Size = UDim2.new(1, 0, 0, 300); ScanLogFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20); ScanLogFrame.ScrollBarThickness = 3
@@ -1041,8 +1056,18 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- ENGINE: MUA RAID, TUẦN TRA & SPAWN BOSS (FIX TỐC ĐỘ 0.5S)
+-- ENGINE: MUA RAID, TUẦN TRA & SPAWN BOSS
 -- ==========================================
+task.spawn(function()
+    while task.wait(0.2) do
+        if _G.YuiKillAllLoops then break end
+        if _G_V10.AutoSpawnMihawk or _G_V10.AutoGiveShadow or _G_V10.AutoBuyRaid then
+            local talkingGui = LocalPlayer.PlayerGui:FindFirstChild("Talking")
+            if talkingGui then TapSafeEdge() end
+        end
+    end
+end)
+
 task.spawn(function()
     while task.wait(0.5) do 
         if _G.YuiKillAllLoops then break end
@@ -1200,7 +1225,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- ENGINE: LÕI JUMP & ANTI-FALL
+-- ENGINE: LÕI JUMP & ANTI-FALL CHỐNG NHẤP NHỔM
 -- ==========================================
 task.spawn(function()
     while task.wait(1) do
@@ -1272,7 +1297,7 @@ table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
             EnableAntiFall(hrp)
             if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall.Velocity = Vector3.new(0, 0, 0) end
             
-            -- ÉP NẰM NGANG BẸP
+            -- ÉP NẰM NGANG BẸP KHÔNG BỊ ĐỨNG DẬY
             if _G_V10.AttackPosition == "Trên Đầu" or _G_V10.AttackPosition == "Dưới Chân" or _G_V10.AttackPosition == "Xoay Tròn" then
                 hum.PlatformStand = true
             else
@@ -1316,8 +1341,16 @@ local function GetMobForCurrentLevel()
     return targetMob, targetQuest
 end
 
+local lastQuestTime = 0
+local function RepeatQuestRemote()
+    if os.clock() - lastQuestTime > 1 then
+        lastQuestTime = os.clock()
+        pcall(function() for _, v in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do if v:IsA("RemoteEvent") and v.Name == "Qu" then v:FireServer("Yes") end end end)
+    end
+end
+
 -- ==========================================
--- MAIN COMBAT ENGINE (TRẢ LẠI LÕI V1 CHUẨN 100%)
+-- MAIN COMBAT ENGINE (MƯỢT NHẤT - TRẢ LẠI LÕI V1)
 -- ==========================================
 local currentSwapState = 1
 local lastSwapTime = os.clock()
@@ -1340,6 +1373,22 @@ local function isValidMobByDatabase(mob)
     return true
 end
 
+-- LÕI V1: TÌM TRỰC TIẾP TỪ WORKSPACE ĐỂ KHÔNG LAG VÀ KHÔNG KẸT
+local function DirectFind(name)
+    for _, folderName in ipairs({"Monster", "Enemies", "NPC", "NPCs"}) do
+        local folder = workspace:FindFirstChild(folderName)
+        if folder then
+            for _, v in ipairs(folder:GetDescendants()) do
+                if v.Name == name and isValidMobByDatabase(v) then return v end
+            end
+        end
+    end
+    for _, v in ipairs(workspace:GetChildren()) do
+        if v:IsA("Model") and v.Name == name and isValidMobByDatabase(v) then return v end
+    end
+    return nil
+end
+
 task.spawn(function()
     while task.wait() do
         if _G.YuiKillAllLoops then break end
@@ -1352,10 +1401,8 @@ task.spawn(function()
         
         if not HRP or not Hum or Hum.Health <= 0 then 
             if HRP and HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall:Destroy() end
-            lastWorldBossCheckTime = os.clock()
-            lastNormalBossCheckTime = os.clock()
-            _G.WorldBossWaitStarted = nil
-            _G.NormalBossWaitStarted = nil
+            lastWorldBossCheckTime = os.clock(); lastNormalBossCheckTime = os.clock()
+            _G.WorldBossWaitStarted = nil; _G.NormalBossWaitStarted = nil
             task.wait(1); continue 
         end
 
@@ -1376,7 +1423,7 @@ task.spawn(function()
             end
             
             if targetSun then
-                LblCoordInfo.Text = "Đang lụm Sun Battery!"
+                LblCoordInfo.Text = "Raid: Đang lụm Sun Battery!"
                 local sunPos = targetSun:IsA("Model") and targetSun:GetPivot().Position or targetSun.Position
                 HRP.CFrame = CFrame.new(sunPos)
                 if HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall.Velocity = Vector3.new(0,0,0) end
@@ -1393,19 +1440,6 @@ task.spawn(function()
             local highestLevel = -1
             local shortestDist = math.huge
             local targetWaitPos = nil
-            
-            -- LÕI V1: TÌM TRỰC TIẾP TỪ WORKSPACE KHÔNG CACHE
-            local function DirectFind(name)
-                for _, folderName in ipairs({"Monster", "Enemies"}) do
-                    local folder = workspace:FindFirstChild(folderName)
-                    if folder then
-                        for _, v in ipairs(folder:GetDescendants()) do
-                            if v.Name == name and isValidMobByDatabase(v) then return v end
-                        end
-                    end
-                end
-                return nil
-            end
             
             -- ================= LỌC TÌM MỤC TIÊU (THEO ƯU TIÊN) =================
             if not (_G_V10.AutoSea and _G_V10.IsFightingSea) then
