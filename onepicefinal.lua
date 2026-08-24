@@ -1,6 +1,6 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V16 (FINAL PERFECT FIX)
--- (FIX SUN BATTERY, GROUND DODGE, MULTI-NOTE SCANNER, NO STUCK AI)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V17 (FINAL FIX - NO LAG, FAST TARGETING)
+-- (FIX LỖI ĐỨNG IM, FIX RAID HARD XOAY 30S, LỤM SUN BATTERY TRONG EFFECTS)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -173,7 +173,6 @@ local CoordDB = {
     }
 }
 
--- MẢNG ARRAY DATA UI CÓ SẴN
 local ListWorldBoss = {}
 for k, _ in pairs(CoordDB.WorldBosses) do table.insert(ListWorldBoss, k) end
 table.sort(ListWorldBoss)
@@ -238,7 +237,7 @@ local DefaultConfig = {
     
     AutoBuyRaid = false, AutoStartRaid = false, AutoJoinGame = false, AutoFarmRaid = false, AutoSunBattery = false,
     AutoTeleEntrance = false, AutoTeleReRaid = false, RaidEntranceDelay = 2, RaidReRaidDelay = 2, RaidBuyTeleportDelay = 2, RaidWaitC1 = "10", RaidWaitC2 = "10", RaidWaitC3 = "15",
-    AutoFarmRaidHard = false, RaidHardUseHP = false, RaidHardMinHP = 30, RaidHardUseTimer = false, RaidHardFightTime = 15, RaidHardCircleFly = true, RaidHardAirTime = 5, RaidHardDodgeRadius = 50,
+    AutoFarmRaidHard = false, RaidHardUseHP = false, RaidHardMinHP = 30, RaidHardUseTimer = false, RaidHardFightTime = 15, RaidHardCircleFly = false, RaidHardAirTime = 5, RaidHardDodgeRadius = 50,
     
     AutoBypassMenu = true, BypassDuration = 10,
     AutoCoordMob = false, SelectedCoordMobs = {}, AutoWorldBoss = false, SelectedWorldBosses = {}, AutoNormalBoss = false, SelectedNormalBosses = {}, BossCheckDelay = 5,
@@ -260,8 +259,76 @@ local ConfigFolder = "YuiHub_Configs"
 local MasterFile = ConfigFolder .. "/MasterSettings.json"
 if isfolder and not isfolder(ConfigFolder) then makefolder(ConfigFolder) end
 
+local ScanLogFrame
+local function RenderScannerLog()
+    if not ScanLogFrame then return end
+    for _, v in pairs(ScanLogFrame:GetChildren()) do if v:IsA("Frame") or v:IsA("TextLabel") then v:Destroy() end end
+    
+    local function AddChunk(title, content)
+        if content == "" then return end
+        local chunkText = string.format("=== %s ===\n%s", title, content)
+        local chunkFrame = Instance.new("Frame", ScanLogFrame); chunkFrame.Size = UDim2.new(1, -10, 0, 100); chunkFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Instance.new("UICorner", chunkFrame).CornerRadius = UDim.new(0, 6)
+        local txt = Instance.new("TextBox", chunkFrame); txt.Size = UDim2.new(1, -50, 1, -10); txt.Position = UDim2.new(0, 5, 0, 5); txt.BackgroundTransparency = 1; txt.Text = chunkText; txt.TextColor3 = Color3.fromRGB(220, 220, 220); txt.Font = Enum.Font.Code; txt.TextSize = 10; txt.TextXAlignment = Enum.TextXAlignment.Left; txt.TextYAlignment = Enum.TextYAlignment.Top; txt.ClearTextOnFocus = false; txt.TextEditable = false; txt.TextWrapped = true
+        local copyBtn = Instance.new("TextButton", chunkFrame); copyBtn.Size = UDim2.new(0, 40, 0, 40); copyBtn.Position = UDim2.new(1, -45, 0.5, -20); copyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255); copyBtn.Text = "COPY"; copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255); copyBtn.Font = Enum.Font.GothamBold; Instance.new("UICorner", copyBtn).CornerRadius = UDim.new(0, 6)
+        copyBtn.MouseButton1Click:Connect(function() if setclipboard then setclipboard(chunkText); copyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100); copyBtn.Text = "OK"; task.wait(1); copyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255); copyBtn.Text = "COPY" end end)
+        txt:GetPropertyChangedSignal("TextBounds"):Connect(function() chunkFrame.Size = UDim2.new(1, -10, 0, math.max(60, txt.TextBounds.Y + 20)) end)
+    end
+    
+    local hasData = false
+    local bStr = ""
+    if _G_V10.ScannerData.Bosses then for k, v in pairs(_G_V10.ScannerData.Bosses) do bStr = bStr .. string.format("[%s] | %s (HP: %s) | %s\n", v.Island, k, v.Level, v.Pos); hasData = true end end
+    AddChunk("👹 DANH SÁCH BOSS", bStr)
+    
+    local mLines = {}
+    if _G_V10.ScannerData.Mobs then for k, v in pairs(_G_V10.ScannerData.Mobs) do table.insert(mLines, string.format("[%s] | %s | %s", v.Island, k, v.Pos)); hasData = true end end
+    local chunkSize = 15
+    for i = 1, #mLines, chunkSize do
+        local chunkStr = ""
+        for j = i, math.min(i + chunkSize - 1, #mLines) do chunkStr = chunkStr .. mLines[j] .. "\n" end
+        AddChunk("👾 QUÁI (PHẦN " .. math.ceil(i/chunkSize) .. ")", chunkStr)
+    end
+    
+    local nStr = ""
+    if _G_V10.ScannerData.NPCs then for k, v in pairs(_G_V10.ScannerData.NPCs) do nStr = nStr .. string.format("[%s] | %s | %s\n", v.Island, k, v.Pos); hasData = true end end
+    AddChunk("🛒 DANH SÁCH NPC", nStr)
+    
+    if not hasData then
+        local emptyLbl = Instance.new("TextLabel", ScanLogFrame)
+        emptyLbl.Size = UDim2.new(1, -10, 0, 50); emptyLbl.BackgroundTransparency = 1; emptyLbl.Text = "Đang chờ dữ liệu quét... (Hãy bật Máy Quét và đợi)"; emptyLbl.TextColor3 = Color3.fromRGB(150, 150, 150); emptyLbl.Font = Enum.Font.Gotham; emptyLbl.TextSize = 12
+    end
+end
+
+local function SaveConfig(name)
+    if not writefile then return end
+    name = name or "DefaultConfig"; _G_V10.SelectedConfig = name
+    writefile(ConfigFolder.."/"..name..".json", HttpService:JSONEncode(_G_V10))
+    writefile(MasterFile, HttpService:JSONEncode({AutoLoadConfig = _G_V10.AutoLoadConfig, LastConfig = name}))
+end
+
+local function LoadConfig(name)
+    if not readfile or not isfile(ConfigFolder.."/"..name..".json") then return end
+    local s, decoded = pcall(function() return HttpService:JSONDecode(readfile(ConfigFolder.."/"..name..".json")) end)
+    if s and type(decoded) == "table" then
+        for k, v in pairs(decoded) do _G_V10[k] = v end
+        if not _G_V10.ScannerData then _G_V10.ScannerData = {Mobs = {}, Bosses = {}, NPCs = {}} end
+        for _, updater in pairs(_G_UI_Updaters) do pcall(updater) end
+        RenderScannerLog()
+    end
+end
+
+if readfile and isfile(MasterFile) then
+    local s, masterData = pcall(function() return HttpService:JSONDecode(readfile(MasterFile)) end)
+    if s and type(masterData) == "table" and masterData.AutoLoadConfig and masterData.LastConfig then _G_V10.AutoLoadConfig = true; LoadConfig(masterData.LastConfig) end
+end
+local function AutoSaveTrigger() if _G_V10.AutoSaveConfig then SaveConfig(_G_V10.SelectedConfig) end end
+local function GetConfigsList()
+    local list = {}
+    if listfiles and isfolder(ConfigFolder) then for _, file in pairs(listfiles(ConfigFolder)) do local name = file:match("([^/%\\]+)%.json$") or file; if name ~= "MasterSettings" then table.insert(list, name) end end end 
+    return list
+end
+
 -- ==========================================
--- GIAO DIỆN CHÍNH
+-- GIAO DIỆN CHÍNH (YUI HUB V16)
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui", SafeParent)
 ScreenGui.Name = "YuiHub_UI"; ScreenGui.ResetOnSpawn = false
@@ -377,14 +444,16 @@ MinBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- HÀM TẠO UI COMPONENTS
+-- HÀM TẠO UI COMPONENTS (DẠNG BOX)
 -- ==========================================
 local Pages = {}
 local function CreateTab(name)
     local Btn = Instance.new("TextButton", TabsFrame)
     Btn.Size = UDim2.new(1, -10, 0, 40); Btn.Position = UDim2.new(0, 5, 0, 0); Btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35); Btn.TextColor3 = Color3.fromRGB(200, 200, 200); Btn.Text = "  " .. name; Btn.Font = Enum.Font.GothamBold; Btn.TextSize = 12; Btn.TextXAlignment = Enum.TextXAlignment.Left; Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 10)
     local Page = Instance.new("ScrollingFrame", ContentFrame)
-    Page.Size = UDim2.new(1, 0, 1, 0); Page.BackgroundTransparency = 1; Page.ScrollBarThickness = 2; Page.Visible = false; Instance.new("UIListLayout", Page).Padding = UDim.new(0, 8); local pad = Instance.new("UIPadding", Page); pad.PaddingTop, pad.PaddingLeft, pad.PaddingRight, pad.PaddingBottom = UDim.new(0,10), UDim.new(0,10), UDim.new(0,10), UDim.new(0,10)
+    Page.Size = UDim2.new(1, 0, 1, 0); Page.BackgroundTransparency = 1; Page.ScrollBarThickness = 2; Page.Visible = false
+    Instance.new("UIListLayout", Page).Padding = UDim.new(0, 8)
+    local pad = Instance.new("UIPadding", Page); pad.PaddingTop, pad.PaddingLeft, pad.PaddingRight, pad.PaddingBottom = UDim.new(0,10), UDim.new(0,10), UDim.new(0,10), UDim.new(0,10)
     Pages[name] = {Btn = Btn, Page = Page}
     Btn.MouseButton1Click:Connect(function()
         for n, p in pairs(Pages) do
@@ -402,7 +471,8 @@ local function CreateSection(parent, title, color)
     local Lbl = Instance.new("TextLabel", Frame)
     Lbl.Size = UDim2.new(1, -10, 0, 25); Lbl.Position = UDim2.new(0, 10, 0, 5); Lbl.BackgroundTransparency = 1; Lbl.Text = "✦ " .. title; Lbl.TextColor3 = color or Color3.fromRGB(255, 255, 255); Lbl.Font = Enum.Font.GothamBold; Lbl.TextSize = 13; Lbl.TextXAlignment = Enum.TextXAlignment.Left
     local Content = Instance.new("Frame", Frame)
-    Content.Size = UDim2.new(1, -10, 1, -30); Content.Position = UDim2.new(0, 5, 0, 30); Content.BackgroundTransparency = 1; local Layout = Instance.new("UIListLayout", Content); Layout.Padding = UDim.new(0, 5)
+    Content.Size = UDim2.new(1, -10, 1, -30); Content.Position = UDim2.new(0, 5, 0, 30); Content.BackgroundTransparency = 1
+    local Layout = Instance.new("UIListLayout", Content); Layout.Padding = UDim.new(0, 5)
     Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         Frame.Size = UDim2.new(1, 0, 0, Layout.AbsoluteContentSize.Y + 40)
         if parent:IsA("ScrollingFrame") then local pLayout = parent:FindFirstChildOfClass("UIListLayout"); if pLayout then parent.CanvasSize = UDim2.new(0, 0, 0, pLayout.AbsoluteContentSize.Y + 20) end end
@@ -493,7 +563,8 @@ end
 
 local function CreateButton(parent, text, callback, color)
     local Btn = Instance.new("TextButton", parent)
-    Btn.Size = UDim2.new(1, 0, 0, 35); Btn.BackgroundColor3 = color or Color3.fromRGB(255, 100, 200); Btn.TextColor3 = Color3.fromRGB(255, 255, 255); Btn.Text = text; Btn.Font = Enum.Font.GothamBold; Btn.TextSize = 12; Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
+    Btn.Size = UDim2.new(1, 0, 0, 35); Btn.BackgroundColor3 = color or Color3.fromRGB(255, 100, 200)
+    Btn.TextColor3 = Color3.fromRGB(255, 255, 255); Btn.Text = text; Btn.Font = Enum.Font.GothamBold; Btn.TextSize = 12; Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
     Btn.MouseButton1Click:Connect(callback)
 end
 
@@ -626,32 +697,16 @@ CreateToggleSwitch(SecFarmCoord, "Bật Auto Săn Boss Thế Giới", "AutoWorld
 CreateDropdown(SecFarmCoord, "ƯU TIÊN 2: Boss Thường", ListNormalBoss, "SelectedNormalBosses", true, true)
 CreateToggleSwitch(SecFarmCoord, "Bật Auto Săn Boss Thường", "AutoNormalBoss")
 CreateSlider(SecFarmCoord, "Delay Lặp Lại Check Boss (Min 0.5s)", 0.5, 100, "BossCheckDelay")
-CreateDropdown(SecFarmCoord, "ƯU TIÊN 3: Quái (Ưu tiên theo thứ tự chọn)", ListMobs, "SelectedCoordMobs", true, true)
+CreateDropdown(SecFarmCoord, "ƯU TIÊN 3: Quái (Ưu tiên đúng thứ tự click)", ListMobs, "SelectedCoordMobs", true, true)
 CreateToggleSwitch(SecFarmCoord, "Bật Auto Săn Quái Tọa Độ", "AutoCoordMob")
 
 local SecFarmLv = CreateSection(TabMainFarm, "FARM LEVEL CHUẨN (ƯU TIÊN 4)", Color3.fromRGB(50, 200, 255))
 CreateToggleSwitch(SecFarmLv, "Bật Auto Farm Level (Tự Chuyển Bãi)", "AutoFarmLevel")
 CreateDropdown(SecFarmLv, "Chọn Quest Bằng Tay", QuestListNames, "SelectedManualQuest", false)
-CreateToggleSwitch(SecFarmLv, "Bật Đánh Quest Đã Chọn", "ManualQuestFarm")
+CreateToggleSwitch(SecFarmLv, "Bật Đánh Quest Đã Chọn Trên", "ManualQuestFarm")
 
-local SecFarmCstm = CreateSection(TabMainFarm, "FARM TÙY CHỌN & CÀN QUÉT (ƯU TIÊN CUỐI)", Color3.fromRGB(100, 255, 100))
+local SecFarmCstm = CreateSection(TabMainFarm, "FARM TÙY CHỌN & CÀN QUÉT", Color3.fromRGB(100, 255, 100))
 local DropMonsters = CreateDropdown(SecFarmCstm, "Chọn Quái Cần Đánh", _G_V10.ScannedMonstersList, "SelectedMonsters", true)
-CreateButton(SecFarmCstm, "🔍 Quét Map Thêm Quái Lạ", function()
-    local folders = {workspace}
-    if workspace:FindFirstChild("Monster") then table.insert(folders, workspace.Monster) end
-    if workspace:FindFirstChild("Enemies") then table.insert(folders, workspace.Enemies) end
-    if workspace:FindFirstChild("NPC") then table.insert(folders, workspace.NPC) end
-    for _, folder in ipairs(folders) do
-        for _, v in pairs(folder:GetChildren()) do
-            if v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Name ~= LocalPlayer.Name then
-                local isEx = false
-                for _, ex in pairs(_G_V10.ExcludedMobs) do if string.find(string.lower(v.Name), ex) then isEx = true; break end end
-                if not isEx and not table.find(_G_V10.ScannedMonstersList, v.Name) then table.insert(_G_V10.ScannedMonstersList, v.Name) end
-            end
-        end
-    end
-    table.sort(_G_V10.ScannedMonstersList); DropMonsters(_G_V10.ScannedMonstersList); AutoSaveTrigger()
-end)
 CreateToggleSwitch(SecFarmCstm, "Bật Free Farm (Danh sách trên)", "AutoFarmFree")
 CreateToggleSwitch(SecFarmCstm, "Bật Farm ALL (Càn quét Map)", "FarmAll")
 
@@ -662,18 +717,15 @@ CreateSlider(SecRaidBuy, "Delay Teleport Mua Raid (Giây)", 1, 10, "RaidBuyTelep
 CreateToggleSwitch(SecRaidBuy, "Bật Tự Động Bấm Starto (Bắt đầu Raid)", "AutoStartRaid")
 CreateToggleSwitch(SecRaidBuy, "Tự Động Bấm Play/Join Game", "AutoJoinGame")
 
-local SecRaidHard = CreateSection(TabRaidHub, "FARM RAID HARD (NÉ DƯỚI ĐẤT & LỤM SUN)", Color3.fromRGB(255, 50, 50))
+local SecRaidHard = CreateSection(TabRaidHub, "FARM RAID HARD (NÉ CHIÊU & AUTO SUN)", Color3.fromRGB(255, 50, 50))
 CreateToggleSwitch(SecRaidHard, "Bật Auto Nhặt Sun Battery (Ưu Tiên 0)", "AutoSunBattery")
-CreateToggleSwitch(SecRaidHard, "Bật Tự Động Farm Raid Hard", "AutoFarmRaidHard")
+CreateToggleSwitch(SecRaidHard, "Bật Tự Động Farm Raid Hard (Farm All Map)", "AutoFarmRaidHard")
 CreateToggleSwitch(SecRaidHard, "Né Theo Máu - Safe Máu", "RaidHardUseHP")
-CreateSlider(SecRaidHard, "Mức Máu Dưới % Này Sẽ Né", 10, 90, "RaidHardMinHP")
-CreateToggleSwitch(SecRaidHard, "Né Theo Thời Gian Định Kỳ", "RaidHardUseTimer")
-CreateSlider(SecRaidHard, "Thời Gian Đánh Xong Rồi Né (s)", 5, 60, "RaidHardFightTime")
-CreateToggleSwitch(SecRaidHard, "Bật Lượn Vòng Tròn Dưới Mặt Đất Né Chiêu", "RaidHardCircleFly")
-CreateSlider(SecRaidHard, "Thời Gian Bay Trú Ẩn (s)", 1, 20, "RaidHardAirTime")
-CreateSlider(SecRaidHard, "Bán Kính Vòng Xoay Né Chiêu", 10, 100, "RaidHardDodgeRadius")
+CreateSlider(SecRaidHard, "Mức Máu Dưới % Này Sẽ Lượn Né", 10, 90, "RaidHardMinHP")
+CreateToggleSwitch(SecRaidHard, "Bật Xoay Vòng Vòng Dưới Đất Liên Tục", "RaidHardCircleFly")
+CreateSlider(SecRaidHard, "Bán Kính Vòng Xoay Đánh Quái", 10, 100, "RaidHardDodgeRadius")
 local RaidHardStatus = Instance.new("TextLabel", SecRaidHard)
-RaidHardStatus.Size = UDim2.new(1, 0, 0, 20); RaidHardStatus.BackgroundTransparency = 1; RaidHardStatus.TextColor3 = Color3.fromRGB(150, 255, 150); RaidHardStatus.Font = Enum.Font.Gotham; RaidHardStatus.TextSize = 12; RaidHardStatus.TextXAlignment = Enum.TextXAlignment.Left; RaidHardStatus.Text = "Trạng thái Né: Đang đánh bình thường"
+RaidHardStatus.Size = UDim2.new(1, 0, 0, 20); RaidHardStatus.BackgroundTransparency = 1; RaidHardStatus.TextColor3 = Color3.fromRGB(150, 255, 150); RaidHardStatus.Font = Enum.Font.Gotham; RaidHardStatus.TextSize = 12; RaidHardStatus.TextXAlignment = Enum.TextXAlignment.Left; RaidHardStatus.Text = "Trạng thái Raid: Đang đánh bình thường"
 
 local SecRaidNorm = CreateSection(TabRaidHub, "FARM RAID THƯỜNG (LAO VÀO CHÉM THẲNG)", Color3.fromRGB(255, 150, 50))
 CreateToggleSwitch(SecRaidNorm, "Bật Auto Farm Raid", "AutoFarmRaid")
@@ -793,7 +845,7 @@ CreateButton(SecServerProt, "🚀 Boost FPS (Xóa Đồ Họa Mượt Game)", fu
 end)
 CreateToggleSwitch(SecServerProt, "Màn Hình Đen (Giảm Lag Treo Máy)", "EnableBlackScreen")
 
--- --- TAB: MÁY QUÉT MAP & LẤY TỌA ĐỘ NGƯỜI CHƠI ---
+-- --- TAB: MÁY QUÉT MAP & LẤY TỌA ĐỘ ---
 local SecScanMap = CreateSection(TabScanner, "LẤY TỌA ĐỘ CỦA TÔI", Color3.fromRGB(0, 255, 100))
 local playerPosBox = CreateTextBox(SecScanMap, "Tọa độ sẽ hiện ở đây...", function() end)
 playerPosBox.TextEditable = false
@@ -964,7 +1016,77 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- ENGINE: MUA RAID, TUẦN TRA & SPAWN BOSS (FIX TỐC ĐỘ)
+-- MÁY QUÉT MAP & TẢI DỮ LIỆU
+-- ==========================================
+local function GetClosestIsland(pos)
+    local islandsFolder = Workspace:FindFirstChild("All") and Workspace.All:FindFirstChild("Island")
+    if not islandsFolder then return "Map" end
+    local closest = "Map"; local minDist = math.huge
+    for _, isl in pairs(islandsFolder:GetChildren()) do
+        local dist = (isl:GetPivot().Position - pos).Magnitude
+        if dist < minDist then minDist = dist; closest = isl.Name end
+    end
+    return closest
+end
+
+task.spawn(function()
+    while task.wait(5) do
+        if _G.YuiKillAllLoops then break end
+        if not _G_V10.AutoScanMap then continue end
+        local hasNewData = false
+        
+        local folders = {}
+        local mode = _G_V10.ScanMode
+        
+        if mode == "Tất Cả" or mode == "Chỉ Boss" or mode == "Chỉ Quái" then
+            if workspace:FindFirstChild("Monster") then table.insert(folders, workspace.Monster) end
+            if workspace:FindFirstChild("Enemies") then table.insert(folders, workspace.Enemies) end
+        end
+        if mode == "Tất Cả" or mode == "Chỉ NPC" then
+            if workspace:FindFirstChild("NPC") then table.insert(folders, workspace.NPC) end
+            if workspace:FindFirstChild("NPCs") then table.insert(folders, workspace.NPCs) end
+        end
+        
+        for _, folder in ipairs(folders) do
+            for _, v in pairs(folder:GetChildren()) do
+                if v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Name ~= LocalPlayer.Name then
+                    local hrp = v:FindFirstChild("HumanoidRootPart"); local hum = v:FindFirstChild("Humanoid")
+                    if hrp and hum and hum.Health > 0 then
+                        local nameStr = v.Name
+                        local isEx = false
+                        for _, ex in pairs(_G_V10.ExcludedMobs) do if string.find(string.lower(nameStr), ex) then isEx = true; break end end
+                        
+                        if not isEx and not _G_V10.ScannerData.Mobs[nameStr] and not _G_V10.ScannerData.Bosses[nameStr] then
+                            local isl = GetClosestIsland(hrp.Position)
+                            local pos = string.format("Vector3.new(%.0f, %.0f, %.0f)", hrp.Position.X, hrp.Position.Y, hrp.Position.Z)
+                            
+                            if hum.MaxHealth > 50000 and (mode == "Tất Cả" or mode == "Chỉ Boss") then
+                                _G_V10.ScannerData.Bosses[nameStr] = {Island = isl, Pos = pos, Level = hum.MaxHealth}
+                                hasNewData = true
+                            elseif hum.MaxHealth <= 50000 and (mode == "Tất Cả" or mode == "Chỉ Quái") then
+                                _G_V10.ScannerData.Mobs[nameStr] = {Island = isl, Pos = pos, Level = hum.MaxHealth}
+                                hasNewData = true
+                            end
+                        end
+                    end
+                end
+                if v:IsA("Model") and (v.Name == "NPC" or v.Parent and v.Parent.Name == "NPC" or v.Parent and v.Parent.Name == "NPCs") and v:FindFirstChild("HumanoidRootPart") then
+                    local nameStr = v.Name
+                    if not _G_V10.ScannerData.NPCs[nameStr] and (mode == "Tất Cả" or mode == "Chỉ NPC") then
+                        local isl = GetClosestIsland(v.HumanoidRootPart.Position)
+                        local pos = string.format("Vector3.new(%.0f, %.0f, %.0f)", v.HumanoidRootPart.Position.X, v.HumanoidRootPart.Position.Y, v.HumanoidRootPart.Position.Z)
+                        _G_V10.ScannerData.NPCs[nameStr] = {Island = isl, Pos = pos}
+                        hasNewData = true
+                    end
+                end
+            end
+        end
+        if hasNewData then AutoSaveTrigger(); RenderScannerLog() end
+    end
+end)
+
+-- ==========================================
+-- ENGINE: MUA RAID, TUẦN TRA & SPAWN BOSS (FIX TỐC ĐỘ 0.5S)
 -- ==========================================
 task.spawn(function()
     while task.wait(0.5) do 
@@ -1123,7 +1245,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- ENGINE: LÕI JUMP & ANTI-FALL
+-- ENGINE: LÕI JUMP & ANTI-FALL CHỐNG NHẤP NHỔM
 -- ==========================================
 task.spawn(function()
     while task.wait(1) do
@@ -1195,7 +1317,7 @@ table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
             EnableAntiFall(hrp)
             if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall.Velocity = Vector3.new(0, 0, 0) end
             
-            -- FIX: Ép PlatformStand để nhân vật luôn ngã ngang song song không thể nhấp nhổm
+            -- ÉP NẰM NGANG CHỐNG ĐỨNG DẬY
             if _G_V10.AttackPosition == "Trên Đầu" or _G_V10.AttackPosition == "Dưới Chân" or _G_V10.AttackPosition == "Xoay Tròn" then
                 hum.PlatformStand = true
             else
@@ -1248,7 +1370,7 @@ local function RepeatQuestRemote()
 end
 
 -- ==========================================
--- MAIN COMBAT ENGINE (LÕI TÌM QUÁI V1 ĐÃ ĐƯỢC TRẢ LẠI 100% CÔNG LỰC)
+-- MAIN COMBAT ENGINE (MƯỢT NHẤT VỚI BỘ LỌC CHUẨN)
 -- ==========================================
 local currentSwapState = 1
 local lastSwapTime = os.clock()
@@ -1260,8 +1382,6 @@ _G.CheckNormalBossIdx = 1
 _G.NormalBossWaitStarted = nil
 
 local lastRaidDodge = os.clock()
-local isRaidDodging = false
-local dodgeEndTime = 0
 
 local function isValidMobByDatabase(mob)
     if not mob or not mob:IsA("Model") then return false end
@@ -1269,6 +1389,22 @@ local function isValidMobByDatabase(mob)
     if not hum or not hrp or hum.Health <= 0 then return false end
     if mob.Name == LocalPlayer.Name or Players:GetPlayerFromCharacter(mob) then return false end
     return true
+end
+
+-- Lấy danh sách quái siêu tốc để không bị đơ
+local function GetAvailableMobs()
+    local mobs = {}
+    local folders = {workspace:FindFirstChild("Monster"), workspace:FindFirstChild("Enemies")}
+    for _, folder in ipairs(folders) do
+        if folder then
+            for _, v in ipairs(folder:GetChildren()) do
+                if v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 and v.Name ~= LocalPlayer.Name then
+                    table.insert(mobs, v)
+                end
+            end
+        end
+    end
+    return mobs
 end
 
 task.spawn(function()
@@ -1281,7 +1417,6 @@ task.spawn(function()
         local HRP = char:FindFirstChild("HumanoidRootPart")
         local Hum = char:FindFirstChild("Humanoid")
         
-        -- FIX TRIX KẸT 0s: Nếu chết, tự reset bộ đếm giờ AI
         if not HRP or not Hum or Hum.Health <= 0 then 
             if HRP and HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall:Destroy() end
             lastWorldBossCheckTime = os.clock()
@@ -1299,31 +1434,35 @@ task.spawn(function()
             -- ================= LỤM SUN BATTERY =================
             local targetSun = nil
             if _G_V10.AutoSunBattery then
-                -- Tìm Sun trong Effects hoặc toàn Workspace
-                local sunNode = workspace:FindFirstChild("Effects") and workspace.Effects:FindFirstChild("SunBattery")
-                if not sunNode then sunNode = workspace:FindFirstChild("SunBattery", true) end
-                
-                if sunNode then
-                    local click = sunNode:FindFirstChild("FruitClick") or sunNode:FindFirstChildWhichIsA("ProximityPrompt", true)
-                    if click then targetSun = {Node = sunNode, Click = click} end
+                local effects = workspace:FindFirstChild("Effects")
+                if effects then
+                    local sun = effects:FindFirstChild("SunBattery") or effects:FindFirstChild("Sun Battery")
+                    if sun then targetSun = sun end
                 end
+                if not targetSun then targetSun = workspace:FindFirstChild("SunBattery") or workspace:FindFirstChild("Sun Battery") end
             end
             
             if targetSun then
                 LblCoordInfo.Text = "Raid: Đang lụm Sun Battery!"
-                local sunPos = targetSun.Node:IsA("Model") and targetSun.Node:GetPivot().Position or targetSun.Node.Position
+                local sunPos = targetSun:IsA("Model") and targetSun:GetPivot().Position or targetSun.Position
                 HRP.CFrame = CFrame.new(sunPos)
                 if HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall.Velocity = Vector3.new(0,0,0) end
                 task.wait(0.2)
-                if targetSun.Click:IsA("ProximityPrompt") then fireproximityprompt(targetSun.Click)
-                elseif targetSun.Click:IsA("ClickDetector") then fireclickdetector(targetSun.Click) end
-                continue -- Ngắt để không bay đi đánh quái
+                
+                local click = targetSun:FindFirstChild("FruitClick") or targetSun:FindFirstChildWhichIsA("ProximityPrompt", true)
+                if click then
+                    if click:IsA("ProximityPrompt") then fireproximityprompt(click)
+                    elseif click:IsA("ClickDetector") then fireclickdetector(click) end
+                end
+                continue
             end
 
             local targetMobInstance = nil
             local highestLevel = -1
             local shortestDist = math.huge
             local targetWaitPos = nil
+            
+            local currentMapMobs = GetAvailableMobs()
             
             -- ================= LỌC TÌM MỤC TIÊU =================
             if not (_G_V10.AutoSea and _G_V10.IsFightingSea) then
@@ -1332,8 +1471,8 @@ task.spawn(function()
                 if _G_V10.AutoWorldBoss and #_G_V10.SelectedWorldBosses > 0 then
                     local foundBoss = nil
                     for _, bossName in ipairs(_G_V10.SelectedWorldBosses) do
-                        for _, v in pairs(workspace:GetDescendants()) do
-                            if isValidMobByDatabase(v) and v.Name == bossName then foundBoss = v; break end
+                        for _, v in ipairs(currentMapMobs) do
+                            if v.Name == bossName then foundBoss = v; break end
                         end
                         if foundBoss then break end
                     end
@@ -1372,8 +1511,8 @@ task.spawn(function()
                 if not targetMobInstance and not targetWaitPos and _G_V10.AutoNormalBoss and #_G_V10.SelectedNormalBosses > 0 then
                     local foundBoss = nil
                     for _, bossName in ipairs(_G_V10.SelectedNormalBosses) do
-                        for _, v in pairs(workspace:GetDescendants()) do
-                            if isValidMobByDatabase(v) and v.Name == bossName then foundBoss = v; break end
+                        for _, v in ipairs(currentMapMobs) do
+                            if v.Name == bossName then foundBoss = v; break end
                         end
                         if foundBoss then break end
                     end
@@ -1410,7 +1549,7 @@ task.spawn(function()
                     end
                 end
                 
-                -- TẦNG 3: QUÁI TỌA ĐỘ (ƯU TIÊN TUYỆT ĐỐI THEO THỨ TỰ LỰA CHỌN)
+                -- TẦNG 3: QUÁI TỌA ĐỘ
                 if not targetMobInstance and not targetWaitPos and _G_V10.AutoCoordMob and #_G_V10.SelectedCoordMobs > 0 then
                     local bestMob = nil
                     local firstWaitPos = nil
@@ -1421,8 +1560,8 @@ task.spawn(function()
                         realName = realName:match("^%s*(.-)%s*$")
                         local found = nil
                         
-                        for _, v in pairs(workspace:GetDescendants()) do
-                            if isValidMobByDatabase(v) and v.Name == realName then found = v; break end
+                        for _, v in ipairs(currentMapMobs) do
+                            if v.Name == realName then found = v; break end
                         end
                         
                         if found then
@@ -1442,7 +1581,7 @@ task.spawn(function()
                     end
                 end
 
-                -- TẦNG 4: FARM TÙY CHỌN / CÀN QUÉT MAP / LEVEL / RAID THƯỜNG / RAID HARD
+                -- TẦNG 4: FARM TÙY CHỌN / CÀN QUÉT MAP / LEVEL / RAID
                 if not _G_V10.AutoWorldBoss and not _G_V10.AutoNormalBoss and not _G_V10.AutoCoordMob then
                     if _G_V10.AutoFarmLevel then
                         local mob, qName = GetMobForCurrentLevel(); _G_V10.CurrentTargetMob = {mob}; LblInfo.Text = "Farm Level: " .. qName
@@ -1450,58 +1589,54 @@ task.spawn(function()
                         for _, v in pairs(QuestDB) do if v.QuestName == _G_V10.SelectedManualQuest then _G_V10.CurrentTargetMob = {v.MobName}; LblInfo.Text = "Farm Thủ Công: " .. v.QuestName end end
                     elseif _G_V10.AutoFarmFree and type(_G_V10.SelectedMonsters) == "table" and #_G_V10.SelectedMonsters > 0 then
                         _G_V10.CurrentTargetMob = _G_V10.SelectedMonsters; LblInfo.Text = "Đang Farm Tùy Chọn"
-                    elseif _G_V10.FarmAll then LblInfo.Text = "Đang Càn Quét (Farm All)"
+                    elseif _G_V10.FarmAll or _G_V10.AutoFarmRaidHard then LblInfo.Text = "Đang Càn Quét (Farm All)"
                     end
 
-                    for _, v in pairs(workspace:GetDescendants()) do
-                        if isValidMobByDatabase(v) then
-                            local isValidTarget = false
-                            local isEx = false
-                            for _, ex in pairs(_G_V10.ExcludedMobs) do if string.find(string.lower(v.Name), ex) then isEx = true break end end
-                            
-                            if not isEx then
-                                if (_G_V10.AutoFarmRaid or _G_V10.AutoFarmRaidHard) and v.Parent and v.Parent.Name == "Monster" then
-                                    local distToRaidMap = (HRP.Position - Vector3.new(-123, 114, 407)).Magnitude
-                                    if distToRaidMap < 3000 then isValidTarget = true end
-                                elseif _G_V10.FarmAll then isValidTarget = true
-                                elseif _G_V10.AutoFarmFree and type(_G_V10.SelectedMonsters) == "table" and table.find(_G_V10.SelectedMonsters, v.Name) then isValidTarget = true 
-                                elseif _G_V10.AutoFarmLevel and _G_V10.CurrentTargetMob and table.find(_G_V10.CurrentTargetMob, v.Name) then isValidTarget = true
-                                elseif _G_V10.ManualQuestFarm and _G_V10.CurrentTargetMob and table.find(_G_V10.CurrentTargetMob, v.Name) then isValidTarget = true
-                                end
+                    for _, v in ipairs(currentMapMobs) do
+                        local isValidTarget = false
+                        local isEx = false
+                        for _, ex in pairs(_G_V10.ExcludedMobs) do if string.find(string.lower(v.Name), ex) then isEx = true break end end
+                        
+                        if not isEx then
+                            if (_G_V10.AutoFarmRaid or _G_V10.AutoFarmRaidHard) then
+                                local distToRaidMap = (HRP.Position - Vector3.new(-123, 114, 407)).Magnitude
+                                if distToRaidMap < 3000 then isValidTarget = true end
+                            elseif _G_V10.FarmAll then isValidTarget = true
+                            elseif _G_V10.AutoFarmFree and type(_G_V10.SelectedMonsters) == "table" and table.find(_G_V10.SelectedMonsters, v.Name) then isValidTarget = true 
+                            elseif _G_V10.AutoFarmLevel and _G_V10.CurrentTargetMob and table.find(_G_V10.CurrentTargetMob, v.Name) then isValidTarget = true
+                            elseif _G_V10.ManualQuestFarm and _G_V10.CurrentTargetMob and table.find(_G_V10.CurrentTargetMob, v.Name) then isValidTarget = true
                             end
-                            
-                            if isValidTarget then
-                                local dist = (HRP.Position - v.HumanoidRootPart.Position).Magnitude
-                                local lvlMatch = string.match(v.Name, "%[%D*(%d+)%]"); local mobLvl = lvlMatch and tonumber(lvlMatch) or 0
-                                if mobLvl > highestLevel then highestLevel = mobLvl; shortestDist = dist; targetMobInstance = v
-                                elseif mobLvl == highestLevel then if dist < shortestDist then shortestDist = dist; targetMobInstance = v end end
-                            end
+                        end
+                        
+                        if isValidTarget then
+                            local dist = (HRP.Position - v.HumanoidRootPart.Position).Magnitude
+                            local lvlMatch = string.match(v.Name, "%[%D*(%d+)%]"); local mobLvl = lvlMatch and tonumber(lvlMatch) or 0
+                            if mobLvl > highestLevel then highestLevel = mobLvl; shortestDist = dist; targetMobInstance = v
+                            elseif mobLvl == highestLevel then if dist < shortestDist then shortestDist = dist; targetMobInstance = v end end
                         end
                     end
                 end
             end
 
-            -- ☢️ LOGIC NÉ CHIÊU RAID HARD DƯỚI ĐẤT
-            local hpPct = (Hum.Health / Hum.MaxHealth) * 100
-            if _G_V10.AutoFarmRaidHard and targetMobInstance then
-                local triggerDodge = false
-                if _G_V10.RaidHardUseHP and hpPct <= _G_V10.RaidHardMinHP then triggerDodge = true end
-                if _G_V10.RaidHardUseTimer and _G_V10.RaidHardFightTime > 0 and (os.clock() - lastRaidDodge) >= _G_V10.RaidHardFightTime then triggerDodge = true end
-                
-                if triggerDodge and not isRaidDodging then
-                    if _G_V10.RaidHardCircleFly then isRaidDodging = true; dodgeEndTime = os.clock() + _G_V10.RaidHardAirTime; RaidHardStatus.Text = "Trạng thái Né: 🌀 Đang Lượn Né Chiêu!"
-                    else isRaidDodging = false; lastRaidDodge = os.clock(); RaidHardStatus.Text = "Trạng thái Né: [TẮT LƯỢN] -> Khô máu ☠️" end
-                end
-                
-                if isRaidDodging then
-                    if hpPct > _G_V10.RaidHardMinHP + 15 and os.clock() >= dodgeEndTime then isRaidDodging = false; lastRaidDodge = os.clock(); RaidHardStatus.Text = "Trạng thái Né: Đang đánh bình thường ⚔️" end
-                end
-            else isRaidDodging = false end
-
-            -- ================= HÀNH ĐỘNG CỦA NHÂN VẬT =================
+            -- ================= XỬ LÝ HÀNH ĐỘNG CỦA NHÂN VẬT =================
             if targetMobInstance or (_G_V10.AutoSea and _G_V10.IsFightingSea) then
                 raidPatrolState = "Wait_C1"; raidPatrolTimer = os.clock()
                 
+                -- RAID HARD LƯỢN DƯỚI ĐẤT KHI NÉ
+                local isRaidDodging = false
+                if _G_V10.AutoFarmRaidHard and targetMobInstance then
+                    local hpPct = (Hum.Health / Hum.MaxHealth) * 100
+                    if _G_V10.RaidHardUseHP and hpPct <= _G_V10.RaidHardMinHP then isRaidDodging = true end
+                    if _G_V10.RaidHardUseTimer and _G_V10.RaidHardFightTime > 0 and (os.clock() - lastRaidDodge) >= _G_V10.RaidHardFightTime then isRaidDodging = true end
+                    
+                    if isRaidDodging then
+                        if not _G.DodgeStart then _G.DodgeStart = os.clock() end
+                        if os.clock() - _G.DodgeStart >= _G_V10.RaidHardAirTime then isRaidDodging = false; lastRaidDodge = os.clock(); _G.DodgeStart = nil end
+                    else
+                        _G.DodgeStart = nil
+                    end
+                end
+
                 if not isRaidDodging then
                     if _G_V10.AutoSwapWeapon and _G_V10.PrimaryWeapon and _G_V10.SecondaryWeapon then
                         if currentSwapState == 1 then
@@ -1531,17 +1666,15 @@ task.spawn(function()
                 end
                 
                 if targetMobInstance then
-                    if isRaidDodging then
-                        -- Lượn vòng né chiêu ở Tọa Độ Y = 0 (Dưới mặt đất)
+                    local mobPos = targetMobInstance.HumanoidRootPart.Position
+                    if isRaidDodging and _G_V10.RaidHardCircleFly then
+                        RaidHardStatus.Text = "Trạng thái Né: 🌀 Đang Lượn Dưới Đất!"
                         local angle = tick() * 3
                         local radius = _G_V10.RaidHardDodgeRadius
-                        local mobPos = targetMobInstance.HumanoidRootPart.Position
                         local dodgeOffset = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
                         HRP.CFrame = CFrame.new(mobPos + dodgeOffset, mobPos)
                     else
-                        local mobPos = targetMobInstance.HumanoidRootPart.Position
-                        
-                        -- FIX 100% NẰM NGANG BẸP SONG SONG MẶT ĐẤT
+                        RaidHardStatus.Text = "Trạng thái Né: Đang đánh bình thường ⚔️"
                         if _G_V10.AttackPosition == "Trên Đầu" then 
                             HRP.CFrame = CFrame.new(mobPos + Vector3.new(0, _G_V10.AttackDistance, 0)) * CFrame.Angles(math.rad(-90), 0, 0)
                         elseif _G_V10.AttackPosition == "Dưới Chân" then 
