@@ -1,6 +1,6 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V25 (PERFECT AUTO SEA TELEPORT)
--- (FIX THUYỀN KHÔNG TELEPORT RA ZONE, TỰ ĐỘNG BÊ THUYỀN RA ZONE RỒI MỚI CHẠY)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V26 (ANTI-STUTTER & ANTI-FALL FIX)
+-- (FIX LỖI NHÂN VẬT BỊ RƠI XUYÊN ĐẤT, RỚT NƯỚC, BỊ GIẬT GIẬT KHI FARM)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -636,7 +636,7 @@ local function CreateTextBox(parent, placeholder, callback)
 end
 
 -- ==========================================
--- XÂY DỰNG TABS ĐẦY ĐỦ (FULL MENU)
+-- XÂY DỰNG TABS ĐẦY ĐỦ 
 -- ==========================================
 local TabSettings = CreateTab("⚙️ Cài Đặt Chung & Skill")
 local TabMainFarm = CreateTab("⚔️ Main Farm (All in 1)")
@@ -1040,6 +1040,38 @@ local function ForceUseSkill(key)
 end
 
 -- ==========================================
+-- ENGINE: AUTO SKILL GLOBAL (CHẠY ĐỘC LẬP)
+-- ==========================================
+task.spawn(function()
+    while task.wait(_G_V10.SkillSpamDelay or 0.1) do
+        if _G.YuiKillAllLoops then break end
+        if _G_V10.AutoSkill then
+            if _G_V10.Skill_Z then ForceUseSkill("Z") end
+            if _G_V10.Skill_X then ForceUseSkill("X") end
+            if _G_V10.Skill_C then ForceUseSkill("C") end
+            if _G_V10.Skill_V then ForceUseSkill("V") end
+            if _G_V10.Skill_F then ForceUseSkill("F") end
+        end
+    end
+end)
+
+-- ==========================================
+-- ENGINE: AUTO REPEAT QUEST (CHẠY ĐỘC LẬP)
+-- ==========================================
+task.spawn(function()
+    while task.wait(1) do
+        if _G.YuiKillAllLoops then break end
+        if _G_V10.AutoRepeatQuest or _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm then
+            pcall(function()
+                for _, v in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+                    if v:IsA("RemoteEvent") and v.Name == "Qu" then v:FireServer("Yes") end
+                end
+            end)
+        end
+    end
+end)
+
+-- ==========================================
 -- BẮT CHAT SYSTEM CHECK BOSS SPAWN NHANH
 -- ==========================================
 local lastWorldBossCheckTime = os.clock()
@@ -1079,76 +1111,6 @@ task.spawn(function()
             if playBtn then PhysicalClick(playBtn) end
         end
         TapSafeEdge()
-    end
-end)
-
--- ==========================================
--- MÁY QUÉT MAP TOÀN DIỆN (CHIA NOTE CHO ĐIỆN THOẠI)
--- ==========================================
-local function GetClosestIsland(pos)
-    local islandsFolder = Workspace:FindFirstChild("All") and Workspace.All:FindFirstChild("Island")
-    if not islandsFolder then return "Map" end
-    local closest = "Map"; local minDist = math.huge
-    for _, isl in pairs(islandsFolder:GetChildren()) do
-        local dist = (isl:GetPivot().Position - pos).Magnitude
-        if dist < minDist then minDist = dist; closest = isl.Name end
-    end
-    return closest
-end
-
-task.spawn(function()
-    while task.wait(5) do
-        if _G.YuiKillAllLoops then break end
-        if not _G_V10.AutoScanMap then continue end
-        local hasNewData = false
-        
-        local folders = {}
-        local mode = _G_V10.ScanMode
-        
-        if mode == "Tất Cả" or mode == "Chỉ Boss" or mode == "Chỉ Quái" then
-            if workspace:FindFirstChild("Monster") then table.insert(folders, workspace.Monster) end
-            if workspace:FindFirstChild("Enemies") then table.insert(folders, workspace.Enemies) end
-        end
-        if mode == "Tất Cả" or mode == "Chỉ NPC" then
-            if workspace:FindFirstChild("NPC") then table.insert(folders, workspace.NPC) end
-            if workspace:FindFirstChild("NPCs") then table.insert(folders, workspace.NPCs) end
-        end
-        
-        for _, folder in ipairs(folders) do
-            for _, v in pairs(folder:GetChildren()) do
-                if v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Name ~= LocalPlayer.Name then
-                    local hrp = v:FindFirstChild("HumanoidRootPart"); local hum = v:FindFirstChild("Humanoid")
-                    if hrp and hum and hum.Health > 0 then
-                        local nameStr = v.Name
-                        local isEx = false
-                        for _, ex in pairs(_G_V10.ExcludedMobs) do if string.find(string.lower(nameStr), ex) then isEx = true; break end end
-                        
-                        if not isEx and not _G_V10.ScannerData.Mobs[nameStr] and not _G_V10.ScannerData.Bosses[nameStr] then
-                            local isl = GetClosestIsland(hrp.Position)
-                            local pos = string.format("Vector3.new(%.0f, %.0f, %.0f)", hrp.Position.X, hrp.Position.Y, hrp.Position.Z)
-                            
-                            if hum.MaxHealth > 50000 and (mode == "Tất Cả" or mode == "Chỉ Boss") then
-                                _G_V10.ScannerData.Bosses[nameStr] = {Island = isl, Pos = pos, Level = hum.MaxHealth}
-                                hasNewData = true
-                            elseif hum.MaxHealth <= 50000 and (mode == "Tất Cả" or mode == "Chỉ Quái") then
-                                _G_V10.ScannerData.Mobs[nameStr] = {Island = isl, Pos = pos, Level = hum.MaxHealth}
-                                hasNewData = true
-                            end
-                        end
-                    end
-                end
-                if v:IsA("Model") and (v.Name == "NPC" or v.Parent and v.Parent.Name == "NPC" or v.Parent and v.Parent.Name == "NPCs") and v:FindFirstChild("HumanoidRootPart") then
-                    local nameStr = v.Name
-                    if not _G_V10.ScannerData.NPCs[nameStr] and (mode == "Tất Cả" or mode == "Chỉ NPC") then
-                        local isl = GetClosestIsland(v.HumanoidRootPart.Position)
-                        local pos = string.format("Vector3.new(%.0f, %.0f, %.0f)", v.HumanoidRootPart.Position.X, v.HumanoidRootPart.Position.Y, v.HumanoidRootPart.Position.Z)
-                        _G_V10.ScannerData.NPCs[nameStr] = {Island = isl, Pos = pos}
-                        hasNewData = true
-                    end
-                end
-            end
-        end
-        if hasNewData then AutoSaveTrigger(); RenderScannerLog() end
     end
 end)
 
@@ -1338,7 +1300,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- ENGINE: LÕI JUMP & ANTI-FALL CHỐNG NHẤP NHỔM
+-- ENGINE: LÕI JUMP & ANTI-FALL CHỐNG NHẤP NHỔM VÀ FIX RƠI ĐẤT
 -- ==========================================
 task.spawn(function()
     while task.wait(1) do
@@ -1395,7 +1357,7 @@ end))
 
 local function EnableAntiFall(HRP)
     if not HRP:FindFirstChild("FarmAntiFall") then
-        local AntiFall = Instance.new("BodyVelocity"); AntiFall.Name = "FarmAntiFall"; AntiFall.MaxForce = Vector3.new(9e9, 9e9, 9e9); AntiFall.Velocity = Vector3.new(0, 0, 0); AntiFall.Parent = HRP
+        local AntiFall = Instance.new("BodyVelocity"); AntiFall.Name = "FarmAntiFall"; AntiFall.MaxForce = Vector3.new(9e9, 9e9, 9e9); AntiFall.P = 9e9; AntiFall.Velocity = Vector3.new(0, 0, 0); AntiFall.Parent = HRP
     end
 end
 
@@ -1412,6 +1374,10 @@ table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
             EnableAntiFall(hrp)
             if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall.Velocity = Vector3.new(0, 0, 0) end
             
+            -- FIX LỖI RƠI XUYÊN ĐẤT / XUỐNG NƯỚC BỊ GIẬT
+            hrp.Velocity = Vector3.new(0, 0, 0)
+            hrp.RotVelocity = Vector3.new(0, 0, 0)
+            
             -- ÉP NẰM NGANG BẸP HOẶC KHI LỤM SUN
             if _G_V10.AttackPosition == "Trên Đầu" or _G_V10.AttackPosition == "Dưới Chân" or _G_V10.AttackPosition == "Xoay Tròn" or _G.IsLootingSun then
                 hum.PlatformStand = true
@@ -1427,7 +1393,7 @@ table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
         if _G_V10.FreeFly then
             hum.PlatformStand = true
             if not hrp:FindFirstChild("V10_FreeFlyBV") then
-                local bv = Instance.new("BodyVelocity", hrp); bv.Name = "V10_FreeFlyBV"; bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+                local bv = Instance.new("BodyVelocity", hrp); bv.Name = "V10_FreeFlyBV"; bv.MaxForce = Vector3.new(9e9, 9e9, 9e9); bv.P = 9e9
             end
             local cam = workspace.CurrentCamera
             local moveDir = hum.MoveDirection
@@ -1457,7 +1423,7 @@ local function GetMobForCurrentLevel()
 end
 
 -- ==========================================
--- MAIN COMBAT ENGINE (MƯỢT NHẤT - TRẢ LẠI LÕI V1)
+-- MAIN COMBAT ENGINE (LÕI TÌM QUÁI V1 KHÔNG KẸT LAG)
 -- ==========================================
 local currentSwapState = 1
 local lastSwapTime = os.clock()
@@ -1480,7 +1446,6 @@ local function isValidMobByDatabase(mob)
     return true
 end
 
--- LÕI V1: TÌM TRỰC TIẾP TỪ WORKSPACE KHÔNG CACHE
 local function DirectFind(name)
     local targetName = string.lower(name)
     for _, folderName in ipairs({"Monster", "Enemies", "NPC", "NPCs"}) do
@@ -1520,7 +1485,7 @@ task.spawn(function()
         
         if isFarmingAction and not _G_V10.FreeFly then
             
-            -- ================= LỤM SUN BATTERY ĐỘC LẬP (MUTEX KHÔNG CHO ĐÁNH QUÁI) =================
+            -- ================= LỤM SUN BATTERY ĐỘC LẬP =================
             local targetSun = nil
             if _G_V10.AutoSunBattery then
                 local effects = workspace:FindFirstChild("Effects")
@@ -1537,13 +1502,13 @@ task.spawn(function()
                 HRP.CFrame = CFrame.new(sunPos)
                 if HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall.Velocity = Vector3.new(0,0,0) end
                 
-                task.wait(0.5) -- Chờ đứng im chống giật rồi nhặt
+                task.wait(0.5) 
                 local click = targetSun:FindFirstChild("FruitClick") or targetSun:FindFirstChildWhichIsA("ProximityPrompt", true)
                 if click then
                     if click:IsA("ProximityPrompt") then fireproximityprompt(click)
                     elseif click:IsA("ClickDetector") then fireclickdetector(click) end
                 end
-                continue -- SKIP MỌI HÀNH ĐỘNG COMBAT
+                continue 
             else
                 _G.IsLootingSun = false
             end
@@ -1624,7 +1589,7 @@ task.spawn(function()
                     end
                 end
                 
-                -- TẦNG 3: QUÁI TỌA ĐỘ (ƯU TIÊN TUYỆT ĐỐI THEO THỨ TỰ LỰA CHỌN)
+                -- TẦNG 3: QUÁI TỌA ĐỘ 
                 if not targetMobInstance and not targetWaitPos and _G_V10.AutoCoordMob and #_G_V10.SelectedCoordMobs > 0 then
                     local bestMob = nil; local firstWaitPos = nil; local bestMobName = ""
                     for _, selMobStr in ipairs(_G_V10.SelectedCoordMobs) do
@@ -1784,7 +1749,7 @@ task.spawn(function()
                     else
                         local mobPos = targetMobInstance.HumanoidRootPart.Position
                         
-                        -- FIX NẰM NGANG BẸP SONG SONG MẶT ĐẤT
+                        -- NẰM NGANG BẸP SONG SONG MẶT ĐẤT
                         if _G_V10.AttackPosition == "Trên Đầu" then 
                             HRP.CFrame = CFrame.new(mobPos + Vector3.new(0, _G_V10.AttackDistance, 0)) * CFrame.Angles(math.rad(-90), 0, 0)
                         elseif _G_V10.AttackPosition == "Dưới Chân" then 
@@ -1824,7 +1789,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- ENGINE: SEA EVENT ĐỘC LẬP
+-- ENGINE: SEA EVENT (FIX TỰ MUA THUYỀN VÀ KHÔNG BỊ CHÌM)
 -- ==========================================
 local function GetTargetSeaEvent()
     local monsterFolder = workspace:FindFirstChild("Monster")
@@ -1893,7 +1858,7 @@ task.spawn(function()
                     local targetZone = CoordDB.SeaZones[selZone] or Vector3.new(-19800, 86, 16940)
                     local safeZone = targetZone + Vector3.new(0, 30, 0)
 
-                    -- Nếu chưa ra Zone, nhấc thuyền quăng ra Zone
+                    -- BÊ THUYỀN RA ZONE RỒI MỚI NGỒI CHẠY
                     if not _G_V10.ArrivedAtZone or (seat.Position - targetZone).Magnitude > 2000 then
                         if Hum.Sit then Hum.Sit = false; task.wait(0.2) end
                         if myBoat:IsA("Model") and myBoat.PrimaryPart then 
@@ -1910,7 +1875,6 @@ task.spawn(function()
                         end
                         _G_V10.ArrivedAtZone = true 
                     else
-                        -- Đã ra Zone, lỡ rơi xuống nước thì bay lên ghế lại
                         if _G_V10.AutoSitBoat and not Hum.Sit then 
                             HRP.CFrame = seat.CFrame + Vector3.new(0, 5, 0)
                             task.wait(0.2)
