@@ -1,6 +1,6 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V29 (NO CRASH, NO SINK, FULL STABLE)
--- (TRỊ DỨT ĐIỂM LỖI ĐƠ SCRIPT KHI DÙNG SKILL, KHÓA VỊ TRÍ CHỜ QUÁI CHỐNG RƠI NƯỚC)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V29 (FINAL IMMORTAL EDITION)
+-- (FIX GLOBAL SKILL AFTER DEATH, FAST BOSS SPAWN, KEEP 100% ALL FEATURES)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -851,10 +851,7 @@ CreateDropdown(SecNPC, "Chọn NPC Cần Tìm", ListNPCs, "SelectedNPC", false)
 
 local function InstantTeleport(targetCFrame)
     local HRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if HRP then
-        pcall(function() HRP.AssemblyLinearVelocity = Vector3.new(0,0,0) end)
-        HRP.CFrame = targetCFrame 
-    end
+    if HRP then HRP.CFrame = targetCFrame end
 end
 
 CreateButton(TabIsland, "🚀 DỊCH CHUYỂN ĐẾN MỤC ĐÃ CHỌN BÊN TRÊN", function()
@@ -994,11 +991,46 @@ table.insert(_G.YuiConnections, RunService.Stepped:Connect(function()
 end))
 
 -- ==========================================
--- ENGINE: AUTO SKILL GLOBAL (CHẠY ĐỘC LẬP MƯỢT MÀ)
+-- LÕI BẤM VẬT LÝ & REMOTE SKILL CẢI TIẾN
 -- ==========================================
-local function ForceUseSkill(key)
+local function PhysicalClick(guiObj)
+    if _G.YuiKillAllLoops then return end
+    if not guiObj then return end
+    local inset = GuiService:GetGuiInset()
+    local center = guiObj.AbsolutePosition + (guiObj.AbsoluteSize / 2)
+    VIM:SendMouseButtonEvent(center.X, center.Y + inset.Y, 0, true, game, 0)
+    task.wait(0.05); VIM:SendMouseButtonEvent(center.X, center.Y + inset.Y, 0, false, game, 0)
+end
+
+local function TapSafeEdge()
+    if _G.YuiKillAllLoops then return end
+    local cam = workspace.CurrentCamera
+    if cam then
+        local safeX = cam.ViewportSize.X * 0.75 
+        VIM:SendMouseButtonEvent(safeX, 20, 0, true, game, 0)
+        task.wait(0.05); VIM:SendMouseButtonEvent(safeX, 20, 0, false, game, 0)
+    end
+end
+
+local function SmartFindButton(gui, searchText)
+    for _, obj in pairs(gui:GetDescendants()) do
+        if obj:IsA("TextButton") or obj:IsA("ImageButton") then
+            if obj:IsA("TextButton") and obj.Text and string.find(string.lower(obj.Text), string.lower(searchText)) then return obj end
+            local txtChild = obj:FindFirstChildWhichIsA("TextLabel")
+            if txtChild and txtChild.Text and string.find(string.lower(txtChild.Text), string.lower(searchText)) then return obj end
+        end
+    end
+    return nil
+end
+
+local function PressKey(key)
+    if _G.YuiKillAllLoops then return end
     VIM:SendKeyEvent(true, Enum.KeyCode[key], false, game)
     task.spawn(function() task.wait(0.05); VIM:SendKeyEvent(false, Enum.KeyCode[key], false, game) end)
+end
+
+local function ForceUseSkill(key)
+    PressKey(key) 
     local char = LocalPlayer.Character
     if not char then return end
     local tool = char:FindFirstChildOfClass("Tool")
@@ -1013,16 +1045,29 @@ local function ForceUseSkill(key)
     end
 end
 
+-- ==========================================
+-- ENGINE: AUTO SKILL GLOBAL (CHẠY ĐỘC LẬP MƯỢT MÀ KHÔNG LỖI KHI CHẾT)
+-- ==========================================
 task.spawn(function()
-    while task.wait(_G_V10.SkillSpamDelay or 0.1) do
+    while task.wait(0.1) do
         if _G.YuiKillAllLoops then break end
-        if _G_V10.AutoSkill then
-            if _G_V10.Skill_Z then ForceUseSkill("Z") end
-            if _G_V10.Skill_X then ForceUseSkill("X") end
-            if _G_V10.Skill_C then ForceUseSkill("C") end
-            if _G_V10.Skill_V then ForceUseSkill("V") end
-            if _G_V10.Skill_F then ForceUseSkill("F") end
-        end
+        pcall(function()
+            if _G_V10.AutoSkill then
+                local delay = tonumber(_G_V10.SkillSpamDelay) or 0.1
+                if not _G.LastGlobalSkillTime then _G.LastGlobalSkillTime = os.clock() end
+                if os.clock() - _G.LastGlobalSkillTime >= delay then
+                    _G.LastGlobalSkillTime = os.clock()
+                    local char = LocalPlayer.Character
+                    if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+                        if _G_V10.Skill_Z then ForceUseSkill("Z") end
+                        if _G_V10.Skill_X then ForceUseSkill("X") end
+                        if _G_V10.Skill_C then ForceUseSkill("C") end
+                        if _G_V10.Skill_V then ForceUseSkill("V") end
+                        if _G_V10.Skill_F then ForceUseSkill("F") end
+                    end
+                end
+            end
+        end)
     end
 end)
 
@@ -1066,57 +1111,77 @@ end
 pcall(MonitorChatForBosses)
 
 -- ==========================================
--- ENGINE: AUTO BYPASS MAIN MENU
+-- MÁY QUÉT MAP TOÀN DIỆN (CHIA NOTE CHO ĐIỆN THOẠI)
 -- ==========================================
-local function TapSafeEdge()
-    if _G.YuiKillAllLoops then return end
-    local cam = workspace.CurrentCamera
-    if cam then
-        local safeX = cam.ViewportSize.X * 0.75 
-        VIM:SendMouseButtonEvent(safeX, 20, 0, true, game, 0)
-        task.wait(0.05); VIM:SendMouseButtonEvent(safeX, 20, 0, false, game, 0)
+local function GetClosestIsland(pos)
+    local islandsFolder = Workspace:FindFirstChild("All") and Workspace.All:FindFirstChild("Island")
+    if not islandsFolder then return "Map" end
+    local closest = "Map"; local minDist = math.huge
+    for _, isl in pairs(islandsFolder:GetChildren()) do
+        local dist = (isl:GetPivot().Position - pos).Magnitude
+        if dist < minDist then minDist = dist; closest = isl.Name end
     end
-end
-
-local function SmartFindButton(gui, searchText)
-    for _, obj in pairs(gui:GetDescendants()) do
-        if obj:IsA("TextButton") or obj:IsA("ImageButton") then
-            if obj:IsA("TextButton") and obj.Text and string.find(string.lower(obj.Text), string.lower(searchText)) then return obj end
-            local txtChild = obj:FindFirstChildWhichIsA("TextLabel")
-            if txtChild and txtChild.Text and string.find(string.lower(txtChild.Text), string.lower(searchText)) then return obj end
-        end
-    end
-    return nil
-end
-
-local function PhysicalClick(guiObj)
-    if _G.YuiKillAllLoops then return end
-    if not guiObj then return end
-    local inset = GuiService:GetGuiInset()
-    local center = guiObj.AbsolutePosition + (guiObj.AbsoluteSize / 2)
-    VIM:SendMouseButtonEvent(center.X, center.Y + inset.Y, 0, true, game, 0)
-    task.wait(0.05); VIM:SendMouseButtonEvent(center.X, center.Y + inset.Y, 0, false, game, 0)
+    return closest
 end
 
 task.spawn(function()
-    if not _G_V10.AutoBypassMenu then return end
-    local endTime = os.clock() + _G_V10.BypassDuration
-    while os.clock() < endTime do
+    while task.wait(5) do
         if _G.YuiKillAllLoops then break end
-        task.wait(0.5)
-        local pg = LocalPlayer:FindFirstChild("PlayerGui")
-        if pg then
-            local loadBtn = SmartFindButton(pg, "Load Data") or SmartFindButton(pg, "Load") or SmartFindButton(pg, "Accept")
-            local playBtn = SmartFindButton(pg, "Play") or SmartFindButton(pg, "Join") or SmartFindButton(pg, "Start")
-            if loadBtn then PhysicalClick(loadBtn) end
-            if playBtn then PhysicalClick(playBtn) end
+        if not _G_V10.AutoScanMap then continue end
+        local hasNewData = false
+        
+        local folders = {}
+        local mode = _G_V10.ScanMode
+        
+        if mode == "Tất Cả" or mode == "Chỉ Boss" or mode == "Chỉ Quái" then
+            if workspace:FindFirstChild("Monster") then table.insert(folders, workspace.Monster) end
+            if workspace:FindFirstChild("Enemies") then table.insert(folders, workspace.Enemies) end
         end
-        TapSafeEdge()
+        if mode == "Tất Cả" or mode == "Chỉ NPC" then
+            if workspace:FindFirstChild("NPC") then table.insert(folders, workspace.NPC) end
+            if workspace:FindFirstChild("NPCs") then table.insert(folders, workspace.NPCs) end
+        end
+        
+        for _, folder in ipairs(folders) do
+            for _, v in pairs(folder:GetChildren()) do
+                if v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Name ~= LocalPlayer.Name then
+                    local hrp = v:FindFirstChild("HumanoidRootPart"); local hum = v:FindFirstChild("Humanoid")
+                    if hrp and hum and hum.Health > 0 then
+                        local nameStr = v.Name
+                        local isEx = false
+                        for _, ex in pairs(_G_V10.ExcludedMobs) do if string.find(string.lower(nameStr), ex) then isEx = true; break end end
+                        
+                        if not isEx and not _G_V10.ScannerData.Mobs[nameStr] and not _G_V10.ScannerData.Bosses[nameStr] then
+                            local isl = GetClosestIsland(hrp.Position)
+                            local pos = string.format("Vector3.new(%.0f, %.0f, %.0f)", hrp.Position.X, hrp.Position.Y, hrp.Position.Z)
+                            
+                            if hum.MaxHealth > 50000 and (mode == "Tất Cả" or mode == "Chỉ Boss") then
+                                _G_V10.ScannerData.Bosses[nameStr] = {Island = isl, Pos = pos, Level = hum.MaxHealth}
+                                hasNewData = true
+                            elseif hum.MaxHealth <= 50000 and (mode == "Tất Cả" or mode == "Chỉ Quái") then
+                                _G_V10.ScannerData.Mobs[nameStr] = {Island = isl, Pos = pos, Level = hum.MaxHealth}
+                                hasNewData = true
+                            end
+                        end
+                    end
+                end
+                if v:IsA("Model") and (v.Name == "NPC" or v.Parent and v.Parent.Name == "NPC" or v.Parent and v.Parent.Name == "NPCs") and v:FindFirstChild("HumanoidRootPart") then
+                    local nameStr = v.Name
+                    if not _G_V10.ScannerData.NPCs[nameStr] and (mode == "Tất Cả" or mode == "Chỉ NPC") then
+                        local isl = GetClosestIsland(v.HumanoidRootPart.Position)
+                        local pos = string.format("Vector3.new(%.0f, %.0f, %.0f)", v.HumanoidRootPart.Position.X, v.HumanoidRootPart.Position.Y, v.HumanoidRootPart.Position.Z)
+                        _G_V10.ScannerData.NPCs[nameStr] = {Island = isl, Pos = pos}
+                        hasNewData = true
+                    end
+                end
+            end
+        end
+        if hasNewData then AutoSaveTrigger(); RenderScannerLog() end
     end
 end)
 
 -- ==========================================
--- ENGINE: MUA WORLD RAID, MUA RAID THƯỜNG & SPAWN BOSS
+-- ENGINE: MUA WORLD RAID, MUA RAID THƯỜNG & SPAWN BOSS (SPEED TỐI ĐA 0.3s)
 -- ==========================================
 task.spawn(function()
     while task.wait(0.5) do
@@ -1138,7 +1203,7 @@ task.spawn(function()
                 end
             else
                 local buyBtn = SmartFindButton(talkingGui, "Buy with money") or SmartFindButton(talkingGui, "Buy with Beli") or SmartFindButton(talkingGui, "Buy")
-                if buyBtn then task.wait(1.5); PhysicalClick(buyBtn); task.wait(1); TapSafeEdge() else TapSafeEdge() end
+                if buyBtn then task.wait(0.3); PhysicalClick(buyBtn); task.wait(0.3); TapSafeEdge() else TapSafeEdge() end
             end
         end
     end
@@ -1156,10 +1221,10 @@ task.spawn(function()
         if not talkingGui then
             local npc = Workspace:FindFirstChild("NPC") and Workspace.NPC:FindFirstChild("Stone Statue")
             if npc then task.spawn(function() pcall(function() ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(npc, npc, npc) end) end) end
-            task.wait(1)
+            task.wait(0.3)
         else
             local amtBtn = SmartFindButton(talkingGui, _G_V10.MihawkAmount)
-            if amtBtn then task.wait(1.5); PhysicalClick(amtBtn); task.wait(1); TapSafeEdge() else task.wait(1); TapSafeEdge() end
+            if amtBtn then task.wait(0.3); PhysicalClick(amtBtn); task.wait(0.3); TapSafeEdge() else task.wait(0.3); TapSafeEdge() end
         end
     end
 end)
@@ -1176,12 +1241,12 @@ task.spawn(function()
         if not talkingGui then
             local npc = Workspace:FindFirstChild("NPC") and Workspace.NPC:FindFirstChild("Shadow 1")
             if npc then task.spawn(function() pcall(function() ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(npc, npc, npc) end) end) end
-            task.wait(1)
+            task.wait(0.3)
         else
             local itemBtn = SmartFindButton(talkingGui, _G_V10.ShadowItem)
             local amtBtn = SmartFindButton(talkingGui, _G_V10.ShadowAmount)
-            task.wait(1.5)
-            if itemBtn then PhysicalClick(itemBtn); task.wait(1); TapSafeEdge() elseif amtBtn then PhysicalClick(amtBtn); task.wait(1); TapSafeEdge() else task.wait(1); TapSafeEdge() end
+            task.wait(0.3)
+            if itemBtn then PhysicalClick(itemBtn); task.wait(0.3); TapSafeEdge() elseif amtBtn then PhysicalClick(amtBtn); task.wait(0.3); TapSafeEdge() else task.wait(0.3); TapSafeEdge() end
         end
     end
 end)
@@ -1325,6 +1390,16 @@ table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
             end
             af.Velocity = Vector3.new(0, 0, 0)
             
+            -- FIX LỖI RƠI XUYÊN ĐẤT / TRÔI XUỐNG NƯỚC KHI DÙNG SKILL
+            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            
+            for _, v in pairs(hrp:GetChildren()) do
+                if (v:IsA("BodyVelocity") or v:IsA("BodyPosition") or v:IsA("BodyForce") or v:IsA("BodyThrust")) and v.Name ~= "FarmAntiFall" and v.Name ~= "V10_FreeFlyBV" then
+                    v:Destroy()
+                end
+            end
+
             -- FIX ĐỨNG DẬY, NẰM NGANG
             if _G_V10.AttackPosition == "Trên Đầu" or _G_V10.AttackPosition == "Dưới Chân" or _G_V10.AttackPosition == "Xoay Tròn" or _G.IsLootingSun then
                 hum.PlatformStand = true
@@ -1409,6 +1484,7 @@ task.spawn(function()
         local Hum = char:FindFirstChild("Humanoid")
         
         if not HRP or not Hum or Hum.Health <= 0 then 
+            if HRP and HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall:Destroy() end
             lastWorldBossCheckTime = os.clock(); lastNormalBossCheckTime = os.clock()
             _G.WorldBossWaitStarted = nil; _G.NormalBossWaitStarted = nil
             _G.IsLootingSun = false
@@ -1435,8 +1511,9 @@ task.spawn(function()
                 LblCoordInfo.Text = "Raid: Đang lụm Sun Battery!"
                 local sunPos = targetSun:IsA("Model") and targetSun:GetPivot().Position or targetSun.Position
                 HRP.CFrame = CFrame.new(sunPos)
+                if HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall.Velocity = Vector3.new(0,0,0) end
                 
-                task.wait(0.2)
+                task.wait(0.5) 
                 local click = targetSun:FindFirstChild("FruitClick") or targetSun:FindFirstChildWhichIsA("ProximityPrompt", true)
                 if click then
                     if click:IsA("ProximityPrompt") then fireproximityprompt(click)
@@ -1656,6 +1733,14 @@ task.spawn(function()
                     if _G_V10.AutoClick then
                         local equippedTool = char:FindFirstChildWhichIsA("Tool"); if equippedTool then equippedTool:Activate() end
                     end
+                    
+                    if os.clock() - lastSkillSpamTime >= _G_V10.SkillSpamDelay then
+                        lastSkillSpamTime = os.clock()
+                        if _G_V10.AutoSwapWeapon then
+                            local prefix = (currentSwapState == 1) and "W1_" or "W2_"
+                            if _G_V10[prefix.."Z"] then ForceUseSkill("Z") end; if _G_V10[prefix.."X"] then ForceUseSkill("X") end; if _G_V10[prefix.."C"] then ForceUseSkill("C") end; if _G_V10[prefix.."V"] then ForceUseSkill("V") end; if _G_V10[prefix.."B"] then ForceUseSkill("B") end; if _G_V10[prefix.."F"] then ForceUseSkill("F") end
+                        end
+                    end
                 end
                 
                 if targetMobInstance then
@@ -1666,6 +1751,7 @@ task.spawn(function()
                         local dodgeOffset = Vector3.new(math.cos(angle) * radius, 20, math.sin(angle) * radius)
                         HRP.CFrame = CFrame.new(mobPos + dodgeOffset, mobPos)
                     elseif forcePzozoSpin then
+                        -- LƯỢN VÒNG QUANH PZOZO (KHÔNG CẦM VŨ KHÍ)
                         local angle = tick() * tonumber(_G_V10.PzozoSpinSpeed)
                         local radius = tonumber(_G_V10.PzozoSpinRadius)
                         local mobPos = targetMobInstance.HumanoidRootPart.Position
@@ -1673,6 +1759,8 @@ task.spawn(function()
                         HRP.CFrame = CFrame.new(mobPos + dodgeOffset, mobPos)
                     else
                         local mobPos = targetMobInstance.HumanoidRootPart.Position
+                        
+                        -- FIX NẰM NGANG BẸP SONG SONG MẶT ĐẤT
                         if _G_V10.AttackPosition == "Trên Đầu" then 
                             HRP.CFrame = CFrame.new(mobPos + Vector3.new(0, _G_V10.AttackDistance, 0)) * CFrame.Angles(math.rad(-90), 0, 0)
                         elseif _G_V10.AttackPosition == "Dưới Chân" then 
@@ -1688,7 +1776,7 @@ task.spawn(function()
                     end
                 end
             else
-                -- NÂNG ĐỘ CAO +40 ĐỂ TRÁNH TRÔI XUỐNG ĐẤT NƯỚC KHI KHÔNG CÓ QUÁI
+                -- BẢN FIX: KHÔNG CÓ QUÁI CHỜ Ở ĐỘ CAO +40 ĐỂ TRÁNH TRÔI XUYÊN ĐẤT
                 if targetWaitPos then
                     local safeWaitPos = targetWaitPos + Vector3.new(0, 40, 0) 
                     if (HRP.Position - safeWaitPos).Magnitude > 50 then HRP.CFrame = CFrame.new(safeWaitPos) 
@@ -1756,6 +1844,7 @@ task.spawn(function()
         else
             if _G_V10.IsFightingSea then _G_V10.IsFightingSea = false; VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game) end
             
+            -- AUTO BUY GALLEON NẾU MẤT THUYỀN
             if not myBoat then
                 _G_V10.ArrivedAtZone = false
                 local shopPos = Vector3.new(-16021, 58, 11133)
