@@ -1,6 +1,6 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V35 (USER'S PERFECT PHYSICS + RAID FORM FIX)
--- (LẮP LẠI CƠ CHẾ VẬT LÝ GỐC CỦA USER, FIX BOSS RAID DẠNG 2, FULL 100% CODE)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V36 (FULL SYSTEM OVERHAUL & FIX BYPASS)
+-- (TỔNG QUÉT TOÀN DIỆN: FIX AUTO BYPASS, GIỮ NGUYÊN 100% CƠ CHẾ VẬT LÝ & ĐI BIỂN)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -52,7 +52,7 @@ local CoordDB = {
         ["Zone 4"] = Vector3.new(-35042, 29, 31786)
     },
     Mobs = {
-        ["Elf [Lv.1300]"] = {Level=1300, Pos=Vector3.new(1212, 49, 5998), Island="Rovaniemi Town"},
+        ["Elf [Lv.1300]"] = {Level=1300, Pos=Vector3.new(1212, 49, 5998), Island="Rovani Town"},
         ["Seaman [Lv.50]"] = {Level=50, Pos=Vector3.new(1074, 69, -3396), Island="Shell Island"},
         ["Ryuma [Lv.675]"] = {Level=675, Pos=Vector3.new(-10365, 63, -2891), Island="Thriller Bark"},
         ["Bruno [Lv.600]"] = {Level=600, Pos=Vector3.new(-6217, 51, 3846), Island="Enies Lobby"},
@@ -182,6 +182,7 @@ local CoordDB = {
     }
 }
 
+-- MẢNG ARRAY DATA UI CÓ SẴN
 local ListWorldBoss = {}
 for k, _ in pairs(CoordDB.WorldBosses) do table.insert(ListWorldBoss, k) end
 table.sort(ListWorldBoss)
@@ -194,6 +195,7 @@ local ListNPCs = {}
 for name, data in pairs(CoordDB.NPCs) do table.insert(ListNPCs, string.format("[%s] %s", data.Island, name)) end
 table.sort(ListNPCs)
 
+-- QUÁI CHIA ĐẢO CÓ CẦU VỒNG
 local IslandMobs = {}
 for name, data in pairs(CoordDB.Mobs) do
     if not IslandMobs[data.Island] then IslandMobs[data.Island] = {} end
@@ -250,6 +252,7 @@ local DefaultConfig = {
     AutoFarmBossRaid = false, SelectedRaidBosses = {}, AlwaysSpinPzozo = false, PzozoSpinRadius = 30, PzozoSpinSpeed = 3,
     AutoIdlePatrol = false, IdleWait1 = "10", IdleWait2 = "10",
     GlobalSafeHP = false, GlobalSafeHP_Min = 30, GlobalSafeHP_Timer = false, GlobalSafeHP_Time = 15, GlobalSafeHP_Spin = true, GlobalDodgeRadius = 50,
+    
     AutoBypassMenu = true, BypassDuration = 10,
     AutoCoordMob = false, SelectedCoordMobs = {}, AutoWorldBoss = false, SelectedWorldBosses = {}, AutoNormalBoss = false, SelectedNormalBosses = {}, BossCheckDelay = 5,
     AutoSpawnMihawk = false, MihawkAmount = "x1", AutoGiveShadow = false, ShadowItem = "Shadow Spirit", ShadowAmount = "x1",
@@ -968,8 +971,8 @@ CreateButton(SecCfgLoad, "📂 TẢI BẢN ĐÃ CHỌN (LOAD)", function() LoadC
 local SecCfgBypass = CreateSection(TabConfig, "AUTO BYPASS", Color3.fromRGB(0, 200, 255))
 CreateToggleSwitch(SecCfgBypass, "Bật Auto Lưu (Lưu mỗi khi thay đổi)", "AutoSaveConfig")
 CreateToggleSwitch(SecCfgBypass, "Bật Auto Load (Khi vào lại game)", "AutoLoadConfig")
-CreateToggleSwitch(SecCfgBypass, "Bật Auto Bypass Load Data Lúc Mới Mở", "AutoBypassMenu")
-CreateSlider(SecCfgBypass, "Thời Gian Chạy Bypass Lúc Đầu (Giây)", 1, 100, "BypassDuration")
+CreateToggleSwitch(SecCfgBypass, "Bật Auto Bypass Load Data & Play Lúc Vừa Mở", "AutoBypassMenu")
+CreateSlider(SecCfgBypass, "Thời Gian Chạy Bypass (Giây)", 1, 100, "BypassDuration")
 
 CreateButton(SecCfgBypass, "⚠️ RESET TOÀN BỘ MENU VỀ MẶC ĐỊNH", function()
     for k, v in pairs(DefaultConfig) do if k ~= "ScannedMonstersList" and k ~= "ScannerData" then _G_V10[k] = v end end
@@ -1005,13 +1008,14 @@ table.insert(_G.YuiConnections, RunService.Stepped:Connect(function()
 end))
 
 -- ==========================================
--- ENGINE CHỐNG RƠI BẤT TỬ (LẤY LẠI CƠ CHẾ GỐC CỦA BẠN - V35)
+-- ENGINE CHỐNG RƠI BẤT TỬ (V36 CỰC ĐỈNH - KHÔNG RƠI XUYÊN ĐẤT)
 -- ==========================================
 local function EnableAntiFall(HRP)
-    if not HRP:FindFirstChild("FarmAntiFall") then
-        local AntiFall = Instance.new("BodyVelocity")
+    local AntiFall = HRP:FindFirstChild("FarmAntiFall")
+    if not AntiFall then
+        AntiFall = Instance.new("BodyVelocity")
         AntiFall.Name = "FarmAntiFall"
-        AntiFall.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        AntiFall.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
         AntiFall.Velocity = Vector3.new(0, 0, 0)
         AntiFall.Parent = HRP
     end
@@ -1035,9 +1039,6 @@ table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
             hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
             hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
             if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall.Velocity = Vector3.new(0, 0, 0) end
-            
-            -- KHÔNG XÓA ĐỒ CỦA GAME, CHỈ ÉP LỰC CHỐNG RƠI THEO MÃ BẠN CHO TRƯỚC
-            -- KHÔNG ÉP PLATFORMSTAND ĐỂ TRÁNH RƠI XUYÊN ĐẤT KHI SKILL
             
             for _, v in pairs(char:GetDescendants()) do
                 if v:IsA("BasePart") then v.CanCollide = false end
@@ -1167,6 +1168,31 @@ local function MonitorChatForBosses()
     end
 end
 pcall(MonitorChatForBosses)
+
+-- ==========================================
+-- ENGINE: AUTO BYPASS MAIN MENU V36 (VÒNG LẶP VĨNH VIỄN AN TOÀN)
+-- ==========================================
+task.spawn(function()
+    while task.wait(1) do
+        if _G.YuiKillAllLoops then break end
+        if _G_V10.AutoBypassMenu then
+            pcall(function()
+                local pg = LocalPlayer:FindFirstChild("PlayerGui")
+                if pg then
+                    local function clickBtn(name)
+                        local btn = SmartFindButton(pg, name)
+                        if btn and btn.Visible and btn.AbsolutePosition.X > 0 then
+                            PhysicalClick(btn)
+                            return true
+                        end
+                        return false
+                    end
+                    clickBtn("Load") or clickBtn("Accept") or clickBtn("Play") or clickBtn("Join") or clickBtn("Start")
+                end
+            end)
+        end
+    end
+end)
 
 -- ==========================================
 -- ENGINE: MUA WORLD RAID, MUA RAID THƯỜNG & SPAWN BOSS
@@ -1409,7 +1435,7 @@ table.insert(_G.YuiConnections, UIS.JumpRequest:Connect(function()
 end))
 
 -- ==========================================
--- MAIN COMBAT ENGINE (FIX RAID BOSS DẠNG 2 BẰNG STRING.FIND)
+-- MAIN COMBAT ENGINE (SMART SWAP & HOVER SAFE)
 -- ==========================================
 local currentSwapState = 1
 local lastSwapTime = os.clock()
@@ -1432,7 +1458,6 @@ local function isValidMobByDatabase(mob)
     return true
 end
 
--- V35 FIX: Tìm kiếm linh hoạt với string.find (Giúp bắt được Pzozo hoặc Seluna dạng 2)
 local function DirectFind(name)
     local targetName = string.lower(name)
     for _, folderName in ipairs({"Monster", "Enemies", "NPC", "NPCs"}) do
@@ -1460,7 +1485,6 @@ task.spawn(function()
         local Hum = char:FindFirstChild("Humanoid")
         
         if not HRP or not Hum or Hum.Health <= 0 then 
-            if HRP and HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall:Destroy() end
             lastWorldBossCheckTime = os.clock(); lastNormalBossCheckTime = os.clock()
             _G.WorldBossWaitStarted = nil; _G.NormalBossWaitStarted = nil
             _G.IsLootingSun = false
@@ -1487,7 +1511,6 @@ task.spawn(function()
                 LblCoordInfo.Text = "Raid: Đang lụm Sun Battery!"
                 local sunPos = targetSun:IsA("Model") and targetSun:GetPivot().Position or targetSun.Position
                 HRP.CFrame = CFrame.new(sunPos)
-                if HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall.Velocity = Vector3.new(0,0,0) end
                 
                 task.wait(0.5) 
                 local click = targetSun:FindFirstChild("FruitClick") or targetSun:FindFirstChildWhichIsA("ProximityPrompt", true)
@@ -1624,7 +1647,7 @@ task.spawn(function()
                     end
                 end
 
-                -- TẦNG 5: FARM TÙY CHỌN / CÀN QUÉT MAP / LEVEL / RAID THƯỜNG
+                -- TẦNG 5: FARM TÙY CHỌN / CÀN QUÉT MAP / LEVEL
                 if not targetMobInstance and not targetWaitPos then
                     if _G_V10.AutoFarmLevel then
                         local mob, qName = GetMobForCurrentLevel(); _G_V10.CurrentTargetMob = {mob}; LblInfo.Text = "Farm Level: " .. qName
@@ -1685,14 +1708,13 @@ task.spawn(function()
                 end
             else isGlobalDodging = false end
 
-            -- ================= HÀNH ĐỘNG CỦA NHÂN VẬT & SMART SWAP V35 =================
+            -- ================= HÀNH ĐỘNG CỦA NHÂN VẬT & SMART SWAP V36 =================
             if targetMobInstance or (_G_V10.AutoSea and _G_V10.IsFightingSea) then
                 raidPatrolState = "Wait_C1"; raidPatrolTimer = os.clock()
                 
                 local forcePzozoSpin = false
                 if targetMobInstance and string.find(string.lower(targetMobInstance.Name), "pzozolove112") and _G_V10.AlwaysSpinPzozo then forcePzozoSpin = true end
 
-                -- CHỈ XẢ SKILL VŨ KHÍ NẾU KHÔNG PHẢI LÀ PZOZO SPIN VÀ KHÔNG NÉ
                 if not isGlobalDodging and not forcePzozoSpin then
                     if _G_V10.AutoSwapWeapon and _G_V10.PrimaryWeapon and _G_V10.SecondaryWeapon then
                         if currentSwapState == 1 then
@@ -1771,20 +1793,25 @@ task.spawn(function()
                     end
                 end
             else
+                -- HOVER LÊN ĐỘ CAO +40 ĐỂ AN TOÀN TRÁNH TRÔI XUYÊN ĐẤT
                 if targetWaitPos then
-                    if (HRP.Position - targetWaitPos).Magnitude > 50 then HRP.CFrame = CFrame.new(targetWaitPos) 
-                    else HRP.CFrame = CFrame.new(targetWaitPos) end
+                    local safeWaitPos = targetWaitPos + Vector3.new(0, 40, 0) 
+                    if (HRP.Position - safeWaitPos).Magnitude > 50 then HRP.CFrame = CFrame.new(safeWaitPos) 
+                    else HRP.CFrame = CFrame.new(safeWaitPos) end
                 elseif _G_V10.AutoFarmRaid then
                     local distToRaidMap = (HRP.Position - Vector3.new(-123, 114, 407)).Magnitude
                     if distToRaidMap < 3000 then
                         if raidPatrolState == "Wait_C1" then
-                            if (HRP.Position - C1.Position).Magnitude > 10 then HRP.CFrame = C1; raidPatrolTimer = os.clock()
+                            local c1_safe = C1.Position + Vector3.new(0, 40, 0)
+                            if (HRP.Position - c1_safe).Magnitude > 10 then HRP.CFrame = CFrame.new(c1_safe); raidPatrolTimer = os.clock()
                             elseif os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC1) then raidPatrolState = "Wait_C2"; raidPatrolTimer = os.clock() end
                         elseif raidPatrolState == "Wait_C2" then
-                            if (HRP.Position - C2.Position).Magnitude > 10 then HRP.CFrame = C2; raidPatrolTimer = os.clock()
+                            local c2_safe = C2.Position + Vector3.new(0, 40, 0)
+                            if (HRP.Position - c2_safe).Magnitude > 10 then HRP.CFrame = CFrame.new(c2_safe); raidPatrolTimer = os.clock()
                             elseif os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC2) then raidPatrolState = "Wait_C3"; raidPatrolTimer = os.clock() end
                         elseif raidPatrolState == "Wait_C3" then
-                            if (HRP.Position - C3.Position).Magnitude > 10 then HRP.CFrame = C3; raidPatrolTimer = os.clock()
+                            local c3_safe = C3.Position + Vector3.new(0, 40, 0)
+                            if (HRP.Position - c3_safe).Magnitude > 10 then HRP.CFrame = CFrame.new(c3_safe); raidPatrolTimer = os.clock()
                             elseif os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC3) then raidPatrolState = "Wait_C2"; raidPatrolTimer = os.clock() end
                         end
                     end
