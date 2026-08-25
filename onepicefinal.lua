@@ -1,6 +1,6 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V20 (THE MASTERPIECE)
--- (FIX AUTO QUEST, DIALOG SKIP, RAID BOSS IDLE PATROL, WORLD RAID IN/OUT)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V21 (FINAL NO-GLITCH MASTERPIECE)
+-- (FIX SUN BATTERY MUTEX, GLOBAL SKILL SPAM, PZOZO 1000 RADIUS, FIX NPC DELAY)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -237,7 +237,7 @@ local DefaultConfig = {
     SeaZone = Vector3.new(-15610, 39, 37071), IsFightingSea = false, ArrivedAtZone = false,
     
     AutoBuyWorldRaid = false, WorldRaidLocation = "Out (Ngoài Map)", AutoBuyRaid = false, AutoStartRaid = false, AutoJoinGame = false, AutoFarmRaid = false, AutoSunBattery = false,
-    AutoTeleEntrance = false, AutoTeleReRaid = false, RaidEntranceDelay = 2, RaidReRaidDelay = 2, RaidBuyTeleportDelay = 2,
+    AutoTeleEntrance = false, AutoTeleReRaid = false, RaidEntranceDelay = 2, RaidReRaidDelay = 2, RaidBuyTeleportDelay = 2, RaidWaitC1 = "10", RaidWaitC2 = "10", RaidWaitC3 = "15",
     
     -- BOSS RAID THÔNG MINH
     AutoFarmBossRaid = false, SelectedRaidBosses = {}, AlwaysSpinPzozo = false, PzozoSpinRadius = 30, PzozoSpinSpeed = 3,
@@ -451,7 +451,7 @@ MinBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- UI COMPONENTS (BOX)
+-- HÀM TẠO UI COMPONENTS
 -- ==========================================
 local Pages = {}
 local function CreateTab(name)
@@ -630,7 +630,7 @@ local function CreateTextBox(parent, placeholder, callback)
 end
 
 -- ==========================================
--- XÂY DỰNG TABS ĐẦY ĐỦ (FULL MENU)
+-- XÂY DỰNG TABS ĐẦY ĐỦ 
 -- ==========================================
 local TabSettings = CreateTab("⚙️ Cài Đặt Chung & Skill")
 local TabMainFarm = CreateTab("⚔️ Main Farm (All in 1)")
@@ -768,8 +768,8 @@ CreateToggleSwitch(SecRaidBuy, "Tự Động Bấm Play/Join Game", "AutoJoinGam
 local SecRaidBoss = CreateSection(TabRaidHub, "FARM BOSS RAID (Seluna & pzozolove)", Color3.fromRGB(255, 50, 200))
 CreateDropdown(SecRaidBoss, "Chọn Boss Raid Cần Đánh", {"Seluna", "pzozolove112"}, "SelectedRaidBosses", true, true)
 CreateToggleSwitch(SecRaidBoss, "Bật Auto Farm Boss Raid", "AutoFarmBossRaid")
-CreateToggleSwitch(SecRaidBoss, "Luôn Xoay Tròn Khi Đánh pzozolove112 (Không đánh)", "AlwaysSpinPzozo")
-CreateSlider(SecRaidBoss, "Bán Kính Xoay Pzozo", 10, 100, "PzozoSpinRadius")
+CreateToggleSwitch(SecRaidBoss, "Luôn Xoay Tròn Quanh pzozolove112 (Không đánh)", "AlwaysSpinPzozo")
+CreateSlider(SecRaidBoss, "Bán Kính Xoay Pzozo", 10, 1000, "PzozoSpinRadius")
 CreateSlider(SecRaidBoss, "Tốc Độ Xoay Pzozo", 1, 20, "PzozoSpinSpeed")
 
 local SecIdlePatrol = CreateSection(TabRaidHub, "CHẾ ĐỘ CHỜ KHI KHÔNG CÓ QUÁI (IDLE PATROL)", Color3.fromRGB(150, 200, 255))
@@ -1026,6 +1026,22 @@ local function ForceUseSkill(key)
 end
 
 -- ==========================================
+-- ENGINE: AUTO SKILL GLOBAL (LUÔN XẢ CHIÊU BẤT CHẤP CÓ QUÁI HAY KHÔNG)
+-- ==========================================
+task.spawn(function()
+    while task.wait(_G_V10.SkillSpamDelay or 0.1) do
+        if _G.YuiKillAllLoops then break end
+        if _G_V10.AutoSkill then
+            if _G_V10.Skill_Z then ForceUseSkill("Z") end
+            if _G_V10.Skill_X then ForceUseSkill("X") end
+            if _G_V10.Skill_C then ForceUseSkill("C") end
+            if _G_V10.Skill_V then ForceUseSkill("V") end
+            if _G_V10.Skill_F then ForceUseSkill("F") end
+        end
+    end
+end)
+
+-- ==========================================
 -- BẮT CHAT SYSTEM CHECK BOSS SPAWN NHANH
 -- ==========================================
 local lastWorldBossCheckTime = os.clock()
@@ -1069,7 +1085,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- ENGINE: MUA WORLD RAID, MUA RAID THƯỜNG & SPAWN BOSS
+-- ENGINE: MUA WORLD RAID, MUA RAID THƯỜNG & SPAWN BOSS (ĐÃ FIX DELAY)
 -- ==========================================
 task.spawn(function()
     while task.wait(0.5) do
@@ -1091,7 +1107,7 @@ task.spawn(function()
                 end
             else
                 local buyBtn = SmartFindButton(talkingGui, "Buy with money") or SmartFindButton(talkingGui, "Buy with Beli") or SmartFindButton(talkingGui, "Buy")
-                if buyBtn then PhysicalClick(buyBtn) end
+                if buyBtn then task.wait(1.5); PhysicalClick(buyBtn) end
             end
         end
     end
@@ -1109,10 +1125,10 @@ task.spawn(function()
         if not talkingGui then
             local npc = Workspace:FindFirstChild("NPC") and Workspace.NPC:FindFirstChild("Stone Statue")
             if npc then task.spawn(function() pcall(function() ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(npc, npc, npc) end) end) end
-            task.wait(0.5)
+            task.wait(1)
         else
             local amtBtn = SmartFindButton(talkingGui, _G_V10.MihawkAmount)
-            if amtBtn then task.wait(0.5); PhysicalClick(amtBtn); task.wait(0.5); TapSafeEdge() else TapSafeEdge() end
+            if amtBtn then task.wait(1.5); PhysicalClick(amtBtn); task.wait(1); TapSafeEdge() else task.wait(1); TapSafeEdge() end
         end
     end
 end)
@@ -1129,12 +1145,12 @@ task.spawn(function()
         if not talkingGui then
             local npc = Workspace:FindFirstChild("NPC") and Workspace.NPC:FindFirstChild("Shadow 1")
             if npc then task.spawn(function() pcall(function() ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(npc, npc, npc) end) end) end
-            task.wait(0.5)
+            task.wait(1)
         else
             local itemBtn = SmartFindButton(talkingGui, _G_V10.ShadowItem)
             local amtBtn = SmartFindButton(talkingGui, _G_V10.ShadowAmount)
-            task.wait(0.5)
-            if itemBtn then PhysicalClick(itemBtn); task.wait(0.5); TapSafeEdge() elseif amtBtn then PhysicalClick(amtBtn); task.wait(0.5); TapSafeEdge() else TapSafeEdge() end
+            task.wait(1.5)
+            if itemBtn then PhysicalClick(itemBtn); task.wait(1); TapSafeEdge() elseif amtBtn then PhysicalClick(amtBtn); task.wait(1); TapSafeEdge() else task.wait(1); TapSafeEdge() end
         end
     end
 end)
@@ -1174,7 +1190,7 @@ task.spawn(function()
                     end
                 else
                     local buyBtn = SmartFindButton(talkingGui, "Buy with Beli")
-                    if buyBtn then PhysicalClick(buyBtn) end
+                    if buyBtn then task.wait(1.5); PhysicalClick(buyBtn) end
                 end
             end
         else
@@ -1189,7 +1205,7 @@ task.spawn(function()
                     end
                 else
                     local buyBtn = SmartFindButton(talkingGui, "Buy with Beli")
-                    if buyBtn then PhysicalClick(buyBtn) end
+                    if buyBtn then task.wait(1.5); PhysicalClick(buyBtn) end
                 end
             end
             if _G_V10.AutoTeleEntrance and os.clock() - lastRaidTeleport >= _G_V10.RaidEntranceDelay then
@@ -1315,6 +1331,8 @@ local function EnableAntiFall(HRP)
     end
 end
 
+_G.IsLootingSun = false
+
 table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
     if _G.YuiKillAllLoops then return end
     local char = LocalPlayer.Character
@@ -1327,7 +1345,7 @@ table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
             if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall.Velocity = Vector3.new(0, 0, 0) end
             
             -- ÉP NẰM NGANG BẸP
-            if _G_V10.AttackPosition == "Trên Đầu" or _G_V10.AttackPosition == "Dưới Chân" or _G_V10.AttackPosition == "Xoay Tròn" then
+            if _G_V10.AttackPosition == "Trên Đầu" or _G_V10.AttackPosition == "Dưới Chân" or _G_V10.AttackPosition == "Xoay Tròn" or _G.IsLootingSun then
                 hum.PlatformStand = true
             else
                 hum.PlatformStand = false
@@ -1370,13 +1388,21 @@ local function GetMobForCurrentLevel()
     return targetMob, targetQuest
 end
 
-local lastQuestTime = 0
-local function RepeatQuestRemote()
-    if os.clock() - lastQuestTime > 1 then
-        lastQuestTime = os.clock()
-        pcall(function() for _, v in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do if v:IsA("RemoteEvent") and v.Name == "Qu" then v:FireServer("Yes") end end end)
+-- ==========================================
+-- AUTO NHẬN LẠI QUEST VÒNG LẶP ĐỘC LẬP (ĐÃ KHÔI PHỤC)
+-- ==========================================
+task.spawn(function()
+    while task.wait(1) do
+        if _G.YuiKillAllLoops then break end
+        if _G_V10.AutoRepeatQuest or _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm then
+            pcall(function()
+                for _, v in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+                    if v:IsA("RemoteEvent") and v.Name == "Qu" then v:FireServer("Yes") end
+                end
+            end)
+        end
     end
-end
+end)
 
 -- ==========================================
 -- MAIN COMBAT ENGINE (LÕI TÌM QUÁI V1 KHÔNG KẸT LAG)
@@ -1402,17 +1428,19 @@ local function isValidMobByDatabase(mob)
     return true
 end
 
+-- Hàm tìm kiếm quét sạch chữ Hoa/Thường để bắt Pzozo nhanh nhất
 local function DirectFind(name)
+    local targetName = string.lower(name)
     for _, folderName in ipairs({"Monster", "Enemies", "NPC", "NPCs"}) do
         local folder = workspace:FindFirstChild(folderName)
         if folder then
             for _, v in ipairs(folder:GetDescendants()) do
-                if v.Name == name and isValidMobByDatabase(v) then return v end
+                if string.lower(v.Name) == targetName and isValidMobByDatabase(v) then return v end
             end
         end
     end
     for _, v in ipairs(workspace:GetChildren()) do
-        if v:IsA("Model") and v.Name == name and isValidMobByDatabase(v) then return v end
+        if v:IsA("Model") and string.lower(v.Name) == targetName and isValidMobByDatabase(v) then return v end
     end
     return nil
 end
@@ -1431,40 +1459,41 @@ task.spawn(function()
             if HRP and HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall:Destroy() end
             lastWorldBossCheckTime = os.clock(); lastNormalBossCheckTime = os.clock()
             _G.WorldBossWaitStarted = nil; _G.NormalBossWaitStarted = nil
+            _G.IsLootingSun = false
             task.wait(1); continue 
         end
 
         local isNormalFarming = _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm or _G_V10.AutoFarmFree or _G_V10.FarmAll or _G_V10.AutoFarmRaid or _G_V10.AutoCoordBoss or _G_V10.AutoNormalBoss or _G_V10.AutoFarmBossRaid or _G_V10.AutoCoordMob
         local isFarmingAction = isNormalFarming or (_G_V10.AutoSea and _G_V10.IsFightingSea)
         
-        -- AUTO NHẬN QUEST KHI BẬT FARM LEVEL / MANUAL QUEST
-        if _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm then RepeatQuestRemote() end
-        
         if isFarmingAction and not _G_V10.FreeFly then
             
-            -- ================= LỤM SUN BATTERY ĐỘC LẬP =================
+            -- ================= LỤM SUN BATTERY ĐỘC LẬP (MUTEX KHÔNG CHO ĐÁNH QUÁI) =================
             local targetSun = nil
             if _G_V10.AutoSunBattery then
                 local effects = workspace:FindFirstChild("Effects")
                 if effects then
-                    local sun = effects:FindFirstChild("SunBattery") or effects:FindFirstChild("Sun Battery")
-                    if sun then targetSun = sun end
+                    targetSun = effects:FindFirstChild("SunBattery") or effects:FindFirstChild("Sun Battery")
                 end
                 if not targetSun then targetSun = workspace:FindFirstChild("SunBattery") or workspace:FindFirstChild("Sun Battery") end
             end
             
             if targetSun then
+                _G.IsLootingSun = true
                 LblCoordInfo.Text = "Raid: Đang lụm Sun Battery!"
                 local sunPos = targetSun:IsA("Model") and targetSun:GetPivot().Position or targetSun.Position
                 HRP.CFrame = CFrame.new(sunPos)
                 if HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall.Velocity = Vector3.new(0,0,0) end
-                task.wait(0.2)
+                
+                task.wait(0.5) -- Chờ đứng im chống giật rồi nhặt
                 local click = targetSun:FindFirstChild("FruitClick") or targetSun:FindFirstChildWhichIsA("ProximityPrompt", true)
                 if click then
                     if click:IsA("ProximityPrompt") then fireproximityprompt(click)
                     elseif click:IsA("ClickDetector") then fireclickdetector(click) end
                 end
-                continue 
+                continue -- SKIP MỌI HÀNH ĐỘNG COMBAT
+            else
+                _G.IsLootingSun = false
             end
 
             local targetMobInstance = nil
@@ -1572,7 +1601,6 @@ task.spawn(function()
                         if b then targetMobInstance = b; break end
                     end
                     
-                    -- NẾU KHÔNG THẤY BOSS RAID -> KÍCH HOẠT IDLE PATROL TẠI ĐÂY
                     if not targetMobInstance and _G_V10.AutoIdlePatrol then
                         local p1 = Vector3.new(129, 4691, -631)
                         local p2 = Vector3.new(155, 4691, -605)
@@ -1658,9 +1686,9 @@ task.spawn(function()
                 raidPatrolState = "Wait_C1"; raidPatrolTimer = os.clock()
                 
                 local forcePzozoSpin = false
-                if targetMobInstance and targetMobInstance.Name == "pzozolove112" and _G_V10.AlwaysSpinPzozo then forcePzozoSpin = true end
+                if targetMobInstance and string.lower(targetMobInstance.Name) == "pzozolove112" and _G_V10.AlwaysSpinPzozo then forcePzozoSpin = true end
 
-                -- CHỈ XẢ SKILL NẾU KHÔNG NÉ VÀ KHÔNG PHẢI ĐANG XOAY CHỜ PZOZO
+                -- CHỈ XẢ SKILL / CẦM VŨ KHÍ NẾU KHÔNG PHẢI LÀ PZOZO SPIN VÀ KHÔNG NÉ
                 if not isGlobalDodging and not forcePzozoSpin then
                     if _G_V10.AutoSwapWeapon and _G_V10.PrimaryWeapon and _G_V10.SecondaryWeapon then
                         if currentSwapState == 1 then
@@ -1676,16 +1704,6 @@ task.spawn(function()
 
                     if _G_V10.AutoClick then
                         local equippedTool = char:FindFirstChildWhichIsA("Tool"); if equippedTool then equippedTool:Activate() end
-                    end
-                    
-                    if os.clock() - lastSkillSpamTime >= _G_V10.SkillSpamDelay then
-                        lastSkillSpamTime = os.clock()
-                        if _G_V10.AutoSwapWeapon then
-                            local prefix = (currentSwapState == 1) and "W1_" or "W2_"
-                            if _G_V10[prefix.."Z"] then ForceUseSkill("Z") end; if _G_V10[prefix.."X"] then ForceUseSkill("X") end; if _G_V10[prefix.."C"] then ForceUseSkill("C") end; if _G_V10[prefix.."V"] then ForceUseSkill("V") end; if _G_V10[prefix.."B"] then ForceUseSkill("B") end; if _G_V10[prefix.."F"] then ForceUseSkill("F") end
-                        elseif _G_V10.AutoSkill then
-                            if _G_V10.Skill_Z then ForceUseSkill("Z") end; if _G_V10.Skill_X then ForceUseSkill("X") end; if _G_V10.Skill_C then ForceUseSkill("C") end; if _G_V10.Skill_V then ForceUseSkill("V") end; if _G_V10.Skill_F then ForceUseSkill("F") end
-                        end
                     end
                 end
                 
@@ -1706,7 +1724,7 @@ task.spawn(function()
                     else
                         local mobPos = targetMobInstance.HumanoidRootPart.Position
                         
-                        -- NẰM NGANG BẸP SONG SONG MẶT ĐẤT
+                        -- FIX NẰM NGANG BẸP SONG SONG MẶT ĐẤT
                         if _G_V10.AttackPosition == "Trên Đầu" then 
                             HRP.CFrame = CFrame.new(mobPos + Vector3.new(0, _G_V10.AttackDistance, 0)) * CFrame.Angles(math.rad(-90), 0, 0)
                         elseif _G_V10.AttackPosition == "Dưới Chân" then 
