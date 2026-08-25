@@ -1,6 +1,6 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V29 (FINAL IMMORTAL EDITION)
--- (FIX GLOBAL SKILL AFTER DEATH, FAST BOSS SPAWN, KEEP 100% ALL FEATURES)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V30 (PERFECT PHYSICS - FINAL)
+-- (FIX LỖI TRÔI RA KHỎI MAP KHI DÙNG SKILL, KHÔNG XÓA LỰC CỦA GAME NỮA)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -722,7 +722,7 @@ local function StopAllFarm()
     if char and char:FindFirstChild("HumanoidRootPart") then
         pcall(function()
             char.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
-            char.HumanoidRootPart.AssemblyLinearVelocity = Vector3.new(0,0,0)
+            char.HumanoidRootPart.RotVelocity = Vector3.new(0,0,0)
         end)
         if char.HumanoidRootPart:FindFirstChild("FarmAntiFall") then char.HumanoidRootPart.FarmAntiFall:Destroy() end
         if char:FindFirstChild("Humanoid") then char.Humanoid.PlatformStand = false end
@@ -851,7 +851,10 @@ CreateDropdown(SecNPC, "Chọn NPC Cần Tìm", ListNPCs, "SelectedNPC", false)
 
 local function InstantTeleport(targetCFrame)
     local HRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if HRP then HRP.CFrame = targetCFrame end
+    if HRP then
+        pcall(function() HRP.Velocity = Vector3.new(0,0,0) end)
+        HRP.CFrame = targetCFrame 
+    end
 end
 
 CreateButton(TabIsland, "🚀 DỊCH CHUYỂN ĐẾN MỤC ĐÃ CHỌN BÊN TRÊN", function()
@@ -991,431 +994,67 @@ table.insert(_G.YuiConnections, RunService.Stepped:Connect(function()
 end))
 
 -- ==========================================
--- LÕI BẤM VẬT LÝ & REMOTE SKILL CẢI TIẾN
+-- ENGINE CHỐNG RƠI & TRÔI XUYÊN ĐẤT AN TOÀN (V30)
 -- ==========================================
-local function PhysicalClick(guiObj)
-    if _G.YuiKillAllLoops then return end
-    if not guiObj then return end
-    local inset = GuiService:GetGuiInset()
-    local center = guiObj.AbsolutePosition + (guiObj.AbsoluteSize / 2)
-    VIM:SendMouseButtonEvent(center.X, center.Y + inset.Y, 0, true, game, 0)
-    task.wait(0.05); VIM:SendMouseButtonEvent(center.X, center.Y + inset.Y, 0, false, game, 0)
-end
-
-local function TapSafeEdge()
-    if _G.YuiKillAllLoops then return end
-    local cam = workspace.CurrentCamera
-    if cam then
-        local safeX = cam.ViewportSize.X * 0.75 
-        VIM:SendMouseButtonEvent(safeX, 20, 0, true, game, 0)
-        task.wait(0.05); VIM:SendMouseButtonEvent(safeX, 20, 0, false, game, 0)
+local function EnableAntiFall(HRP)
+    local AntiFall = HRP:FindFirstChild("FarmAntiFall")
+    if not AntiFall then
+        AntiFall = Instance.new("BodyVelocity")
+        AntiFall.Name = "FarmAntiFall"
+        AntiFall.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        AntiFall.P = 9e9
+        AntiFall.Velocity = Vector3.new(0, 0, 0)
+        AntiFall.Parent = HRP
     end
 end
 
-local function SmartFindButton(gui, searchText)
-    for _, obj in pairs(gui:GetDescendants()) do
-        if obj:IsA("TextButton") or obj:IsA("ImageButton") then
-            if obj:IsA("TextButton") and obj.Text and string.find(string.lower(obj.Text), string.lower(searchText)) then return obj end
-            local txtChild = obj:FindFirstChildWhichIsA("TextLabel")
-            if txtChild and txtChild.Text and string.find(string.lower(txtChild.Text), string.lower(searchText)) then return obj end
-        end
-    end
-    return nil
-end
+_G.IsLootingSun = false
 
-local function PressKey(key)
-    if _G.YuiKillAllLoops then return end
-    VIM:SendKeyEvent(true, Enum.KeyCode[key], false, game)
-    task.spawn(function() task.wait(0.05); VIM:SendKeyEvent(false, Enum.KeyCode[key], false, game) end)
-end
-
-local function ForceUseSkill(key)
-    PressKey(key) 
-    local char = LocalPlayer.Character
-    if not char then return end
-    local tool = char:FindFirstChildOfClass("Tool")
-    if tool then
-        local remote = tool:FindFirstChild(key)
-        if remote then
-            pcall(function()
-                if remote:IsA("RemoteFunction") then remote:InvokeServer(key)
-                elseif remote:IsA("RemoteEvent") then remote:FireServer(key) end
-            end)
-        end
-    end
-end
-
--- ==========================================
--- ENGINE: AUTO SKILL GLOBAL (CHẠY ĐỘC LẬP MƯỢT MÀ KHÔNG LỖI KHI CHẾT)
--- ==========================================
-task.spawn(function()
-    while task.wait(0.1) do
-        if _G.YuiKillAllLoops then break end
-        pcall(function()
-            if _G_V10.AutoSkill then
-                local delay = tonumber(_G_V10.SkillSpamDelay) or 0.1
-                if not _G.LastGlobalSkillTime then _G.LastGlobalSkillTime = os.clock() end
-                if os.clock() - _G.LastGlobalSkillTime >= delay then
-                    _G.LastGlobalSkillTime = os.clock()
-                    local char = LocalPlayer.Character
-                    if char and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
-                        if _G_V10.Skill_Z then ForceUseSkill("Z") end
-                        if _G_V10.Skill_X then ForceUseSkill("X") end
-                        if _G_V10.Skill_C then ForceUseSkill("C") end
-                        if _G_V10.Skill_V then ForceUseSkill("V") end
-                        if _G_V10.Skill_F then ForceUseSkill("F") end
-                    end
-                end
-            end
-        end)
-    end
-end)
-
--- ==========================================
--- ENGINE: AUTO REPEAT QUEST (CHẠY ĐỘC LẬP)
--- ==========================================
-task.spawn(function()
-    while task.wait(1) do
-        if _G.YuiKillAllLoops then break end
-        if _G_V10.AutoRepeatQuest or _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm then
-            pcall(function()
-                for _, v in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
-                    if v:IsA("RemoteEvent") and v.Name == "Qu" then v:FireServer("Yes") end
-                end
-            end)
-        end
-    end
-end)
-
--- ==========================================
--- BẮT CHAT SYSTEM CHECK BOSS SPAWN NHANH
--- ==========================================
-local lastWorldBossCheckTime = os.clock()
-local lastNormalBossCheckTime = os.clock()
-
-local function MonitorChatForBosses()
-    local ChatSys = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("Chat")
-    if ChatSys then
-        table.insert(_G.YuiConnections, ChatSys.DescendantAdded:Connect(function(descendant)
-            if _G.YuiKillAllLoops then return end
-            if descendant:IsA("TextLabel") and descendant.Text then
-                local txt = string.lower(descendant.Text)
-                if string.find(txt, "trăng máu") or string.find(txt, "blood moon") or string.find(txt, "shadow") or string.find(txt, "boss") then
-                    lastWorldBossCheckTime = 0
-                    lastNormalBossCheckTime = 0 
-                end
-            end
-        end))
-    end
-end
-pcall(MonitorChatForBosses)
-
--- ==========================================
--- MÁY QUÉT MAP TOÀN DIỆN (CHIA NOTE CHO ĐIỆN THOẠI)
--- ==========================================
-local function GetClosestIsland(pos)
-    local islandsFolder = Workspace:FindFirstChild("All") and Workspace.All:FindFirstChild("Island")
-    if not islandsFolder then return "Map" end
-    local closest = "Map"; local minDist = math.huge
-    for _, isl in pairs(islandsFolder:GetChildren()) do
-        local dist = (isl:GetPivot().Position - pos).Magnitude
-        if dist < minDist then minDist = dist; closest = isl.Name end
-    end
-    return closest
-end
-
-task.spawn(function()
-    while task.wait(5) do
-        if _G.YuiKillAllLoops then break end
-        if not _G_V10.AutoScanMap then continue end
-        local hasNewData = false
-        
-        local folders = {}
-        local mode = _G_V10.ScanMode
-        
-        if mode == "Tất Cả" or mode == "Chỉ Boss" or mode == "Chỉ Quái" then
-            if workspace:FindFirstChild("Monster") then table.insert(folders, workspace.Monster) end
-            if workspace:FindFirstChild("Enemies") then table.insert(folders, workspace.Enemies) end
-        end
-        if mode == "Tất Cả" or mode == "Chỉ NPC" then
-            if workspace:FindFirstChild("NPC") then table.insert(folders, workspace.NPC) end
-            if workspace:FindFirstChild("NPCs") then table.insert(folders, workspace.NPCs) end
-        end
-        
-        for _, folder in ipairs(folders) do
-            for _, v in pairs(folder:GetChildren()) do
-                if v:IsA("Model") and v:FindFirstChild("Humanoid") and v.Name ~= LocalPlayer.Name then
-                    local hrp = v:FindFirstChild("HumanoidRootPart"); local hum = v:FindFirstChild("Humanoid")
-                    if hrp and hum and hum.Health > 0 then
-                        local nameStr = v.Name
-                        local isEx = false
-                        for _, ex in pairs(_G_V10.ExcludedMobs) do if string.find(string.lower(nameStr), ex) then isEx = true; break end end
-                        
-                        if not isEx and not _G_V10.ScannerData.Mobs[nameStr] and not _G_V10.ScannerData.Bosses[nameStr] then
-                            local isl = GetClosestIsland(hrp.Position)
-                            local pos = string.format("Vector3.new(%.0f, %.0f, %.0f)", hrp.Position.X, hrp.Position.Y, hrp.Position.Z)
-                            
-                            if hum.MaxHealth > 50000 and (mode == "Tất Cả" or mode == "Chỉ Boss") then
-                                _G_V10.ScannerData.Bosses[nameStr] = {Island = isl, Pos = pos, Level = hum.MaxHealth}
-                                hasNewData = true
-                            elseif hum.MaxHealth <= 50000 and (mode == "Tất Cả" or mode == "Chỉ Quái") then
-                                _G_V10.ScannerData.Mobs[nameStr] = {Island = isl, Pos = pos, Level = hum.MaxHealth}
-                                hasNewData = true
-                            end
-                        end
-                    end
-                end
-                if v:IsA("Model") and (v.Name == "NPC" or v.Parent and v.Parent.Name == "NPC" or v.Parent and v.Parent.Name == "NPCs") and v:FindFirstChild("HumanoidRootPart") then
-                    local nameStr = v.Name
-                    if not _G_V10.ScannerData.NPCs[nameStr] and (mode == "Tất Cả" or mode == "Chỉ NPC") then
-                        local isl = GetClosestIsland(v.HumanoidRootPart.Position)
-                        local pos = string.format("Vector3.new(%.0f, %.0f, %.0f)", v.HumanoidRootPart.Position.X, v.HumanoidRootPart.Position.Y, v.HumanoidRootPart.Position.Z)
-                        _G_V10.ScannerData.NPCs[nameStr] = {Island = isl, Pos = pos}
-                        hasNewData = true
-                    end
-                end
-            end
-        end
-        if hasNewData then AutoSaveTrigger(); RenderScannerLog() end
-    end
-end)
-
--- ==========================================
--- ENGINE: MUA WORLD RAID, MUA RAID THƯỜNG & SPAWN BOSS (SPEED TỐI ĐA 0.3s)
--- ==========================================
-task.spawn(function()
-    while task.wait(0.5) do
-        if _G.YuiKillAllLoops then break end
-        if _G_V10.AutoBuyWorldRaid then
-            local char = LocalPlayer.Character; local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            if not hrp then continue end
-            local talkingGui = LocalPlayer.PlayerGui:FindFirstChild("Talking")
-            
-            if not talkingGui then
-                if _G_V10.WorldRaidLocation == "Out (Ngoài Map)" then
-                    local targetPos = Vector3.new(-20370, 383, 280)
-                    if (hrp.Position - targetPos).Magnitude > 20 then hrp.CFrame = CFrame.new(targetPos); task.wait(_G_V10.RaidBuyTeleportDelay) end
-                end
-                
-                local npc = Workspace:FindFirstChild("NPC") and Workspace.NPC:FindFirstChild("Galactic Overseer")
-                if npc and (hrp.Position - npc:GetPivot().Position).Magnitude < 30 then
-                    task.spawn(function() pcall(function() ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(npc, npc, npc) end) end)
-                end
-            else
-                local buyBtn = SmartFindButton(talkingGui, "Buy with money") or SmartFindButton(talkingGui, "Buy with Beli") or SmartFindButton(talkingGui, "Buy")
-                if buyBtn then task.wait(0.3); PhysicalClick(buyBtn); task.wait(0.3); TapSafeEdge() else TapSafeEdge() end
-            end
-        end
-    end
-end)
-
-task.spawn(function()
-    while task.wait(0.5) do 
-        if _G.YuiKillAllLoops then break end
-        if not _G_V10.AutoSpawnMihawk then continue end
-        local char = LocalPlayer.Character; local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if not hrp then continue end
-        local target = Vector3.new(-1380, 77, 3904)
-        if (hrp.Position - target).Magnitude > 50 then hrp.CFrame = CFrame.new(target); task.wait(1.5) end
-        local talkingGui = LocalPlayer.PlayerGui:FindFirstChild("Talking")
-        if not talkingGui then
-            local npc = Workspace:FindFirstChild("NPC") and Workspace.NPC:FindFirstChild("Stone Statue")
-            if npc then task.spawn(function() pcall(function() ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(npc, npc, npc) end) end) end
-            task.wait(0.3)
-        else
-            local amtBtn = SmartFindButton(talkingGui, _G_V10.MihawkAmount)
-            if amtBtn then task.wait(0.3); PhysicalClick(amtBtn); task.wait(0.3); TapSafeEdge() else task.wait(0.3); TapSafeEdge() end
-        end
-    end
-end)
-
-task.spawn(function()
-    while task.wait(0.5) do
-        if _G.YuiKillAllLoops then break end
-        if not _G_V10.AutoGiveShadow then continue end
-        local char = LocalPlayer.Character; local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if not hrp then continue end
-        local target = Vector3.new(-10371, 100, -3519)
-        if (hrp.Position - target).Magnitude > 50 then hrp.CFrame = CFrame.new(target); task.wait(1.5) end
-        local talkingGui = LocalPlayer.PlayerGui:FindFirstChild("Talking")
-        if not talkingGui then
-            local npc = Workspace:FindFirstChild("NPC") and Workspace.NPC:FindFirstChild("Shadow 1")
-            if npc then task.spawn(function() pcall(function() ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(npc, npc, npc) end) end) end
-            task.wait(0.3)
-        else
-            local itemBtn = SmartFindButton(talkingGui, _G_V10.ShadowItem)
-            local amtBtn = SmartFindButton(talkingGui, _G_V10.ShadowAmount)
-            task.wait(0.3)
-            if itemBtn then PhysicalClick(itemBtn); task.wait(0.3); TapSafeEdge() elseif amtBtn then PhysicalClick(amtBtn); task.wait(0.3); TapSafeEdge() else task.wait(0.3); TapSafeEdge() end
-        end
-    end
-end)
-
-local raidPatrolState = "Wait_C1"
-local raidPatrolTimer = os.clock()
-local C1 = CFrame.new(-77, 119, -258)
-local C2 = CFrame.new(-101, 114, 382)
-local C3 = CFrame.new(-124, 114, 404)
-local lastRaidTeleport = os.clock()
-
-task.spawn(function()
-    while task.wait(0.5) do
-        if _G.YuiKillAllLoops then break end
-        if _G_V10.AutoJoinGame then
-            pcall(function() ReplicatedStorage.Assets.Remote.RemoteEvent.Di:FireServer() end)
-            pcall(function() ReplicatedStorage.Assets.Remote.RemoteEvent.Home:FireServer("Dark Castle", "Sea", true) end)
-        end
-        
-        local char = LocalPlayer.Character; local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if not char or not hrp or char.Humanoid.Health <= 0 then continue end
-        
-        local distToRaidMap = (hrp.Position - Vector3.new(-123, 114, 407)).Magnitude
-        
-        if distToRaidMap < 3000 then 
-            if _G_V10.AutoStartRaid then pcall(function() ReplicatedStorage.Assets.Remote.RemoteEvent.Starto:FireServer() end) end
-            if _G_V10.AutoBuyRaid then
-                local talkingGui = LocalPlayer.PlayerGui:FindFirstChild("Talking")
-                if not talkingGui then
-                    if not _G_V10.AutoFarmRaid and not _G_V10.AutoFarmBossRaid then
-                        local targetPos = Vector3.new(-123, 114, 407)
-                        if (hrp.Position - targetPos).Magnitude > 20 then hrp.CFrame = CFrame.new(targetPos); task.wait(_G_V10.RaidBuyTeleportDelay) end
-                    end
-                    local npc = Workspace:FindFirstChild("NPC") and Workspace.NPC:FindFirstChild("Dazzl")
-                    if npc and (hrp.Position - npc:GetPivot().Position).Magnitude < 30 then
-                        task.spawn(function() pcall(function() ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(npc, npc, npc) end) end)
-                    end
-                else
-                    local buyBtn = SmartFindButton(talkingGui, "Buy with Beli")
-                    if buyBtn then PhysicalClick(buyBtn) end
-                end
-            end
-        else
-            if _G_V10.AutoBuyRaid then
-                local talkingGui = LocalPlayer.PlayerGui:FindFirstChild("Talking")
-                if not talkingGui then
-                    local targetPos = Vector3.new(-1371, 79, 3982)
-                    if (hrp.Position - targetPos).Magnitude > 20 then hrp.CFrame = CFrame.new(targetPos); task.wait(_G_V10.RaidBuyTeleportDelay) end
-                    local npc = Workspace:FindFirstChild("NPC") and Workspace.NPC:FindFirstChild("Dazzl")
-                    if npc and (hrp.Position - npc:GetPivot().Position).Magnitude < 30 then
-                        task.spawn(function() pcall(function() ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(npc, npc, npc) end) end)
-                    end
-                else
-                    local buyBtn = SmartFindButton(talkingGui, "Buy with Beli")
-                    if buyBtn then PhysicalClick(buyBtn) end
-                end
-            end
-            if _G_V10.AutoTeleEntrance and os.clock() - lastRaidTeleport >= _G_V10.RaidEntranceDelay then
-                hrp.CFrame = CFrame.new(-1346, 79, 3989); lastRaidTeleport = os.clock()
-            end
-        end
-    end
-end)
-
--- ==========================================
--- ENGINE: TUẦN TRA ĐẢO
--- ==========================================
-local patrolIndex = 1
-local patrolArrivalTime = 0
-local currentPatrolIsland = nil
-
-task.spawn(function()
-    while task.wait() do
-        if _G.YuiKillAllLoops then break end
-        if not _G_V10.AutoPatrolIsland or #_G_V10.SelectedPatrolIslands == 0 then 
-            currentPatrolIsland = nil
-            continue 
-        end
-        
-        local char = LocalPlayer.Character
-        local hrp = char and char:FindFirstChild("HumanoidRootPart")
-        if not hrp then continue end
-        
-        if patrolIndex > #_G_V10.SelectedPatrolIslands then patrolIndex = 1 end
-        local islandName = _G_V10.SelectedPatrolIslands[patrolIndex]
-        
-        local islFolder = workspace:FindFirstChild("All") and workspace.All:FindFirstChild("Island")
-        local targetIsland = islFolder and islFolder:FindFirstChild(islandName)
-        
-        if targetIsland then
-            local islandPos = targetIsland:GetPivot().Position
-            
-            if currentPatrolIsland ~= islandName then
-                currentPatrolIsland = islandName
-                patrolArrivalTime = os.clock()
-                hrp.CFrame = CFrame.new(islandPos + Vector3.new(0, tonumber(_G_V10.PatrolIslandHeight) or 0, 0))
-                task.wait(1)
-            end
-            
-            if os.clock() - patrolArrivalTime < tonumber(_G_V10.PatrolIslandTime) then
-                local angle = tick() * (tonumber(_G_V10.PatrolIslandSpeed) / 5)
-                local radius = tonumber(_G_V10.PatrolIslandRadius)
-                local yOffset = tonumber(_G_V10.PatrolIslandHeight) or 0
-                local offset = Vector3.new(math.cos(angle) * radius, yOffset, math.sin(angle) * radius)
-                hrp.CFrame = CFrame.new(islandPos + offset, islandPos)
-            else
-                patrolIndex = patrolIndex + 1
-                currentPatrolIsland = nil
-            end
-        else
-            patrolIndex = patrolIndex + 1
-            currentPatrolIsland = nil
-            task.wait(1)
-        end
-    end
-end)
-
--- ==========================================
--- ENGINE: VẬT LÝ AN TOÀN TUYỆT ĐỐI (KHÔNG CRASH)
--- ==========================================
 table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
     if _G.YuiKillAllLoops then return end
-    pcall(function() -- BỌC PCALL ĐỂ DÙ CÓ LỖI VẬT LÝ GAME CŨNG KHÔNG SẬP SCRIPT
-        local char = LocalPlayer.Character
-        if not char then return end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        local hum = char:FindFirstChild("Humanoid")
-        if not hrp or not hum then return end
-
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
+        local hrp = char.HumanoidRootPart; local hum = char.Humanoid
+        
         local isNormalFarming = _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm or _G_V10.AutoFarmFree or _G_V10.FarmAll or _G_V10.AutoFarmRaid or _G_V10.AutoCoordMob or _G_V10.AutoWorldBoss or _G_V10.AutoNormalBoss or _G_V10.AutoFarmBossRaid
         
         if isNormalFarming and not _G_V10.FreeFly and not _G_V10.AutoPatrolIsland then
-            -- TẠO LỰC ĐỠ
-            local af = hrp:FindFirstChild("FarmAntiFall")
-            if not af then
-                af = Instance.new("BodyVelocity")
-                af.Name = "FarmAntiFall"
-                af.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                af.Velocity = Vector3.new(0, 0, 0)
-                af.Parent = hrp
-            end
-            af.Velocity = Vector3.new(0, 0, 0)
+            EnableAntiFall(hrp)
+            if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall.Velocity = Vector3.new(0, 0, 0) end
             
-            -- FIX LỖI RƠI XUYÊN ĐẤT / TRÔI XUỐNG NƯỚC KHI DÙNG SKILL
-            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            -- FIX V30: Chỉ kìm chân lại, tuyệt đối KHÔNG DÙNG v:Destroy() TRÁNH CRASH GAME LÀM LỖI ĐƠ SCRIPT
+            pcall(function()
+                hrp.Velocity = Vector3.new(0, 0, 0)
+                hrp.RotVelocity = Vector3.new(0, 0, 0)
+            end)
             
-            for _, v in pairs(hrp:GetChildren()) do
-                if (v:IsA("BodyVelocity") or v:IsA("BodyPosition") or v:IsA("BodyForce") or v:IsA("BodyThrust")) and v.Name ~= "FarmAntiFall" and v.Name ~= "V10_FreeFlyBV" then
-                    v:Destroy()
-                end
-            end
-
-            -- FIX ĐỨNG DẬY, NẰM NGANG
+            -- ÉP NẰM NGANG BẸP HOẶC KHI LỤM SUN
             if _G_V10.AttackPosition == "Trên Đầu" or _G_V10.AttackPosition == "Dưới Chân" or _G_V10.AttackPosition == "Xoay Tròn" or _G.IsLootingSun then
                 hum.PlatformStand = true
             else
                 hum.PlatformStand = false
             end
-            
-            -- TẮT VA CHẠM
-            for _, v in pairs(char:GetDescendants()) do
-                if v:IsA("BasePart") then v.CanCollide = false end
-            end
-        else
-            if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall:Destroy() end
-            if not _G_V10.FreeFly then hum.PlatformStand = false end
         end
-    end)
+
+        if isNormalFarming or (_G_V10.AutoSea and _G_V10.IsFightingSea) then
+            for _, v in pairs(char:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
+        end
+
+        if _G_V10.FreeFly then
+            hum.PlatformStand = true
+            if not hrp:FindFirstChild("V10_FreeFlyBV") then
+                local bv = Instance.new("BodyVelocity", hrp); bv.Name = "V10_FreeFlyBV"; bv.MaxForce = Vector3.new(9e9, 9e9, 9e9); bv.P = 9e9
+            end
+            local cam = workspace.CurrentCamera
+            local moveDir = hum.MoveDirection
+            local bv = hrp:FindFirstChild("V10_FreeFlyBV")
+            if moveDir.Magnitude > 0 then bv.Velocity = cam.CFrame.LookVector * _G_V10.FreeFlySpeed else bv.Velocity = Vector3.new(0, 0, 0) end
+            hrp.CFrame = CFrame.new(hrp.Position, hrp.Position + cam.CFrame.LookVector)
+        else
+            if not isNormalFarming then hum.PlatformStand = false end
+            if hrp:FindFirstChild("V10_FreeFlyBV") then hrp["V10_FreeFlyBV"]:Destroy() end
+        end
+    end
 end))
 
 local function GetPlayerLevel()
@@ -1434,7 +1073,7 @@ local function GetMobForCurrentLevel()
 end
 
 -- ==========================================
--- MAIN COMBAT ENGINE (TÌM QUÁI V1 NHANH NHẤT)
+-- MAIN COMBAT ENGINE (MƯỢT NHẤT & HOVER CHỜ QUÁI TRÊN CAO CHỐNG RƠI)
 -- ==========================================
 local currentSwapState = 1
 local lastSwapTime = os.clock()
@@ -1656,7 +1295,7 @@ task.spawn(function()
                         for _, v in pairs(QuestDB) do if v.QuestName == _G_V10.SelectedManualQuest then _G_V10.CurrentTargetMob = {v.MobName}; LblInfo.Text = "Farm Thủ Công: " .. v.QuestName end end
                     elseif _G_V10.AutoFarmFree and type(_G_V10.SelectedMonsters) == "table" and #_G_V10.SelectedMonsters > 0 then
                         _G_V10.CurrentTargetMob = _G_V10.SelectedMonsters; LblInfo.Text = "Đang Farm Tùy Chọn"
-                    elseif _G_V10.FarmAll then LblInfo.Text = "Đang Càn Quét (Farm All)"
+                    elseif _G_V10.FarmAll then LblInfo.Text = "Đang Càn QuÉT (Farm All)"
                     end
 
                     for _, folderName in ipairs({"Monster", "Enemies"}) do
@@ -1751,7 +1390,6 @@ task.spawn(function()
                         local dodgeOffset = Vector3.new(math.cos(angle) * radius, 20, math.sin(angle) * radius)
                         HRP.CFrame = CFrame.new(mobPos + dodgeOffset, mobPos)
                     elseif forcePzozoSpin then
-                        -- LƯỢN VÒNG QUANH PZOZO (KHÔNG CẦM VŨ KHÍ)
                         local angle = tick() * tonumber(_G_V10.PzozoSpinSpeed)
                         local radius = tonumber(_G_V10.PzozoSpinRadius)
                         local mobPos = targetMobInstance.HumanoidRootPart.Position
@@ -1759,8 +1397,6 @@ task.spawn(function()
                         HRP.CFrame = CFrame.new(mobPos + dodgeOffset, mobPos)
                     else
                         local mobPos = targetMobInstance.HumanoidRootPart.Position
-                        
-                        -- FIX NẰM NGANG BẸP SONG SONG MẶT ĐẤT
                         if _G_V10.AttackPosition == "Trên Đầu" then 
                             HRP.CFrame = CFrame.new(mobPos + Vector3.new(0, _G_V10.AttackDistance, 0)) * CFrame.Angles(math.rad(-90), 0, 0)
                         elseif _G_V10.AttackPosition == "Dưới Chân" then 
@@ -1776,7 +1412,7 @@ task.spawn(function()
                     end
                 end
             else
-                -- BẢN FIX: KHÔNG CÓ QUÁI CHỜ Ở ĐỘ CAO +40 ĐỂ TRÁNH TRÔI XUYÊN ĐẤT
+                -- V30: HOVER SAFE ZONE (BAY LƠ LỬNG CAO +40 CHỜ QUÁI TRÁNH TRÔI XUYÊN ĐẤT)
                 if targetWaitPos then
                     local safeWaitPos = targetWaitPos + Vector3.new(0, 40, 0) 
                     if (HRP.Position - safeWaitPos).Magnitude > 50 then HRP.CFrame = CFrame.new(safeWaitPos) 
@@ -1785,13 +1421,16 @@ task.spawn(function()
                     local distToRaidMap = (HRP.Position - Vector3.new(-123, 114, 407)).Magnitude
                     if distToRaidMap < 3000 then
                         if raidPatrolState == "Wait_C1" then
-                            if (HRP.Position - C1.Position).Magnitude > 10 then HRP.CFrame = C1; raidPatrolTimer = os.clock()
+                            local c1_safe = C1.Position + Vector3.new(0, 40, 0)
+                            if (HRP.Position - c1_safe).Magnitude > 10 then HRP.CFrame = CFrame.new(c1_safe); raidPatrolTimer = os.clock()
                             elseif os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC1) then raidPatrolState = "Wait_C2"; raidPatrolTimer = os.clock() end
                         elseif raidPatrolState == "Wait_C2" then
-                            if (HRP.Position - C2.Position).Magnitude > 10 then HRP.CFrame = C2; raidPatrolTimer = os.clock()
+                            local c2_safe = C2.Position + Vector3.new(0, 40, 0)
+                            if (HRP.Position - c2_safe).Magnitude > 10 then HRP.CFrame = CFrame.new(c2_safe); raidPatrolTimer = os.clock()
                             elseif os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC2) then raidPatrolState = "Wait_C3"; raidPatrolTimer = os.clock() end
                         elseif raidPatrolState == "Wait_C3" then
-                            if (HRP.Position - C3.Position).Magnitude > 10 then HRP.CFrame = C3; raidPatrolTimer = os.clock()
+                            local c3_safe = C3.Position + Vector3.new(0, 40, 0)
+                            if (HRP.Position - c3_safe).Magnitude > 10 then HRP.CFrame = CFrame.new(c3_safe); raidPatrolTimer = os.clock()
                             elseif os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC3) then raidPatrolState = "Wait_C2"; raidPatrolTimer = os.clock() end
                         end
                     end
@@ -1844,7 +1483,6 @@ task.spawn(function()
         else
             if _G_V10.IsFightingSea then _G_V10.IsFightingSea = false; VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game) end
             
-            -- AUTO BUY GALLEON NẾU MẤT THUYỀN
             if not myBoat then
                 _G_V10.ArrivedAtZone = false
                 local shopPos = Vector3.new(-16021, 58, 11133)
