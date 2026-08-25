@@ -1,6 +1,6 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V43 (V34 CORE - FULL RESTORATION)
--- (GIỮ NGUYÊN 100% LÕI V34 - FIX RAID PATROL AI CHUẨN C1/C2/C3 - FIX AUTO BYPASS - KHÔNG CẮT GIẢM)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V43 (V34 CORE - NORMAL HEIGHT FIXED)
+-- (TRẢ LẠI TỌA ĐỘ CHỜ VÀ RAID VỀ MẶT ĐẤT - GIỮ NGUYÊN 100% CHỨC NĂNG V34/V42)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -23,6 +23,7 @@ if SafeParent:FindFirstChild("YuiHub_UI") then SafeParent["YuiHub_UI"]:Destroy()
 
 local ScanLogFrame = nil
 local playerPosBox = nil
+local txtLog = nil
 
 -- ==========================================
 -- 📚 DATABASE FULL TỪ USER
@@ -632,7 +633,7 @@ local function CreateTextBox(parent, placeholder, callback)
 end
 
 -- ==========================================
--- XÂY DỰNG TABS ĐẦY ĐỦ (V34 GỐC)
+-- XÂY DỰNG TABS ĐẦY ĐỦ 
 -- ==========================================
 local TabSettings = CreateTab("⚙️ Cài Đặt Chung")
 local TabSkills = CreateTab("✨ Kỹ Năng (Skills)")
@@ -929,7 +930,7 @@ CreateToggleSwitch(SecServerProt, "Màn Hình Đen (Giảm Lag Treo Máy)", "Ena
 local SecScanMap = CreateSection(TabScanner, "LẤY TỌA ĐỘ CỦA TÔI", Color3.fromRGB(0, 255, 100))
 local PosLogFrame = Instance.new("Frame", SecScanMap)
 PosLogFrame.Size = UDim2.new(1, -10, 0, 50); PosLogFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Instance.new("UICorner", PosLogFrame).CornerRadius = UDim.new(0, 6)
-posTxt = Instance.new("TextBox", PosLogFrame)
+local posTxt = Instance.new("TextBox", PosLogFrame)
 posTxt.Size = UDim2.new(1, -50, 1, -10); posTxt.Position = UDim2.new(0, 5, 0, 5); posTxt.BackgroundTransparency = 1; posTxt.Text = "Chưa lấy tọa độ..."
 posTxt.TextColor3 = Color3.fromRGB(220, 220, 220); posTxt.TextEditable = false; posTxt.TextWrapped = true; posTxt.Font = Enum.Font.Code; posTxt.TextSize = 12; posTxt.TextXAlignment = Enum.TextXAlignment.Left; posTxt.TextYAlignment = Enum.TextYAlignment.Top
 local copyPosBtn = Instance.new("TextButton", PosLogFrame)
@@ -977,7 +978,6 @@ CreateButton(SecCfgBypass, "⚠️ RESET TOÀN BỘ MENU VỀ MẶC ĐỊNH", fu
     SaveConfig(_G_V10.SelectedConfig); game.StarterGui:SetCore("SendNotification", {Title = "Reset", Text = "Đã làm mới Menu!", Duration = 3})
 end, Color3.fromRGB(200, 50, 50))
 
--- SAU KHI DỰNG XONG TOÀN BỘ UI THÌ MỚI ĐƯỢC LOAD CONFIG HOẶC RENDER
 RenderScannerLog()
 if readfile and isfile(MasterFile) then
     local s, masterData = pcall(function() return HttpService:JSONDecode(readfile(MasterFile)) end)
@@ -1040,11 +1040,10 @@ table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
             EnableAntiFall(hrp)
             if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall.Velocity = Vector3.new(0, 0, 0) end
             
-            -- ÉP CỨNG NHÂN VẬT, TRỊ DỨT ĐIỂM TRÔI THEO V34
+            -- ÉP CỨNG NHÂN VẬT, TRỊ DỨT ĐIỂM TRÔI
             hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
             hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
             
-            -- NẰM NGANG BẸP NẾU TRÊN ĐẦU, DƯỚI CHÂN HOẶC XOAY TRÒN ĐỂ NE CHIÊU
             if _G_V10.AttackPosition == "Trên Đầu" or _G_V10.AttackPosition == "Dưới Chân" or _G_V10.AttackPosition == "Xoay Tròn" or _G.IsLootingSun then
                 hum.PlatformStand = true
             else
@@ -1073,27 +1072,6 @@ local function PhysicalClick(guiObj)
     task.wait(0.05); VIM:SendMouseButtonEvent(center.X, center.Y + inset.Y, 0, false, game, 0)
 end
 
-local function TapSafeEdge()
-    if _G.YuiKillAllLoops then return end
-    local cam = workspace.CurrentCamera
-    if cam then
-        local safeX = cam.ViewportSize.X * 0.75 
-        VIM:SendMouseButtonEvent(safeX, 20, 0, true, game, 0)
-        task.wait(0.05); VIM:SendMouseButtonEvent(safeX, 20, 0, false, game, 0)
-    end
-end
-
-local function SmartFindButton(gui, searchText)
-    for _, obj in pairs(gui:GetDescendants()) do
-        if obj:IsA("TextButton") or obj:IsA("ImageButton") then
-            if obj:IsA("TextButton") and obj.Text and string.find(string.lower(obj.Text), string.lower(searchText)) then return obj end
-            local txtChild = obj:FindFirstChildWhichIsA("TextLabel")
-            if txtChild and txtChild.Text and string.find(string.lower(txtChild.Text), string.lower(searchText)) then return obj end
-        end
-    end
-    return nil
-end
-
 local function PressKey(key)
     if _G.YuiKillAllLoops then return end
     VIM:SendKeyEvent(true, Enum.KeyCode[key], false, game)
@@ -1117,7 +1095,7 @@ local function ForceUseSkill(key)
 end
 
 -- ==========================================
--- ENGINE: AUTO SKILL GLOBAL (CHẠY ĐỘC LẬP MƯỢT MÀ KHÔNG LỖI KHI CHẾT)
+-- ENGINE: AUTO SKILL GLOBAL 
 -- ==========================================
 task.spawn(function()
     while task.wait(0.1) do
@@ -1143,7 +1121,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- ENGINE: AUTO REPEAT QUEST (CHẠY ĐỘC LẬP)
+-- ENGINE: AUTO REPEAT QUEST 
 -- ==========================================
 task.spawn(function()
     while task.wait(1) do
@@ -1182,30 +1160,52 @@ end
 pcall(MonitorChatForBosses)
 
 -- ==========================================
--- ENGINE: AUTO BYPASS (TỰ ĐỘNG BẤM TÂM MÀN HÌNH THEO ĐỘ TRỄ)
+-- ENGINE: AUTO BYPASS (TỰ ĐỘNG BẤM TÂM MÀN HÌNH CHỐNG KẸT)
 -- ==========================================
 task.spawn(function()
-    if not _G_V10.AutoBypassMenu then return end
-    local endTime = os.clock() + (tonumber(_G_V10.BypassDuration) or 10)
-    while os.clock() < endTime do
-        task.wait(0.5)
+    local startTime = os.clock()
+    while task.wait(0.5) do
         if _G.YuiKillAllLoops then break end
-        pcall(function()
-            local cam = workspace.CurrentCamera
-            if cam then
-                local cx = cam.ViewportSize.X / 2
-                local cy = cam.ViewportSize.Y / 2
-                VIM:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
-                task.wait(0.05)
-                VIM:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
+        if _G_V10.AutoBypassMenu then
+            if os.clock() - startTime <= (tonumber(_G_V10.BypassDuration) or 10) then
+                pcall(function()
+                    local cam = workspace.CurrentCamera
+                    if cam then
+                        local cx = cam.ViewportSize.X / 2
+                        local cy = cam.ViewportSize.Y / 2
+                        VIM:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
+                        task.wait(0.05)
+                        VIM:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
+                    end
+                end)
             end
-        end)
+        end
     end
 end)
 
 -- ==========================================
--- ENGINE: MUA WORLD RAID, MUA RAID THƯỜNG & SPAWN BOSS (TỐC ĐỘ BÀN THỜ 0.3s)
+-- ENGINE: MUA WORLD RAID, MUA RAID THƯỜNG & SPAWN BOSS 
 -- ==========================================
+local function SmartFindButtonClick(gui, searchText)
+    for _, obj in pairs(gui:GetDescendants()) do
+        if obj:IsA("TextButton") or obj:IsA("ImageButton") then
+            if obj:IsA("TextButton") and obj.Text and string.find(string.lower(obj.Text), string.lower(searchText)) then PhysicalClick(obj); return true end
+            local txtChild = obj:FindFirstChildWhichIsA("TextLabel")
+            if txtChild and txtChild.Text and string.find(string.lower(txtChild.Text), string.lower(searchText)) then PhysicalClick(obj); return true end
+        end
+    end
+    return false
+end
+
+local function TapSafeEdge()
+    if _G.YuiKillAllLoops then return end
+    local cam = workspace.CurrentCamera
+    if cam then
+        local safeX = cam.ViewportSize.X * 0.70 
+        VIM:SendMouseButtonEvent(safeX, 20, 0, true, game, 0); task.wait(0.05); VIM:SendMouseButtonEvent(safeX, 20, 0, false, game, 0)
+    end
+end
+
 task.spawn(function()
     while task.wait(0.3) do
         if _G.YuiKillAllLoops then break end
@@ -1219,14 +1219,14 @@ task.spawn(function()
                     local targetPos = Vector3.new(-20370, 383, 280)
                     if (hrp.Position - targetPos).Magnitude > 20 then hrp.CFrame = CFrame.new(targetPos); task.wait(_G_V10.RaidBuyTeleportDelay) end
                 end
-                
                 local npc = Workspace:FindFirstChild("NPC") and Workspace.NPC:FindFirstChild("Galactic Overseer")
                 if npc and (hrp.Position - npc:GetPivot().Position).Magnitude < 30 then
                     task.spawn(function() pcall(function() ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(npc, npc, npc) end) end)
                 end
             else
-                local buyBtn = SmartFindButton(talkingGui, "Buy with money") or SmartFindButton(talkingGui, "Buy with Beli") or SmartFindButton(talkingGui, "Buy")
-                if buyBtn then task.wait(0.3); PhysicalClick(buyBtn); task.wait(0.3); TapSafeEdge() else TapSafeEdge() end
+                if SmartFindButtonClick(talkingGui, "Buy with money") or SmartFindButtonClick(talkingGui, "Buy with Beli") or SmartFindButtonClick(talkingGui, "Buy") then
+                    task.wait(0.3); TapSafeEdge()
+                else TapSafeEdge() end
             end
         end
     end
@@ -1246,8 +1246,7 @@ task.spawn(function()
             if npc then task.spawn(function() pcall(function() ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(npc, npc, npc) end) end) end
             task.wait(0.3)
         else
-            local amtBtn = SmartFindButton(talkingGui, _G_V10.MihawkAmount)
-            if amtBtn then task.wait(0.3); PhysicalClick(amtBtn); task.wait(0.3); TapSafeEdge() else task.wait(0.3); TapSafeEdge() end
+            if SmartFindButtonClick(talkingGui, _G_V10.MihawkAmount) then task.wait(0.3); TapSafeEdge() else task.wait(0.3); TapSafeEdge() end
         end
     end
 end)
@@ -1266,10 +1265,9 @@ task.spawn(function()
             if npc then task.spawn(function() pcall(function() ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(npc, npc, npc) end) end) end
             task.wait(0.3)
         else
-            local itemBtn = SmartFindButton(talkingGui, _G_V10.ShadowItem)
-            local amtBtn = SmartFindButton(talkingGui, _G_V10.ShadowAmount)
-            task.wait(0.3)
-            if itemBtn then PhysicalClick(itemBtn); task.wait(0.3); TapSafeEdge() elseif amtBtn then PhysicalClick(amtBtn); task.wait(0.3); TapSafeEdge() else task.wait(0.3); TapSafeEdge() end
+            if SmartFindButtonClick(talkingGui, _G_V10.ShadowItem) then task.wait(0.3); TapSafeEdge()
+            elseif SmartFindButtonClick(talkingGui, _G_V10.ShadowAmount) then task.wait(0.3); TapSafeEdge()
+            else task.wait(0.3); TapSafeEdge() end
         end
     end
 end)
@@ -1308,8 +1306,7 @@ task.spawn(function()
                         task.spawn(function() pcall(function() ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(npc, npc, npc) end) end)
                     end
                 else
-                    local buyBtn = SmartFindButton(talkingGui, "Buy with Beli")
-                    if buyBtn then PhysicalClick(buyBtn) end
+                    SmartFindButtonClick(talkingGui, "Buy with Beli")
                 end
             end
         else
@@ -1323,8 +1320,7 @@ task.spawn(function()
                         task.spawn(function() pcall(function() ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(npc, npc, npc) end) end)
                     end
                 else
-                    local buyBtn = SmartFindButton(talkingGui, "Buy with Beli")
-                    if buyBtn then PhysicalClick(buyBtn) end
+                    SmartFindButtonClick(talkingGui, "Buy with Beli")
                 end
             end
             if _G_V10.AutoTeleEntrance and os.clock() - lastRaidTeleport >= _G_V10.RaidEntranceDelay then
@@ -1388,8 +1384,25 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- LÕI JUMP & ANTI-CHEAT
+-- LÕI JUMP & LƯỚT DASH MƯỢT MÀ
 -- ==========================================
+local flyKeys = {W = 0, A = 0, S = 0, D = 0, Up = 0, Down = 0}
+UIS.InputBegan:Connect(function(k, gp)
+    if _G_V10.DashNoCD and k.KeyCode == Enum.KeyCode.Q then
+        local HRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if HRP then
+            local bv = Instance.new("BodyVelocity"); bv.MaxForce = Vector3.new(100000, 0, 100000); bv.Velocity = HRP.CFrame.lookVector * 150; bv.Parent = HRP
+            game.Debris:AddItem(bv, 0.2)
+        end
+    end
+    if gp then return end
+    if k.KeyCode == Enum.KeyCode.W then flyKeys.W = 1 elseif k.KeyCode == Enum.KeyCode.S then flyKeys.S = 1 elseif k.KeyCode == Enum.KeyCode.A then flyKeys.A = 1 elseif k.KeyCode == Enum.KeyCode.D then flyKeys.D = 1 elseif k.KeyCode == Enum.KeyCode.Space then flyKeys.Up = 1 elseif k.KeyCode == Enum.KeyCode.LeftControl then flyKeys.Down = 1 end
+end)
+UIS.InputEnded:Connect(function(k, gp)
+    if gp then return end
+    if k.KeyCode == Enum.KeyCode.W then flyKeys.W = 0 elseif k.KeyCode == Enum.KeyCode.S then flyKeys.S = 0 elseif k.KeyCode == Enum.KeyCode.A then flyKeys.A = 0 elseif k.KeyCode == Enum.KeyCode.D then flyKeys.D = 0 elseif k.KeyCode == Enum.KeyCode.Space then flyKeys.Up = 0 elseif k.KeyCode == Enum.KeyCode.LeftControl then flyKeys.Down = 0 end
+end)
+
 task.spawn(function()
     while task.wait(1) do
         if _G.YuiKillAllLoops then break end
@@ -1458,10 +1471,9 @@ local function isValidMobByDatabase(mob)
     return true
 end
 
--- V42 FIX: HÀM QUÉT BOSS LINH HOẠT VỚI STRING.FIND (BẮT CẢ DẠNG AWAKENED)
+-- V43 FIX: HÀM QUÉT BOSS LINH HOẠT VỚI STRING.FIND (BẮT CẢ DẠNG AWAKENED)
 local function DirectFind(name)
     local targetName = string.lower(name)
-    -- Tách tên chuẩn (bỏ Level)
     local cleanTarget = string.match(targetName, "^(.-)%s*%[") or targetName
     cleanTarget = string.match(cleanTarget, "^%s*(.-)%s*$")
     
@@ -1500,13 +1512,14 @@ task.spawn(function()
         local Hum = char:FindFirstChild("Humanoid")
         
         if not HRP or not Hum or Hum.Health <= 0 then 
+            if HRP and HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall:Destroy() end
             lastWorldBossCheckTime = os.clock(); lastNormalBossCheckTime = os.clock()
             _G.WorldBossWaitStarted = nil; _G.NormalBossWaitStarted = nil
             _G.IsLootingSun = false
             task.wait(1); continue 
         end
 
-        local isNormalFarming = _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm or _G_V10.AutoFarmFree or _G_V10.FarmAll or _G_V10.AutoFarmRaid or _G_V10.AutoCoordBoss or _G_V10.AutoNormalBoss or _G_V10.AutoFarmBossRaid or _G_V10.AutoCoordMob
+        local isNormalFarming = _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm or _G_V10.AutoFarmFree or _G_V10.FarmAll or _G_V10.AutoFarmRaid or _G_V10.AutoCoordMob or _G_V10.AutoWorldBoss or _G_V10.AutoNormalBoss or _G_V10.AutoFarmBossRaid
         local isFarmingAction = isNormalFarming or (_G_V10.AutoSea and _G_V10.IsFightingSea)
         
         if isFarmingAction and not _G_V10.FreeFly then
@@ -1526,6 +1539,7 @@ task.spawn(function()
                 LblCoordInfo.Text = "Raid: Đang lụm Sun Battery!"
                 local sunPos = targetSun:IsA("Model") and targetSun:GetPivot().Position or targetSun.Position
                 HRP.CFrame = CFrame.new(sunPos)
+                if HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall.Velocity = Vector3.new(0,0,0) end
                 
                 task.wait(0.2) 
                 local click = targetSun:FindFirstChild("FruitClick") or targetSun:FindFirstChildWhichIsA("ProximityPrompt", true)
@@ -1723,14 +1737,13 @@ task.spawn(function()
                 end
             else isGlobalDodging = false end
 
-            -- ================= HÀNH ĐỘNG CỦA NHÂN VẬT =================
+            -- ================= HÀNH ĐỘNG CỦA NHÂN VẬT & SMART SWAP V43 =================
             if targetMobInstance or (_G_V10.AutoSea and _G_V10.IsFightingSea) then
                 raidPatrolState = "Wait_C1"; raidPatrolTimer = os.clock()
                 
                 local forcePzozoSpin = false
                 if targetMobInstance and string.find(string.lower(targetMobInstance.Name), "pzozolove112") and _G_V10.AlwaysSpinPzozo then forcePzozoSpin = true end
 
-                -- CHỈ XẢ SKILL VŨ KHÍ NẾU KHÔNG PHẢI LÀ PZOZO SPIN VÀ KHÔNG NÉ
                 if not isGlobalDodging and not forcePzozoSpin then
                     if _G_V10.AutoSwapWeapon and _G_V10.PrimaryWeapon and _G_V10.SecondaryWeapon then
                         if currentSwapState == 1 then
@@ -1811,28 +1824,22 @@ task.spawn(function()
                     end
                 end
             else
-                -- BẢN V42 CHUẨN: LÊN ĐỘ CAO +40 (HOVER AN TOÀN TUYỆT ĐỐI) KHI CHỜ QUÁI / RAID PATROL
+                -- V43 FIX: TRẢ VỀ TỌA ĐỘ GỐC CHUẨN (KHÔNG CỘNG +40 MÉT) ĐỂ VÀO ĐƯỢC ỐNG RAID VÀ CHẠM MẶT ĐẤT
                 local distToRaidMap = (HRP.Position - Vector3.new(-123, 114, 407)).Magnitude
                 if _G_V10.AutoFarmRaid and distToRaidMap < 3000 then
-                    -- PATROL RAID ƯU TIÊN SỐ 1 NẾU TRONG MAP
                     if raidPatrolState == "Wait_C1" then
-                        local c1_safe = C1.Position + Vector3.new(0, 40, 0)
-                        if (HRP.Position - c1_safe).Magnitude > 15 then HRP.CFrame = CFrame.new(c1_safe) end
+                        if (HRP.Position - C1.Position).Magnitude > 15 then HRP.CFrame = C1 end
                         if os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC1) then raidPatrolState = "Wait_C2"; raidPatrolTimer = os.clock() end
                     elseif raidPatrolState == "Wait_C2" then
-                        local c2_safe = C2.Position + Vector3.new(0, 40, 0)
-                        if (HRP.Position - c2_safe).Magnitude > 15 then HRP.CFrame = CFrame.new(c2_safe) end
+                        if (HRP.Position - C2.Position).Magnitude > 15 then HRP.CFrame = C2 end
                         if os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC2) then raidPatrolState = "Wait_C3"; raidPatrolTimer = os.clock() end
                     elseif raidPatrolState == "Wait_C3" then
-                        local c3_safe = C3.Position + Vector3.new(0, 40, 0)
-                        if (HRP.Position - c3_safe).Magnitude > 15 then HRP.CFrame = CFrame.new(c3_safe) end
+                        if (HRP.Position - C3.Position).Magnitude > 15 then HRP.CFrame = C3 end
                         if os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC3) then raidPatrolState = "Wait_C1"; raidPatrolTimer = os.clock() end
                     end
                 elseif targetWaitPos then
-                    -- HOVER CHỜ QUÁI TỌA ĐỘ BÌNH THƯỜNG
-                    local safeWaitPos = targetWaitPos + Vector3.new(0, 40, 0) 
-                    if (HRP.Position - safeWaitPos).Magnitude > 50 then HRP.CFrame = CFrame.new(safeWaitPos) 
-                    else HRP.CFrame = CFrame.new(safeWaitPos) end
+                    if (HRP.Position - targetWaitPos).Magnitude > 50 then HRP.CFrame = CFrame.new(targetWaitPos) 
+                    else HRP.CFrame = CFrame.new(targetWaitPos) end
                 end
             end
         end
