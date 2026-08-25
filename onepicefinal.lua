@@ -1,6 +1,6 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V21 (FINAL NO-GLITCH MASTERPIECE)
--- (FIX SUN BATTERY MUTEX, GLOBAL SKILL SPAM, PZOZO 1000 RADIUS, FIX NPC DELAY)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V22 (FINAL MASTERPIECE REBORN)
+-- (FIX SCANNER NOTE, DEDICATED POS NOTE, WEAPON SKILLS, INDEPENDENT GLOBAL SKILLS)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -20,6 +20,10 @@ _G.YuiConnections = {}
 
 local SafeParent = pcall(gethui) and gethui() or LocalPlayer:WaitForChild("PlayerGui")
 if SafeParent:FindFirstChild("YuiHub_UI") then SafeParent["YuiHub_UI"]:Destroy() end
+
+-- Khai báo biến Máy Quét Toàn Cục để không bị lỗi Nil
+local ScanLogFrame = nil
+local playerPosBox = nil
 
 -- ==========================================
 -- 📚 DATABASE FULL TỪ USER
@@ -266,7 +270,7 @@ local ConfigFolder = "YuiHub_Configs"
 local MasterFile = ConfigFolder .. "/MasterSettings.json"
 if isfolder and not isfolder(ConfigFolder) then makefolder(ConfigFolder) end
 
-local ScanLogFrame
+-- HÀM MÁY QUÉT ĐƯỢC CHUYỂN LÊN TRÊN ĐỂ KHÔNG BỊ LỖI NIL
 local function RenderScannerLog()
     if not ScanLogFrame then return end
     for _, v in pairs(ScanLogFrame:GetChildren()) do if v:IsA("Frame") or v:IsA("TextLabel") then v:Destroy() end end
@@ -451,7 +455,7 @@ MinBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- HÀM TẠO UI COMPONENTS
+-- HÀM TẠO UI COMPONENTS (DẠNG BOX)
 -- ==========================================
 local Pages = {}
 local function CreateTab(name)
@@ -630,7 +634,7 @@ local function CreateTextBox(parent, placeholder, callback)
 end
 
 -- ==========================================
--- XÂY DỰNG TABS ĐẦY ĐỦ 
+-- XÂY DỰNG TABS ĐẦY ĐỦ
 -- ==========================================
 local TabSettings = CreateTab("⚙️ Cài Đặt Chung & Skill")
 local TabMainFarm = CreateTab("⚔️ Main Farm (All in 1)")
@@ -768,7 +772,7 @@ CreateToggleSwitch(SecRaidBuy, "Tự Động Bấm Play/Join Game", "AutoJoinGam
 local SecRaidBoss = CreateSection(TabRaidHub, "FARM BOSS RAID (Seluna & pzozolove)", Color3.fromRGB(255, 50, 200))
 CreateDropdown(SecRaidBoss, "Chọn Boss Raid Cần Đánh", {"Seluna", "pzozolove112"}, "SelectedRaidBosses", true, true)
 CreateToggleSwitch(SecRaidBoss, "Bật Auto Farm Boss Raid", "AutoFarmBossRaid")
-CreateToggleSwitch(SecRaidBoss, "Luôn Xoay Tròn Quanh pzozolove112 (Không đánh)", "AlwaysSpinPzozo")
+CreateToggleSwitch(SecRaidBoss, "Luôn Xoay Tròn Khi Đánh pzozolove112 (Không đánh)", "AlwaysSpinPzozo")
 CreateSlider(SecRaidBoss, "Bán Kính Xoay Pzozo", 10, 1000, "PzozoSpinRadius")
 CreateSlider(SecRaidBoss, "Tốc Độ Xoay Pzozo", 1, 20, "PzozoSpinSpeed")
 
@@ -833,7 +837,7 @@ CreateButton(SecIslandSelect, "🔄 Cập nhật Điểm Hồi Sinh", function()
     table.sort(sp); DropSpawnPoints(sp)
 end)
 
-local SecNPC = CreateSection(TabIsland, "DỊCH CHUYỂN ĐẾN NPC TRONG DATA", Color3.fromRGB(255, 200, 50))
+local SecNPC = CreateSection(TabIsland, "DỊCH CHUYỂN ĐẾN NPC", Color3.fromRGB(255, 200, 50))
 CreateDropdown(SecNPC, "Chọn NPC Cần Tìm", ListNPCs, "SelectedNPC", false)
 
 local function InstantTeleport(targetCFrame)
@@ -900,20 +904,25 @@ CreateToggleSwitch(SecServerProt, "Màn Hình Đen (Giảm Lag Treo Máy)", "Ena
 
 -- --- TAB: MÁY QUÉT MAP & LẤY TỌA ĐỘ ---
 local SecScanMap = CreateSection(TabScanner, "LẤY TỌA ĐỘ CỦA TÔI", Color3.fromRGB(0, 255, 100))
-local playerPosBox = CreateTextBox(SecScanMap, "Tọa độ sẽ hiện ở đây...", function() end)
-playerPosBox.TextEditable = false
-CreateButton(SecScanMap, "🎯 Lấy Tọa Độ Hiện Tại", function()
+local PosLogFrame = Instance.new("Frame", SecScanMap)
+PosLogFrame.Size = UDim2.new(1, -10, 0, 50); PosLogFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Instance.new("UICorner", PosLogFrame).CornerRadius = UDim.new(0, 6)
+local posTxt = Instance.new("TextBox", PosLogFrame)
+posTxt.Size = UDim2.new(1, -50, 1, -10); posTxt.Position = UDim2.new(0, 5, 0, 5); posTxt.BackgroundTransparency = 1; posTxt.Text = "Chưa lấy tọa độ..."
+posTxt.TextColor3 = Color3.fromRGB(220, 220, 220); posTxt.TextEditable = false; posTxt.TextWrapped = true; posTxt.Font = Enum.Font.Code; posTxt.TextSize = 12; posTxt.TextXAlignment = Enum.TextXAlignment.Left; posTxt.TextYAlignment = Enum.TextYAlignment.Top
+local copyPosBtn = Instance.new("TextButton", PosLogFrame)
+copyPosBtn.Size = UDim2.new(0, 40, 0, 40); copyPosBtn.Position = UDim2.new(1, -45, 0.5, -20); copyPosBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255); copyPosBtn.Text = "COPY"; copyPosBtn.TextColor3 = Color3.fromRGB(255, 255, 255); copyPosBtn.Font = Enum.Font.GothamBold; Instance.new("UICorner", copyPosBtn).CornerRadius = UDim.new(0, 6)
+copyPosBtn.MouseButton1Click:Connect(function()
+    if setclipboard and posTxt.Text ~= "Chưa lấy tọa độ..." then
+        setclipboard(posTxt.Text); copyPosBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100); copyPosBtn.Text = "OK"; task.wait(1); copyPosBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255); copyPosBtn.Text = "COPY"
+    end
+end)
+
+CreateButton(SecScanMap, "🎯 Lấy Tọa Độ Hiện Tại Xuống Note Trên", function()
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if hrp then
         local p = hrp.Position
-        playerPosBox.Text = string.format("Vector3.new(%.0f, %.0f, %.0f)", p.X, p.Y, p.Z)
-    end
-end)
-CreateButton(SecScanMap, "📋 Copy Tọa Độ Của Tôi", function()
-    if setclipboard and playerPosBox.Text ~= "" and playerPosBox.Text ~= "Tọa độ sẽ hiện ở đây..." then
-        setclipboard(playerPosBox.Text)
-        game.StarterGui:SetCore("SendNotification", {Title = "Copy Thành Công", Text = playerPosBox.Text, Duration = 2})
+        posTxt.Text = string.format("Vector3.new(%.0f, %.0f, %.0f)", p.X, p.Y, p.Z)
     end
 end)
 
@@ -1026,7 +1035,7 @@ local function ForceUseSkill(key)
 end
 
 -- ==========================================
--- ENGINE: AUTO SKILL GLOBAL (LUÔN XẢ CHIÊU BẤT CHẤP CÓ QUÁI HAY KHÔNG)
+-- ENGINE: AUTO SKILL GLOBAL (CHẠY ĐỘC LẬP)
 -- ==========================================
 task.spawn(function()
     while task.wait(_G_V10.SkillSpamDelay or 0.1) do
@@ -1037,6 +1046,22 @@ task.spawn(function()
             if _G_V10.Skill_C then ForceUseSkill("C") end
             if _G_V10.Skill_V then ForceUseSkill("V") end
             if _G_V10.Skill_F then ForceUseSkill("F") end
+        end
+    end
+end)
+
+-- ==========================================
+-- ENGINE: AUTO REPEAT QUEST (CHẠY ĐỘC LẬP)
+-- ==========================================
+task.spawn(function()
+    while task.wait(1) do
+        if _G.YuiKillAllLoops then break end
+        if _G_V10.AutoRepeatQuest or _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm then
+            pcall(function()
+                for _, v in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
+                    if v:IsA("RemoteEvent") and v.Name == "Qu" then v:FireServer("Yes") end
+                end
+            end)
         end
     end
 end)
@@ -1190,7 +1215,7 @@ task.spawn(function()
                     end
                 else
                     local buyBtn = SmartFindButton(talkingGui, "Buy with Beli")
-                    if buyBtn then task.wait(1.5); PhysicalClick(buyBtn) end
+                    if buyBtn then PhysicalClick(buyBtn) end
                 end
             end
         else
@@ -1205,7 +1230,7 @@ task.spawn(function()
                     end
                 else
                     local buyBtn = SmartFindButton(talkingGui, "Buy with Beli")
-                    if buyBtn then task.wait(1.5); PhysicalClick(buyBtn) end
+                    if buyBtn then PhysicalClick(buyBtn) end
                 end
             end
             if _G_V10.AutoTeleEntrance and os.clock() - lastRaidTeleport >= _G_V10.RaidEntranceDelay then
@@ -1344,7 +1369,7 @@ table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
             EnableAntiFall(hrp)
             if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall.Velocity = Vector3.new(0, 0, 0) end
             
-            -- ÉP NẰM NGANG BẸP
+            -- ÉP NẰM NGANG BẸP HOẶC KHI LỤM SUN
             if _G_V10.AttackPosition == "Trên Đầu" or _G_V10.AttackPosition == "Dưới Chân" or _G_V10.AttackPosition == "Xoay Tròn" or _G.IsLootingSun then
                 hum.PlatformStand = true
             else
@@ -1389,23 +1414,7 @@ local function GetMobForCurrentLevel()
 end
 
 -- ==========================================
--- AUTO NHẬN LẠI QUEST VÒNG LẶP ĐỘC LẬP (ĐÃ KHÔI PHỤC)
--- ==========================================
-task.spawn(function()
-    while task.wait(1) do
-        if _G.YuiKillAllLoops then break end
-        if _G_V10.AutoRepeatQuest or _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm then
-            pcall(function()
-                for _, v in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
-                    if v:IsA("RemoteEvent") and v.Name == "Qu" then v:FireServer("Yes") end
-                end
-            end)
-        end
-    end
-end)
-
--- ==========================================
--- MAIN COMBAT ENGINE (LÕI TÌM QUÁI V1 KHÔNG KẸT LAG)
+-- MAIN COMBAT ENGINE (TRẢ LẠI LÕI V1 CHUẨN 100%)
 -- ==========================================
 local currentSwapState = 1
 local lastSwapTime = os.clock()
@@ -1428,7 +1437,6 @@ local function isValidMobByDatabase(mob)
     return true
 end
 
--- Hàm tìm kiếm quét sạch chữ Hoa/Thường để bắt Pzozo nhanh nhất
 local function DirectFind(name)
     local targetName = string.lower(name)
     for _, folderName in ipairs({"Monster", "Enemies", "NPC", "NPCs"}) do
@@ -1468,7 +1476,7 @@ task.spawn(function()
         
         if isFarmingAction and not _G_V10.FreeFly then
             
-            -- ================= LỤM SUN BATTERY ĐỘC LẬP (MUTEX KHÔNG CHO ĐÁNH QUÁI) =================
+            -- ================= LỤM SUN BATTERY ĐỘC LẬP =================
             local targetSun = nil
             if _G_V10.AutoSunBattery then
                 local effects = workspace:FindFirstChild("Effects")
@@ -1485,13 +1493,13 @@ task.spawn(function()
                 HRP.CFrame = CFrame.new(sunPos)
                 if HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall.Velocity = Vector3.new(0,0,0) end
                 
-                task.wait(0.5) -- Chờ đứng im chống giật rồi nhặt
+                task.wait(0.5)
                 local click = targetSun:FindFirstChild("FruitClick") or targetSun:FindFirstChildWhichIsA("ProximityPrompt", true)
                 if click then
                     if click:IsA("ProximityPrompt") then fireproximityprompt(click)
                     elseif click:IsA("ClickDetector") then fireclickdetector(click) end
                 end
-                continue -- SKIP MỌI HÀNH ĐỘNG COMBAT
+                continue 
             else
                 _G.IsLootingSun = false
             end
@@ -1501,7 +1509,7 @@ task.spawn(function()
             local shortestDist = math.huge
             local targetWaitPos = nil
             
-            -- ================= LỌC TÌM MỤC TIÊU (THEO ƯU TIÊN) =================
+            -- ================= LỌC TÌM MỤC TIÊU =================
             if not (_G_V10.AutoSea and _G_V10.IsFightingSea) then
                 
                 -- TẦNG 1: WORLD BOSS
@@ -1572,7 +1580,7 @@ task.spawn(function()
                     end
                 end
                 
-                -- TẦNG 3: QUÁI TỌA ĐỘ (ƯU TIÊN TUYỆT ĐỐI THEO THỨ TỰ LỰA CHỌN)
+                -- TẦNG 3: QUÁI TỌA ĐỘ 
                 if not targetMobInstance and not targetWaitPos and _G_V10.AutoCoordMob and #_G_V10.SelectedCoordMobs > 0 then
                     local bestMob = nil; local firstWaitPos = nil; local bestMobName = ""
                     for _, selMobStr in ipairs(_G_V10.SelectedCoordMobs) do
@@ -1664,7 +1672,7 @@ task.spawn(function()
                 end
             end
 
-            -- ================= GLOBAL SAFE HP LÝ TƯỞNG (NÉ DƯỚI ĐẤT) =================
+            -- ================= GLOBAL SAFE HP LÝ TƯỞNG =================
             local hpPct = (Hum.Health / Hum.MaxHealth) * 100
             if _G_V10.GlobalSafeHP and targetMobInstance then
                 local triggerDodge = false
@@ -1688,7 +1696,7 @@ task.spawn(function()
                 local forcePzozoSpin = false
                 if targetMobInstance and string.lower(targetMobInstance.Name) == "pzozolove112" and _G_V10.AlwaysSpinPzozo then forcePzozoSpin = true end
 
-                -- CHỈ XẢ SKILL / CẦM VŨ KHÍ NẾU KHÔNG PHẢI LÀ PZOZO SPIN VÀ KHÔNG NÉ
+                -- CHỈ XẢ SKILL VŨ KHÍ NẾU KHÔNG PHẢI LÀ PZOZO SPIN VÀ KHÔNG NÉ
                 if not isGlobalDodging and not forcePzozoSpin then
                     if _G_V10.AutoSwapWeapon and _G_V10.PrimaryWeapon and _G_V10.SecondaryWeapon then
                         if currentSwapState == 1 then
@@ -1704,6 +1712,14 @@ task.spawn(function()
 
                     if _G_V10.AutoClick then
                         local equippedTool = char:FindFirstChildWhichIsA("Tool"); if equippedTool then equippedTool:Activate() end
+                    end
+                    
+                    if os.clock() - lastSkillSpamTime >= _G_V10.SkillSpamDelay then
+                        lastSkillSpamTime = os.clock()
+                        if _G_V10.AutoSwapWeapon then
+                            local prefix = (currentSwapState == 1) and "W1_" or "W2_"
+                            if _G_V10[prefix.."Z"] then ForceUseSkill("Z") end; if _G_V10[prefix.."X"] then ForceUseSkill("X") end; if _G_V10[prefix.."C"] then ForceUseSkill("C") end; if _G_V10[prefix.."V"] then ForceUseSkill("V") end; if _G_V10[prefix.."B"] then ForceUseSkill("B") end; if _G_V10[prefix.."F"] then ForceUseSkill("F") end
+                        end
                     end
                 end
                 
@@ -1724,7 +1740,6 @@ task.spawn(function()
                     else
                         local mobPos = targetMobInstance.HumanoidRootPart.Position
                         
-                        -- FIX NẰM NGANG BẸP SONG SONG MẶT ĐẤT
                         if _G_V10.AttackPosition == "Trên Đầu" then 
                             HRP.CFrame = CFrame.new(mobPos + Vector3.new(0, _G_V10.AttackDistance, 0)) * CFrame.Angles(math.rad(-90), 0, 0)
                         elseif _G_V10.AttackPosition == "Dưới Chân" then 
