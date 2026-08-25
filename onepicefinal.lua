@@ -1,6 +1,6 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V36 (FULL SYSTEM OVERHAUL & FIX BYPASS)
--- (TỔNG QUÉT TOÀN DIỆN: FIX AUTO BYPASS, GIỮ NGUYÊN 100% CƠ CHẾ VẬT LÝ & ĐI BIỂN)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V36 (PERFECT CLEAN & AUTO BYPASS FIX)
+-- (TỔNG LỌC SẠCH LỖI SYNTAX, FIX AUTO BYPASS CLICK THEO DELAY, GIỮ 100% TÍNH NĂNG)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -23,6 +23,7 @@ if SafeParent:FindFirstChild("YuiHub_UI") then SafeParent["YuiHub_UI"]:Destroy()
 
 local ScanLogFrame = nil
 local playerPosBox = nil
+local txtLog = nil
 
 -- ==========================================
 -- 📚 DATABASE FULL TỪ USER
@@ -52,7 +53,7 @@ local CoordDB = {
         ["Zone 4"] = Vector3.new(-35042, 29, 31786)
     },
     Mobs = {
-        ["Elf [Lv.1300]"] = {Level=1300, Pos=Vector3.new(1212, 49, 5998), Island="Rovani Town"},
+        ["Elf [Lv.1300]"] = {Level=1300, Pos=Vector3.new(1212, 49, 5998), Island="Rovaniemi Town"},
         ["Seaman [Lv.50]"] = {Level=50, Pos=Vector3.new(1074, 69, -3396), Island="Shell Island"},
         ["Ryuma [Lv.675]"] = {Level=675, Pos=Vector3.new(-10365, 63, -2891), Island="Thriller Bark"},
         ["Bruno [Lv.600]"] = {Level=600, Pos=Vector3.new(-6217, 51, 3846), Island="Enies Lobby"},
@@ -182,7 +183,6 @@ local CoordDB = {
     }
 }
 
--- MẢNG ARRAY DATA UI CÓ SẴN
 local ListWorldBoss = {}
 for k, _ in pairs(CoordDB.WorldBosses) do table.insert(ListWorldBoss, k) end
 table.sort(ListWorldBoss)
@@ -195,7 +195,6 @@ local ListNPCs = {}
 for name, data in pairs(CoordDB.NPCs) do table.insert(ListNPCs, string.format("[%s] %s", data.Island, name)) end
 table.sort(ListNPCs)
 
--- QUÁI CHIA ĐẢO CÓ CẦU VỒNG
 local IslandMobs = {}
 for name, data in pairs(CoordDB.Mobs) do
     if not IslandMobs[data.Island] then IslandMobs[data.Island] = {} end
@@ -271,75 +270,8 @@ local ConfigFolder = "YuiHub_Configs"
 local MasterFile = ConfigFolder .. "/MasterSettings.json"
 if isfolder and not isfolder(ConfigFolder) then makefolder(ConfigFolder) end
 
-local function RenderScannerLog()
-    if not ScanLogFrame then return end
-    for _, v in pairs(ScanLogFrame:GetChildren()) do if v:IsA("Frame") or v:IsA("TextLabel") then v:Destroy() end end
-    
-    local function AddChunk(title, content)
-        if content == "" then return end
-        local chunkText = string.format("=== %s ===\n%s", title, content)
-        local chunkFrame = Instance.new("Frame", ScanLogFrame); chunkFrame.Size = UDim2.new(1, -10, 0, 100); chunkFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Instance.new("UICorner", chunkFrame).CornerRadius = UDim.new(0, 6)
-        local txt = Instance.new("TextBox", chunkFrame); txt.Size = UDim2.new(1, -50, 1, -10); txt.Position = UDim2.new(0, 5, 0, 5); txt.BackgroundTransparency = 1; txt.Text = chunkText; txt.TextColor3 = Color3.fromRGB(220, 220, 220); txt.Font = Enum.Font.Code; txt.TextSize = 10; txt.TextXAlignment = Enum.TextXAlignment.Left; txt.TextYAlignment = Enum.TextYAlignment.Top; txt.ClearTextOnFocus = false; txt.TextEditable = false; txt.TextWrapped = true
-        local copyBtn = Instance.new("TextButton", chunkFrame); copyBtn.Size = UDim2.new(0, 40, 0, 40); copyBtn.Position = UDim2.new(1, -45, 0.5, -20); copyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255); copyBtn.Text = "COPY"; copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255); copyBtn.Font = Enum.Font.GothamBold; Instance.new("UICorner", copyBtn).CornerRadius = UDim.new(0, 6)
-        copyBtn.MouseButton1Click:Connect(function() if setclipboard then setclipboard(chunkText); copyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100); copyBtn.Text = "OK"; task.wait(1); copyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255); copyBtn.Text = "COPY" end end)
-        txt:GetPropertyChangedSignal("TextBounds"):Connect(function() chunkFrame.Size = UDim2.new(1, -10, 0, math.max(60, txt.TextBounds.Y + 20)) end)
-    end
-    
-    local hasData = false
-    local bStr = ""
-    if _G_V10.ScannerData.Bosses then for k, v in pairs(_G_V10.ScannerData.Bosses) do bStr = bStr .. string.format("[%s] | %s (HP: %s) | %s\n", v.Island, k, v.Level, v.Pos); hasData = true end end
-    AddChunk("👹 DANH SÁCH BOSS", bStr)
-    
-    local mLines = {}
-    if _G_V10.ScannerData.Mobs then for k, v in pairs(_G_V10.ScannerData.Mobs) do table.insert(mLines, string.format("[%s] | %s | %s", v.Island, k, v.Pos)); hasData = true end end
-    local chunkSize = 15
-    for i = 1, #mLines, chunkSize do
-        local chunkStr = ""
-        for j = i, math.min(i + chunkSize - 1, #mLines) do chunkStr = chunkStr .. mLines[j] .. "\n" end
-        AddChunk("👾 QUÁI (PHẦN " .. math.ceil(i/chunkSize) .. ")", chunkStr)
-    end
-    
-    local nStr = ""
-    if _G_V10.ScannerData.NPCs then for k, v in pairs(_G_V10.ScannerData.NPCs) do nStr = nStr .. string.format("[%s] | %s | %s\n", v.Island, k, v.Pos); hasData = true end end
-    AddChunk("🛒 DANH SÁCH NPC", nStr)
-    
-    if not hasData then
-        local emptyLbl = Instance.new("TextLabel", ScanLogFrame)
-        emptyLbl.Size = UDim2.new(1, -10, 0, 50); emptyLbl.BackgroundTransparency = 1; emptyLbl.Text = "Đang chờ dữ liệu quét... (Hãy bật Máy Quét và đợi)"; emptyLbl.TextColor3 = Color3.fromRGB(150, 150, 150); emptyLbl.Font = Enum.Font.Gotham; emptyLbl.TextSize = 12
-    end
-end
-
-local function SaveConfig(name)
-    if not writefile then return end
-    name = name or "DefaultConfig"; _G_V10.SelectedConfig = name
-    writefile(ConfigFolder.."/"..name..".json", HttpService:JSONEncode(_G_V10))
-    writefile(MasterFile, HttpService:JSONEncode({AutoLoadConfig = _G_V10.AutoLoadConfig, LastConfig = name}))
-end
-
-local function LoadConfig(name)
-    if not readfile or not isfile(ConfigFolder.."/"..name..".json") then return end
-    local s, decoded = pcall(function() return HttpService:JSONDecode(readfile(ConfigFolder.."/"..name..".json")) end)
-    if s and type(decoded) == "table" then
-        for k, v in pairs(decoded) do _G_V10[k] = v end
-        if not _G_V10.ScannerData then _G_V10.ScannerData = {Mobs = {}, Bosses = {}, NPCs = {}} end
-        for _, updater in pairs(_G_UI_Updaters) do pcall(updater) end
-        RenderScannerLog()
-    end
-end
-
-if readfile and isfile(MasterFile) then
-    local s, masterData = pcall(function() return HttpService:JSONDecode(readfile(MasterFile)) end)
-    if s and type(masterData) == "table" and masterData.AutoLoadConfig and masterData.LastConfig then _G_V10.AutoLoadConfig = true; LoadConfig(masterData.LastConfig) end
-end
-local function AutoSaveTrigger() if _G_V10.AutoSaveConfig then SaveConfig(_G_V10.SelectedConfig) end end
-local function GetConfigsList()
-    local list = {}
-    if listfiles and isfolder(ConfigFolder) then for _, file in pairs(listfiles(ConfigFolder)) do local name = file:match("([^/%\\]+)%.json$") or file; if name ~= "MasterSettings" then table.insert(list, name) end end end 
-    return list
-end
-
 -- ==========================================
--- GIAO DIỆN CHÍNH
+-- GIAO DIỆN CHÍNH (YUI HUB)
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui", SafeParent)
 ScreenGui.Name = "YuiHub_UI"; ScreenGui.ResetOnSpawn = false
@@ -968,11 +900,11 @@ local ConfigNameInput = "DefaultConfig"
 CreateTextBox(SecCfgLoad, "Nhập tên cấu hình để lưu (VD: BeliFarm)", function(text) ConfigNameInput = text end)
 CreateButton(SecCfgLoad, "💾 LƯU BẢN HIỆN TẠI (SAVE)", function() SaveConfig(ConfigNameInput ~= "" and ConfigNameInput or _G_V10.SelectedConfig); DropConfigs(GetConfigsList()); game.StarterGui:SetCore("SendNotification", {Title = "Lưu Thành Công", Text = "Đã lưu cấu hình!", Duration = 3}) end)
 CreateButton(SecCfgLoad, "📂 TẢI BẢN ĐÃ CHỌN (LOAD)", function() LoadConfig(_G_V10.SelectedConfig); game.StarterGui:SetCore("SendNotification", {Title = "Tải Thành Công", Text = "Đã tải cấu hình!", Duration = 3}) end)
-local SecCfgBypass = CreateSection(TabConfig, "AUTO BYPASS", Color3.fromRGB(0, 200, 255))
+local SecCfgBypass = CreateSection(TabConfig, "AUTO BYPASS TỐI ƯU HÓA", Color3.fromRGB(0, 200, 255))
 CreateToggleSwitch(SecCfgBypass, "Bật Auto Lưu (Lưu mỗi khi thay đổi)", "AutoSaveConfig")
 CreateToggleSwitch(SecCfgBypass, "Bật Auto Load (Khi vào lại game)", "AutoLoadConfig")
-CreateToggleSwitch(SecCfgBypass, "Bật Auto Bypass Load Data & Play Lúc Vừa Mở", "AutoBypassMenu")
-CreateSlider(SecCfgBypass, "Thời Gian Chạy Bypass (Giây)", 1, 100, "BypassDuration")
+CreateToggleSwitch(SecCfgBypass, "Bật Auto Bypass Bấm Giữa Màn Hình", "AutoBypassMenu")
+CreateSlider(SecCfgBypass, "Chờ Load Mấy Giây Để Bấm Play (Delay)", 1, 100, "BypassDuration")
 
 CreateButton(SecCfgBypass, "⚠️ RESET TOÀN BỘ MENU VỀ MẶC ĐỊNH", function()
     for k, v in pairs(DefaultConfig) do if k ~= "ScannedMonstersList" and k ~= "ScannerData" then _G_V10[k] = v end end
@@ -980,7 +912,12 @@ CreateButton(SecCfgBypass, "⚠️ RESET TOÀN BỘ MENU VỀ MẶC ĐỊNH", fu
     SaveConfig(_G_V10.SelectedConfig); game.StarterGui:SetCore("SendNotification", {Title = "Reset", Text = "Đã làm mới Menu!", Duration = 3})
 end, Color3.fromRGB(200, 50, 50))
 
+-- SAU KHI DỰNG XONG TOÀN BỘ UI THÌ MỚI ĐƯỢC LOAD CONFIG HOẶC RENDER
 RenderScannerLog()
+if readfile and isfile(MasterFile) then
+    local s, masterData = pcall(function() return HttpService:JSONDecode(readfile(MasterFile)) end)
+    if s and type(masterData) == "table" and masterData.AutoLoadConfig and masterData.LastConfig then _G_V10.AutoLoadConfig = true; LoadConfig(masterData.LastConfig) end
+end
 
 -- ==========================================
 -- ENGINE LÕI: NOCLIP & WATER WALK
@@ -1008,14 +945,13 @@ table.insert(_G.YuiConnections, RunService.Stepped:Connect(function()
 end))
 
 -- ==========================================
--- ENGINE CHỐNG RƠI BẤT TỬ (V36 CỰC ĐỈNH - KHÔNG RƠI XUYÊN ĐẤT)
+-- ENGINE CHỐNG RƠI BẤT TỬ (VẬT LÝ GỐC HOÀN HẢO CỦA BẠN)
 -- ==========================================
 local function EnableAntiFall(HRP)
-    local AntiFall = HRP:FindFirstChild("FarmAntiFall")
-    if not AntiFall then
-        AntiFall = Instance.new("BodyVelocity")
+    if not HRP:FindFirstChild("FarmAntiFall") then
+        local AntiFall = Instance.new("BodyVelocity")
         AntiFall.Name = "FarmAntiFall"
-        AntiFall.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        AntiFall.MaxForce = Vector3.new(9e9, 9e9, 9e9)
         AntiFall.Velocity = Vector3.new(0, 0, 0)
         AntiFall.Parent = HRP
     end
@@ -1170,27 +1106,32 @@ end
 pcall(MonitorChatForBosses)
 
 -- ==========================================
--- ENGINE: AUTO BYPASS MAIN MENU V36 (VÒNG LẶP VĨNH VIỄN AN TOÀN)
+-- ENGINE: AUTO BYPASS MAIN MENU V36 (CƠ CHẾ CLICK DELAY CHUẨN)
 -- ==========================================
 task.spawn(function()
-    while task.wait(1) do
-        if _G.YuiKillAllLoops then break end
-        if _G_V10.AutoBypassMenu then
-            pcall(function()
-                local pg = LocalPlayer:FindFirstChild("PlayerGui")
-                if pg then
-                    local function clickBtn(name)
-                        local btn = SmartFindButton(pg, name)
-                        if btn and btn.Visible and btn.AbsolutePosition.X > 0 then
-                            PhysicalClick(btn)
-                            return true
-                        end
-                        return false
-                    end
-                    clickBtn("Load") or clickBtn("Accept") or clickBtn("Play") or clickBtn("Join") or clickBtn("Start")
-                end
-            end)
-        end
+    task.wait(2) -- Chờ UI Load
+    if _G_V10.AutoBypassMenu and not _G.YuiKillAllLoops then
+        pcall(function()
+            local cam = workspace.CurrentCamera
+            if cam then
+                local cx = cam.ViewportSize.X / 2
+                local cy = cam.ViewportSize.Y / 2
+                
+                -- BẤM PHÁT ĐẦU: Lấy Load Data
+                VIM:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
+                task.wait(0.05)
+                VIM:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
+                
+                -- ĐỢI THANH DELAY 
+                local delayTime = tonumber(_G_V10.BypassDuration) or 10
+                task.wait(delayTime)
+                
+                -- BẤM PHÁT CUỐI: Chơi luôn (Play)
+                VIM:SendMouseButtonEvent(cx, cy, 0, true, game, 0)
+                task.wait(0.05)
+                VIM:SendMouseButtonEvent(cx, cy, 0, false, game, 0)
+            end
+        end)
     end
 end)
 
@@ -1647,7 +1588,7 @@ task.spawn(function()
                     end
                 end
 
-                -- TẦNG 5: FARM TÙY CHỌN / CÀN QUÉT MAP / LEVEL
+                -- TẦNG 5: FARM TÙY CHỌN / CÀN QUÉT MAP / LEVEL / RAID THƯỜNG
                 if not targetMobInstance and not targetWaitPos then
                     if _G_V10.AutoFarmLevel then
                         local mob, qName = GetMobForCurrentLevel(); _G_V10.CurrentTargetMob = {mob}; LblInfo.Text = "Farm Level: " .. qName
@@ -1715,6 +1656,7 @@ task.spawn(function()
                 local forcePzozoSpin = false
                 if targetMobInstance and string.find(string.lower(targetMobInstance.Name), "pzozolove112") and _G_V10.AlwaysSpinPzozo then forcePzozoSpin = true end
 
+                -- CHỈ XẢ SKILL VŨ KHÍ NẾU KHÔNG PHẢI LÀ PZOZO SPIN VÀ KHÔNG NÉ
                 if not isGlobalDodging and not forcePzozoSpin then
                     if _G_V10.AutoSwapWeapon and _G_V10.PrimaryWeapon and _G_V10.SecondaryWeapon then
                         if currentSwapState == 1 then
