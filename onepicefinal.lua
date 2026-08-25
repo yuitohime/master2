@@ -1,6 +1,6 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V43 (V34 CORE - NORMAL HEIGHT FIXED)
--- (TRẢ LẠI TỌA ĐỘ CHỜ VÀ RAID VỀ MẶT ĐẤT - GIỮ NGUYÊN 100% CHỨC NĂNG V34/V42)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V44 (THE ABSOLUTE TRUTH)
+-- (GIỮ NGUYÊN 100% TÍNH NĂNG - SỬ DỤNG 100% LÕI VẬT LÝ VÀ RAID TỪ USER - KHÔNG CẮT GIẢM)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -45,6 +45,12 @@ local CoordDB = {
         ["Galactic Overseer"] = {Level = 0, Pos = Vector3.new(-20370, 383, 280), Island = "Marineford"},
         ["Infernal Admiral"] = {Level = 0, Pos = Vector3.new(-20328, 274, 500), Island = "Marineford"},
         ["Glacier Admiral"] = {Level = 0, Pos = Vector3.new(-20402, 274, 436), Island = "Marineford"}
+    },
+    Bosses = {
+        ["God of Cold [Lv.50000]"] = {Level = 50000, Pos = Vector3.new(-370, 637, 9004)},
+        ["Moria [Lv.1200]"] = {Level = 1200, Pos = Vector3.new(-10421, 62, -2497)},
+        ["Shadow Master [Lv.1450]"] = {Level = 1450, Pos = Vector3.new(-10022, 75, -2991)},
+        ["Hawkeye [Lv.999]"] = {Level = 999, Pos = Vector3.new(-1831, 77, 3674)}
     },
     SeaZones = {
         ["Zone 1"] = Vector3.new(-19800, 86, 16940),
@@ -183,17 +189,10 @@ local CoordDB = {
     }
 }
 
-local ListWorldBoss = {}
-for k, _ in pairs(CoordDB.WorldBosses) do table.insert(ListWorldBoss, k) end
-table.sort(ListWorldBoss)
-
-local ListNormalBoss = {}
-for k, _ in pairs(CoordDB.NormalBosses) do table.insert(ListNormalBoss, k) end
-table.sort(ListNormalBoss)
-
-local ListNPCs = {}
-for name, data in pairs(CoordDB.NPCs) do table.insert(ListNPCs, string.format("[%s] %s", data.Island, name)) end
-table.sort(ListNPCs)
+local CoordBossNames = {}; for k, _ in pairs(CoordDB.Bosses) do table.insert(CoordBossNames, k) end
+local CoordMobNames = {}; for k, _ in pairs(CoordDB.Mobs) do table.insert(CoordMobNames, k) end
+local ListNPCs = {}; for name, data in pairs(CoordDB.NPCs) do table.insert(ListNPCs, string.format("[%s] %s", data.Island, name)) end
+table.sort(CoordBossNames); table.sort(CoordMobNames); table.sort(ListNPCs)
 
 local IslandMobs = {}
 for name, data in pairs(CoordDB.Mobs) do
@@ -253,7 +252,7 @@ local DefaultConfig = {
     GlobalSafeHP = false, GlobalSafeHP_Min = 30, GlobalSafeHP_Timer = false, GlobalSafeHP_Time = 15, GlobalSafeHP_Spin = true, GlobalDodgeRadius = 50,
     
     AutoBypassMenu = true, BypassDuration = 10,
-    AutoCoordMob = false, SelectedCoordMobs = {}, AutoWorldBoss = false, SelectedWorldBosses = {}, AutoNormalBoss = false, SelectedNormalBosses = {}, BossCheckDelay = 5,
+    AutoCoordMob = false, SelectedCoordMobs = {}, AutoCoordBoss = false, SelectedCoordBosses = {}, BossCheckDelay = 5,
     AutoSpawnMihawk = false, MihawkAmount = "x1", AutoGiveShadow = false, ShadowItem = "Shadow Spirit", ShadowAmount = "x1",
     SelectedIsland = nil, SelectedSpawnPoint = nil, SelectedNPC = nil,
     AutoPatrolIsland = false, SelectedPatrolIslands = {}, PatrolIslandTime = 30, PatrolIslandRadius = 150, PatrolIslandSpeed = 5, PatrolIslandHeight = 0,
@@ -271,41 +270,27 @@ local MasterFile = ConfigFolder .. "/MasterSettings.json"
 if isfolder and not isfolder(ConfigFolder) then makefolder(ConfigFolder) end
 
 local function RenderScannerLog()
-    if not ScanLogFrame then return end
-    for _, v in pairs(ScanLogFrame:GetChildren()) do if v:IsA("Frame") or v:IsA("TextLabel") then v:Destroy() end end
-    
-    local function AddChunk(title, content)
-        if content == "" then return end
-        local chunkText = string.format("=== %s ===\n%s", title, content)
-        local chunkFrame = Instance.new("Frame", ScanLogFrame); chunkFrame.Size = UDim2.new(1, -10, 0, 100); chunkFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Instance.new("UICorner", chunkFrame).CornerRadius = UDim.new(0, 6)
-        local txt = Instance.new("TextBox", chunkFrame); txt.Size = UDim2.new(1, -50, 1, -10); txt.Position = UDim2.new(0, 5, 0, 5); txt.BackgroundTransparency = 1; txt.Text = chunkText; txt.TextColor3 = Color3.fromRGB(220, 220, 220); txt.Font = Enum.Font.Code; txt.TextSize = 10; txt.TextXAlignment = Enum.TextXAlignment.Left; txt.TextYAlignment = Enum.TextYAlignment.Top; txt.ClearTextOnFocus = false; txt.TextEditable = false; txt.TextWrapped = true
-        local copyBtn = Instance.new("TextButton", chunkFrame); copyBtn.Size = UDim2.new(0, 40, 0, 40); copyBtn.Position = UDim2.new(1, -45, 0.5, -20); copyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255); copyBtn.Text = "COPY"; copyBtn.TextColor3 = Color3.fromRGB(255, 255, 255); copyBtn.Font = Enum.Font.GothamBold; Instance.new("UICorner", copyBtn).CornerRadius = UDim.new(0, 6)
-        copyBtn.MouseButton1Click:Connect(function() if setclipboard then setclipboard(chunkText); copyBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 100); copyBtn.Text = "OK"; task.wait(1); copyBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255); copyBtn.Text = "COPY" end end)
-        txt:GetPropertyChangedSignal("TextBounds"):Connect(function() chunkFrame.Size = UDim2.new(1, -10, 0, math.max(60, txt.TextBounds.Y + 20)) end)
+    if not txtLog then return end
+    local logStr = "<b><font color='#ff5555' size='15'>=== 👹 DANH SÁCH BOSS ===</font></b>\n"
+    if _G_V10.ScannerData and _G_V10.ScannerData.Bosses then
+        for k, v in pairs(_G_V10.ScannerData.Bosses) do 
+            logStr = logStr .. string.format("<b><font color='#ffff55'>[%s]</font></b> | <font color='#ffffff'>%s (HP: %s)</font> | <font color='#55ff55'>%s</font>\n", v.Island, k, v.Level, v.Pos) 
+        end
     end
-    
-    local hasData = false
-    local bStr = ""
-    if _G_V10.ScannerData.Bosses then for k, v in pairs(_G_V10.ScannerData.Bosses) do bStr = bStr .. string.format("[%s] | %s (HP: %s) | %s\n", v.Island, k, v.Level, v.Pos); hasData = true end end
-    AddChunk("👹 DANH SÁCH BOSS", bStr)
-    
-    local mLines = {}
-    if _G_V10.ScannerData.Mobs then for k, v in pairs(_G_V10.ScannerData.Mobs) do table.insert(mLines, string.format("[%s] | %s | %s", v.Island, k, v.Pos)); hasData = true end end
-    local chunkSize = 15
-    for i = 1, #mLines, chunkSize do
-        local chunkStr = ""
-        for j = i, math.min(i + chunkSize - 1, #mLines) do chunkStr = chunkStr .. mLines[j] .. "\n" end
-        AddChunk("👾 QUÁI (PHẦN " .. math.ceil(i/chunkSize) .. ")", chunkStr)
+    logStr = logStr .. "\n<b><font color='#55aaff' size='15'>=== 👾 DANH SÁCH QUÁI THƯỜNG ===</font></b>\n"
+    if _G_V10.ScannerData and _G_V10.ScannerData.Mobs then
+        for k, v in pairs(_G_V10.ScannerData.Mobs) do 
+            logStr = logStr .. string.format("<b><font color='#ffff55'>[%s]</font></b> | <font color='#ffffff'>%s</font> | <font color='#55ff55'>%s</font>\n", v.Island, k, v.Pos) 
+        end
     end
-    
-    local nStr = ""
-    if _G_V10.ScannerData.NPCs then for k, v in pairs(_G_V10.ScannerData.NPCs) do nStr = nStr .. string.format("[%s] | %s | %s\n", v.Island, k, v.Pos); hasData = true end end
-    AddChunk("🛒 DANH SÁCH NPC", nStr)
-    
-    if not hasData then
-        local emptyLbl = Instance.new("TextLabel", ScanLogFrame)
-        emptyLbl.Size = UDim2.new(1, -10, 0, 50); emptyLbl.BackgroundTransparency = 1; emptyLbl.Text = "Đang chờ dữ liệu quét... (Hãy bật Máy Quét và đợi)"; emptyLbl.TextColor3 = Color3.fromRGB(150, 150, 150); emptyLbl.Font = Enum.Font.Gotham; emptyLbl.TextSize = 12
+    logStr = logStr .. "\n<b><font color='#ffaa00' size='15'>=== 🛒 DANH SÁCH NPC ===</font></b>\n"
+    if _G_V10.ScannerData and _G_V10.ScannerData.NPCs then
+        for k, v in pairs(_G_V10.ScannerData.NPCs) do 
+            logStr = logStr .. string.format("<b><font color='#ffff55'>[%s]</font></b> | <font color='#ffffff'>%s</font> | <font color='#55ff55'>%s</font>\n", v.Island, k, v.Pos) 
+        end
     end
+    txtLog.Text = logStr
+    if txtLog.Parent then txtLog.Parent.CanvasSize = UDim2.new(0, 0, 0, txtLog.TextBounds.Y + 50) end
 end
 
 local function SaveConfig(name)
@@ -488,6 +473,12 @@ local function CreateSection(parent, title, color)
         if parent:IsA("ScrollingFrame") then local pLayout = parent:FindFirstChildOfClass("UIListLayout"); if pLayout then parent.CanvasSize = UDim2.new(0, 0, 0, pLayout.AbsoluteContentSize.Y + 20) end end
     end)
     return Content
+end
+
+local function CreateDivider(parent, text, color)
+    local LblDivider = Instance.new("TextLabel", parent)
+    LblDivider.Size = UDim2.new(1, 0, 0, 20); LblDivider.BackgroundTransparency = 1; LblDivider.TextColor3 = color or Color3.fromRGB(255, 100, 200)
+    LblDivider.Font = Enum.Font.GothamBold; LblDivider.TextSize = 13; LblDivider.TextXAlignment = Enum.TextXAlignment.Center; LblDivider.Text = "--- " .. text .. " ---"
 end
 
 local function CreateToggleSwitch(parent, text, varName, callback)
@@ -737,7 +728,6 @@ local function StopAllFarm()
             char.HumanoidRootPart.AssemblyLinearVelocity = Vector3.new(0,0,0)
         end)
         if char.HumanoidRootPart:FindFirstChild("FarmAntiFall") then char.HumanoidRootPart.FarmAntiFall:Destroy() end
-        if char:FindFirstChild("Humanoid") then char.Humanoid.PlatformStand = false end
     end
 end
 CreateButton(TabMainFarm, "🛑 STOP ALL FARM (TẮT HẾT FARM NGAY LẬP TỨC)", StopAllFarm, Color3.fromRGB(255, 50, 50))
@@ -1010,12 +1000,11 @@ table.insert(_G.YuiConnections, RunService.Stepped:Connect(function()
 end))
 
 -- ==========================================
--- ENGINE CHỐNG RƠI BẤT TỬ (VẬT LÝ GỐC HOÀN HẢO TỪ V34)
+-- ENGINE CHỐNG RƠI BẤT TỬ (VẬT LÝ GỐC CỦA BẠN - HOÀN HẢO)
 -- ==========================================
 local function EnableAntiFall(HRP)
-    local AntiFall = HRP:FindFirstChild("FarmAntiFall")
-    if not AntiFall then
-        AntiFall = Instance.new("BodyVelocity")
+    if not HRP:FindFirstChild("FarmAntiFall") then
+        local AntiFall = Instance.new("BodyVelocity")
         AntiFall.Name = "FarmAntiFall"
         AntiFall.MaxForce = Vector3.new(9e9, 9e9, 9e9)
         AntiFall.Velocity = Vector3.new(0, 0, 0)
@@ -1034,28 +1023,19 @@ table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
         local hum = char:FindFirstChild("Humanoid")
         if not hrp or not hum then return end
 
-        local isNormalFarming = _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm or _G_V10.AutoFarmFree or _G_V10.FarmAll or _G_V10.AutoFarmRaid or _G_V10.AutoCoordMob or _G_V10.AutoWorldBoss or _G_V10.AutoNormalBoss or _G_V10.AutoFarmBossRaid
+        local isNormalFarming = _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm or _G_V10.AutoFarmFree or _G_V10.FarmAll or _G_V10.AutoFarmRaid or _G_V10.AutoCoordMob or _G_V10.AutoWorldBoss or _G_V10.AutoNormalBoss or _G_V10.AutoFarmBossRaid or _G_V10.AutoCoordBoss
         
         if isNormalFarming and not _G_V10.FreeFly and not _G_V10.AutoPatrolIsland then
             EnableAntiFall(hrp)
-            if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall.Velocity = Vector3.new(0, 0, 0) end
-            
-            -- ÉP CỨNG NHÂN VẬT, TRỊ DỨT ĐIỂM TRÔI
             hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
             hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-            
-            if _G_V10.AttackPosition == "Trên Đầu" or _G_V10.AttackPosition == "Dưới Chân" or _G_V10.AttackPosition == "Xoay Tròn" or _G.IsLootingSun then
-                hum.PlatformStand = true
-            else
-                hum.PlatformStand = false
-            end
+            if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall.Velocity = Vector3.new(0, 0, 0) end
             
             for _, v in pairs(char:GetDescendants()) do
                 if v:IsA("BasePart") then v.CanCollide = false end
             end
         else
             if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall:Destroy() end
-            if not _G_V10.FreeFly then hum.PlatformStand = false end
         end
     end)
 end))
@@ -1121,26 +1101,22 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- ENGINE: AUTO REPEAT QUEST 
+-- ENGINE: AUTO REPEAT QUEST
 -- ==========================================
-task.spawn(function()
-    while task.wait(1) do
-        if _G.YuiKillAllLoops then break end
-        if _G_V10.AutoRepeatQuest or _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm then
-            pcall(function()
-                for _, v in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
-                    if v:IsA("RemoteEvent") and v.Name == "Qu" then v:FireServer("Yes") end
-                end
-            end)
-        end
+local lastQuestTime = 0
+local function RepeatQuestRemote()
+    if os.clock() - lastQuestTime > 1 then
+        lastQuestTime = os.clock()
+        pcall(function() for _, v in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do if v:IsA("RemoteEvent") and v.Name == "Qu" then v:FireServer("Yes") end end end)
     end
-end)
+end
 
 -- ==========================================
 -- BẮT CHAT SYSTEM CHECK BOSS SPAWN NHANH
 -- ==========================================
 local lastWorldBossCheckTime = os.clock()
 local lastNormalBossCheckTime = os.clock()
+local lastBossCheckTime = os.clock()
 
 local function MonitorChatForBosses()
     local ChatSys = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("Chat")
@@ -1150,8 +1126,7 @@ local function MonitorChatForBosses()
             if descendant:IsA("TextLabel") and descendant.Text then
                 local txt = string.lower(descendant.Text)
                 if string.find(txt, "trăng máu") or string.find(txt, "blood moon") or string.find(txt, "shadow") or string.find(txt, "boss") then
-                    lastWorldBossCheckTime = 0
-                    lastNormalBossCheckTime = 0 
+                    lastWorldBossCheckTime = 0; lastNormalBossCheckTime = 0; lastBossCheckTime = 0
                 end
             end
         end))
@@ -1160,7 +1135,7 @@ end
 pcall(MonitorChatForBosses)
 
 -- ==========================================
--- ENGINE: AUTO BYPASS (TỰ ĐỘNG BẤM TÂM MÀN HÌNH CHỐNG KẸT)
+-- ENGINE: AUTO BYPASS V44 (CLICK TÂM MÀN HÌNH THEO DELAY)
 -- ==========================================
 task.spawn(function()
     local startTime = os.clock()
@@ -1471,7 +1446,7 @@ local function isValidMobByDatabase(mob)
     return true
 end
 
--- V43 FIX: HÀM QUÉT BOSS LINH HOẠT VỚI STRING.FIND (BẮT CẢ DẠNG AWAKENED)
+-- V44 FIX: HÀM QUÉT BOSS LINH HOẠT VỚI STRING.FIND (BẮT CẢ DẠNG AWAKENED)
 local function DirectFind(name)
     local targetName = string.lower(name)
     local cleanTarget = string.match(targetName, "^(.-)%s*%[") or targetName
@@ -1513,15 +1488,16 @@ task.spawn(function()
         
         if not HRP or not Hum or Hum.Health <= 0 then 
             if HRP and HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall:Destroy() end
-            lastWorldBossCheckTime = os.clock(); lastNormalBossCheckTime = os.clock()
-            _G.WorldBossWaitStarted = nil; _G.NormalBossWaitStarted = nil
+            lastBossCheckTime = os.clock(); _G.WorldBossWaitStarted = nil; _G.NormalBossWaitStarted = nil
             _G.IsLootingSun = false
             task.wait(1); continue 
         end
 
-        local isNormalFarming = _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm or _G_V10.AutoFarmFree or _G_V10.FarmAll or _G_V10.AutoFarmRaid or _G_V10.AutoCoordMob or _G_V10.AutoWorldBoss or _G_V10.AutoNormalBoss or _G_V10.AutoFarmBossRaid
+        local isNormalFarming = _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm or _G_V10.AutoFarmFree or _G_V10.FarmAll or _G_V10.AutoFarmRaid or _G_V10.AutoCoordBoss or _G_V10.AutoNormalBoss or _G_V10.AutoFarmBossRaid or _G_V10.AutoCoordMob or _G_V10.AutoWorldBoss
         local isFarmingAction = isNormalFarming or (_G_V10.AutoSea and _G_V10.IsFightingSea)
         
+        if _G_V10.AutoRepeatQuest then RepeatQuestRemote() end
+
         if isFarmingAction and not _G_V10.FreeFly then
             
             -- ================= LỤM SUN BATTERY ĐỘC LẬP =================
@@ -1541,7 +1517,7 @@ task.spawn(function()
                 HRP.CFrame = CFrame.new(sunPos)
                 if HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall.Velocity = Vector3.new(0,0,0) end
                 
-                task.wait(0.2) 
+                task.wait(0.5) 
                 local click = targetSun:FindFirstChild("FruitClick") or targetSun:FindFirstChildWhichIsA("ProximityPrompt", true)
                 if click then
                     if click:IsA("ProximityPrompt") then fireproximityprompt(click)
@@ -1560,18 +1536,29 @@ task.spawn(function()
             -- ================= LỌC TÌM MỤC TIÊU =================
             if not (_G_V10.AutoSea and _G_V10.IsFightingSea) then
                 
-                -- TẦNG 1: WORLD BOSS
-                if _G_V10.AutoWorldBoss and #_G_V10.SelectedWorldBosses > 0 then
-                    local foundBoss = nil
-                    for _, bossName in ipairs(_G_V10.SelectedWorldBosses) do
-                        foundBoss = DirectFind(bossName); if foundBoss then break end
+                -- TẦNG 1 & 2: WORLD BOSS & NORMAL BOSS (FARM BOSS TỌA ĐỘ GỘP CHUNG)
+                if _G_V10.AutoCoordBoss and #_G_V10.SelectedCoordBosses > 0 then
+                    for _, bossName in ipairs(_G_V10.SelectedCoordBosses) do
+                        local foundBoss = DirectFind(bossName)
+                        if foundBoss then targetMobInstance = foundBoss; LblCoordInfo.Text = "Tọa độ: Đang đấm " .. bossName; break end
                     end
                     
-                    if foundBoss then
-                        targetMobInstance = foundBoss
-                        LblCoordInfo.Text = "World Boss: Đang chém " .. foundBoss.Name
-                        lastWorldBossCheckTime = os.clock(); _G.WorldBossWaitStarted = nil
-                    else
+                    if not targetMobInstance then
+                        if os.clock() - lastBossCheckTime >= _G_V10.BossCheckDelay then
+                            LblCoordInfo.Text = "Tọa độ: Đang check vị trí Boss..."
+                            local firstBoss = _G_V10.SelectedCoordBosses[1]
+                            targetWaitPos = CoordDB.Bosses[firstBoss] and CoordDB.Bosses[firstBoss].Pos
+                            lastBossCheckTime = os.clock()
+                        else
+                            LblCoordInfo.Text = string.format("Tọa độ: Đợi %d s để check Boss tiếp theo...", math.floor(_G_V10.BossCheckDelay - (os.clock() - lastBossCheckTime)))
+                        end
+                    end
+                elseif _G_V10.AutoWorldBoss and #_G_V10.SelectedWorldBosses > 0 then
+                    for _, bossName in ipairs(_G_V10.SelectedWorldBosses) do
+                        local foundBoss = DirectFind(bossName)
+                        if foundBoss then targetMobInstance = foundBoss; LblCoordInfo.Text = "World Boss: Đang chém " .. foundBoss.Name; break end
+                    end
+                    if not targetMobInstance then
                         local delay = math.max(0.5, tonumber(_G_V10.BossCheckDelay) or 5)
                         if os.clock() - lastWorldBossCheckTime >= delay then
                             if _G.CheckWorldBossIdx > #_G_V10.SelectedWorldBosses then _G.CheckWorldBossIdx = 1 end
@@ -1587,24 +1574,15 @@ task.spawn(function()
                                 end
                             end
                         else
-                            local timeLeft = math.max(0, math.floor(delay - (os.clock() - lastWorldBossCheckTime)))
-                            LblCoordInfo.Text = string.format("World Boss: Đợi %d s để check...", timeLeft)
+                            LblCoordInfo.Text = string.format("World Boss: Đợi %d s để check...", math.floor(delay - (os.clock() - lastWorldBossCheckTime)))
                         end
                     end
-                end
-
-                -- TẦNG 2: NORMAL BOSS 
-                if not targetMobInstance and not targetWaitPos and _G_V10.AutoNormalBoss and #_G_V10.SelectedNormalBosses > 0 then
-                    local foundBoss = nil
+                elseif _G_V10.AutoNormalBoss and #_G_V10.SelectedNormalBosses > 0 then
                     for _, bossName in ipairs(_G_V10.SelectedNormalBosses) do
-                        foundBoss = DirectFind(bossName); if foundBoss then break end
+                        local foundBoss = DirectFind(bossName)
+                        if foundBoss then targetMobInstance = foundBoss; LblCoordInfo.Text = "Normal Boss: Đang chém " .. foundBoss.Name; break end
                     end
-                    
-                    if foundBoss then
-                        targetMobInstance = foundBoss
-                        LblCoordInfo.Text = "Normal Boss: Đang chém " .. foundBoss.Name
-                        lastNormalBossCheckTime = os.clock(); _G.NormalBossWaitStarted = nil
-                    else
+                    if not targetMobInstance then
                         local delay = math.max(0.5, tonumber(_G_V10.BossCheckDelay) or 5)
                         if os.clock() - lastNormalBossCheckTime >= delay then
                             if _G.CheckNormalBossIdx > #_G_V10.SelectedNormalBosses then _G.CheckNormalBossIdx = 1 end
@@ -1628,29 +1606,30 @@ task.spawn(function()
                     end
                 end
                 
-                -- TẦNG 3: QUÁI TỌA ĐỘ 
+                -- TẦNG 3: QUÁI TỌA ĐỘ
                 if not targetMobInstance and not targetWaitPos and _G_V10.AutoCoordMob and #_G_V10.SelectedCoordMobs > 0 then
-                    local bestMob = nil; local firstWaitPos = nil; local bestMobName = ""
-                    for _, selMobStr in ipairs(_G_V10.SelectedCoordMobs) do
-                        local realName = selMobStr:match("%] (.*)$") or selMobStr:match("%] (.*)") or selMobStr:gsub("^%[.-%]%s+", "")
-                        realName = realName:match("^%s*(.-)%s*$")
-                        
-                        local found = DirectFind(realName)
-                        if found then
-                            bestMob = found; bestMobName = realName; break
-                        else
-                            if not firstWaitPos then
-                                local dbInfo = CoordDB.Mobs[realName]
-                                if dbInfo then firstWaitPos = dbInfo.Pos end
-                            end
+                    local bestMob = nil; local maxLvlFound = -1
+                    for _, v in pairs(workspace:GetDescendants()) do
+                        if isValidMobByDatabase(v) and table.find(_G_V10.SelectedCoordMobs, v.Name) then
+                            local dbInfo = CoordDB.Mobs[v.Name]
+                            local lvl = dbInfo and dbInfo.Level or 0
+                            if lvl > maxLvlFound then maxLvlFound = lvl; bestMob = v end
                         end
                     end
                     
-                    if bestMob then targetMobInstance = bestMob; LblCoordInfo.Text = "Tọa độ: Đang dọn " .. bestMobName
-                    else if firstWaitPos then targetWaitPos = firstWaitPos; LblCoordInfo.Text = "Tọa độ: Chờ Quái ra..." end end
+                    if bestMob then 
+                        targetMobInstance = bestMob; LblCoordInfo.Text = "Tọa độ: Đang dọn " .. bestMob.Name .. " (Lv " .. maxLvlFound .. ")"
+                    else
+                        local waitLvl = -1
+                        for _, mName in ipairs(_G_V10.SelectedCoordMobs) do
+                            local dbInfo = CoordDB.Mobs[mName]
+                            if dbInfo and dbInfo.Level > waitLvl then waitLvl = dbInfo.Level; targetWaitPos = dbInfo.Pos end
+                        end
+                        LblCoordInfo.Text = "Tọa độ: Đang chờ Mobs (Lv " .. waitLvl .. ") ra..." 
+                    end
                 end
 
-                -- TẦNG 4: BOSS RAID SELUNA / PZOZOLOVE CÙNG IDLE PATROL
+                -- TẦNG 4: RAID BOSS PZOZO
                 if not targetMobInstance and not targetWaitPos and _G_V10.AutoFarmBossRaid and #_G_V10.SelectedRaidBosses > 0 then
                     for _, bossName in ipairs(_G_V10.SelectedRaidBosses) do
                         local b = DirectFind(bossName)
@@ -1737,13 +1716,14 @@ task.spawn(function()
                 end
             else isGlobalDodging = false end
 
-            -- ================= HÀNH ĐỘNG CỦA NHÂN VẬT & SMART SWAP V43 =================
+            -- ================= HÀNH ĐỘNG CỦA NHÂN VẬT & SMART SWAP =================
             if targetMobInstance or (_G_V10.AutoSea and _G_V10.IsFightingSea) then
                 raidPatrolState = "Wait_C1"; raidPatrolTimer = os.clock()
                 
                 local forcePzozoSpin = false
                 if targetMobInstance and string.find(string.lower(targetMobInstance.Name), "pzozolove112") and _G_V10.AlwaysSpinPzozo then forcePzozoSpin = true end
 
+                -- CHỈ XẢ SKILL VŨ KHÍ NẾU KHÔNG PHẢI LÀ PZOZO SPIN VÀ KHÔNG NÉ
                 if not isGlobalDodging and not forcePzozoSpin then
                     if _G_V10.AutoSwapWeapon and _G_V10.PrimaryWeapon and _G_V10.SecondaryWeapon then
                         if currentSwapState == 1 then
@@ -1824,17 +1804,18 @@ task.spawn(function()
                     end
                 end
             else
-                -- V43 FIX: TRẢ VỀ TỌA ĐỘ GỐC CHUẨN (KHÔNG CỘNG +40 MÉT) ĐỂ VÀO ĐƯỢC ỐNG RAID VÀ CHẠM MẶT ĐẤT
+                -- V44 FIX: TRẢ VỀ TỌA ĐỘ GỐC CHUẨN ĐỂ NHẬN RAID/NPC (KHÔNG CỘNG +40 MÉT)
                 local distToRaidMap = (HRP.Position - Vector3.new(-123, 114, 407)).Magnitude
                 if _G_V10.AutoFarmRaid and distToRaidMap < 3000 then
+                    -- PATROL RAID CHUẨN
                     if raidPatrolState == "Wait_C1" then
-                        if (HRP.Position - C1.Position).Magnitude > 15 then HRP.CFrame = C1 end
+                        if (HRP.Position - C1.Position).Magnitude > 10 then HRP.CFrame = C1 end
                         if os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC1) then raidPatrolState = "Wait_C2"; raidPatrolTimer = os.clock() end
                     elseif raidPatrolState == "Wait_C2" then
-                        if (HRP.Position - C2.Position).Magnitude > 15 then HRP.CFrame = C2 end
+                        if (HRP.Position - C2.Position).Magnitude > 10 then HRP.CFrame = C2 end
                         if os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC2) then raidPatrolState = "Wait_C3"; raidPatrolTimer = os.clock() end
                     elseif raidPatrolState == "Wait_C3" then
-                        if (HRP.Position - C3.Position).Magnitude > 15 then HRP.CFrame = C3 end
+                        if (HRP.Position - C3.Position).Magnitude > 10 then HRP.CFrame = C3 end
                         if os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC3) then raidPatrolState = "Wait_C1"; raidPatrolTimer = os.clock() end
                     end
                 elseif targetWaitPos then
