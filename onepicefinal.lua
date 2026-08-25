@@ -1,6 +1,6 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V42 (V34 CORE - FULL RESTORATION)
--- (GIỮ NGUYÊN 100% LÕI V34 - FIX AUTO BYPASS CLICK TÂM MÀN HÌNH - FIX RAID BOSS DẠNG 2)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V43 (V34 CORE - FULL RESTORATION)
+-- (GIỮ NGUYÊN 100% LÕI V34 - FIX RAID PATROL AI CHUẨN C1/C2/C3 - FIX AUTO BYPASS - KHÔNG CẮT GIẢM)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -337,7 +337,7 @@ local function GetConfigsList()
 end
 
 -- ==========================================
--- GIAO DIỆN CHÍNH
+-- GIAO DIỆN CHÍNH (YUI HUB)
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui", SafeParent)
 ScreenGui.Name = "YuiHub_UI"; ScreenGui.ResetOnSpawn = false
@@ -632,7 +632,7 @@ local function CreateTextBox(parent, placeholder, callback)
 end
 
 -- ==========================================
--- XÂY DỰNG 11 TABS GIAO DIỆN HIỆN ĐẠI (CHUẨN V34 GỐC)
+-- XÂY DỰNG TABS ĐẦY ĐỦ (V34 GỐC)
 -- ==========================================
 local TabSettings = CreateTab("⚙️ Cài Đặt Chung")
 local TabSkills = CreateTab("✨ Kỹ Năng (Skills)")
@@ -929,7 +929,7 @@ CreateToggleSwitch(SecServerProt, "Màn Hình Đen (Giảm Lag Treo Máy)", "Ena
 local SecScanMap = CreateSection(TabScanner, "LẤY TỌA ĐỘ CỦA TÔI", Color3.fromRGB(0, 255, 100))
 local PosLogFrame = Instance.new("Frame", SecScanMap)
 PosLogFrame.Size = UDim2.new(1, -10, 0, 50); PosLogFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30); Instance.new("UICorner", PosLogFrame).CornerRadius = UDim.new(0, 6)
-local posTxt = Instance.new("TextBox", PosLogFrame)
+posTxt = Instance.new("TextBox", PosLogFrame)
 posTxt.Size = UDim2.new(1, -50, 1, -10); posTxt.Position = UDim2.new(0, 5, 0, 5); posTxt.BackgroundTransparency = 1; posTxt.Text = "Chưa lấy tọa độ..."
 posTxt.TextColor3 = Color3.fromRGB(220, 220, 220); posTxt.TextEditable = false; posTxt.TextWrapped = true; posTxt.Font = Enum.Font.Code; posTxt.TextSize = 12; posTxt.TextXAlignment = Enum.TextXAlignment.Left; posTxt.TextYAlignment = Enum.TextYAlignment.Top
 local copyPosBtn = Instance.new("TextButton", PosLogFrame)
@@ -977,6 +977,7 @@ CreateButton(SecCfgBypass, "⚠️ RESET TOÀN BỘ MENU VỀ MẶC ĐỊNH", fu
     SaveConfig(_G_V10.SelectedConfig); game.StarterGui:SetCore("SendNotification", {Title = "Reset", Text = "Đã làm mới Menu!", Duration = 3})
 end, Color3.fromRGB(200, 50, 50))
 
+-- SAU KHI DỰNG XONG TOÀN BỘ UI THÌ MỚI ĐƯỢC LOAD CONFIG HOẶC RENDER
 RenderScannerLog()
 if readfile and isfile(MasterFile) then
     local s, masterData = pcall(function() return HttpService:JSONDecode(readfile(MasterFile)) end)
@@ -1016,8 +1017,7 @@ local function EnableAntiFall(HRP)
     if not AntiFall then
         AntiFall = Instance.new("BodyVelocity")
         AntiFall.Name = "FarmAntiFall"
-        AntiFall.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        AntiFall.P = 9e9
+        AntiFall.MaxForce = Vector3.new(9e9, 9e9, 9e9)
         AntiFall.Velocity = Vector3.new(0, 0, 0)
         AntiFall.Parent = HRP
     end
@@ -1044,7 +1044,7 @@ table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
             hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
             hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
             
-            -- NẰM NGANG BẸP NẾU TRÊN ĐẦU, DƯỚI CHÂN HOẶC XOAY TRÒN
+            -- NẰM NGANG BẸP NẾU TRÊN ĐẦU, DƯỚI CHÂN HOẶC XOAY TRÒN ĐỂ NE CHIÊU
             if _G_V10.AttackPosition == "Trên Đầu" or _G_V10.AttackPosition == "Dưới Chân" or _G_V10.AttackPosition == "Xoay Tròn" or _G.IsLootingSun then
                 hum.PlatformStand = true
             else
@@ -1182,7 +1182,7 @@ end
 pcall(MonitorChatForBosses)
 
 -- ==========================================
--- ENGINE: AUTO BYPASS CLICK TÂM MÀN HÌNH (FIXED)
+-- ENGINE: AUTO BYPASS (TỰ ĐỘNG BẤM TÂM MÀN HÌNH THEO ĐỘ TRỄ)
 -- ==========================================
 task.spawn(function()
     if not _G_V10.AutoBypassMenu then return end
@@ -1444,7 +1444,7 @@ table.insert(_G.YuiConnections, UIS.JumpRequest:Connect(function()
 end))
 
 -- ==========================================
--- MAIN COMBAT ENGINE (TÌM QUÁI VÀ BOSS STRING.FIND)
+-- MAIN COMBAT ENGINE (TÌM QUÁI BẰNG STRING.FIND LỌC BOSS DẠNG 2)
 -- ==========================================
 local currentSwapState = 1
 local lastSwapTime = os.clock()
@@ -1458,17 +1458,21 @@ local function isValidMobByDatabase(mob)
     return true
 end
 
--- V42 FIX: RAID BOSS SỬ DỤNG STRING.FIND ĐỂ BẮT DẠNG 2 (AWAKENED)
+-- V42 FIX: HÀM QUÉT BOSS LINH HOẠT VỚI STRING.FIND (BẮT CẢ DẠNG AWAKENED)
 local function DirectFind(name)
     local targetName = string.lower(name)
-    local isRaidBoss = (string.find(targetName, "seluna") or string.find(targetName, "pzozo"))
+    -- Tách tên chuẩn (bỏ Level)
+    local cleanTarget = string.match(targetName, "^(.-)%s*%[") or targetName
+    cleanTarget = string.match(cleanTarget, "^%s*(.-)%s*$")
+    
+    local isRaidBoss = (string.find(targetName, "seluna") or string.find(targetName, "pzozo") or string.find(targetName, "moria") or string.find(targetName, "shadow master"))
     
     for _, folderName in ipairs({"Monster", "Enemies", "NPC", "NPCs"}) do
         local folder = workspace:FindFirstChild(folderName)
         if folder then
             for _, v in ipairs(folder:GetDescendants()) do
                 if isRaidBoss then
-                    if string.find(string.lower(v.Name), targetName, 1, true) and isValidMobByDatabase(v) then return v end
+                    if string.find(string.lower(v.Name), cleanTarget, 1, true) and isValidMobByDatabase(v) then return v end
                 else
                     if string.lower(v.Name) == targetName and isValidMobByDatabase(v) then return v end
                 end
@@ -1477,7 +1481,7 @@ local function DirectFind(name)
     end
     for _, v in ipairs(workspace:GetChildren()) do
         if isRaidBoss then
-            if string.find(string.lower(v.Name), targetName, 1, true) and isValidMobByDatabase(v) then return v end
+            if string.find(string.lower(v.Name), cleanTarget, 1, true) and isValidMobByDatabase(v) then return v end
         else
             if string.lower(v.Name) == targetName and isValidMobByDatabase(v) then return v end
         end
@@ -1502,7 +1506,7 @@ task.spawn(function()
             task.wait(1); continue 
         end
 
-        local isNormalFarming = _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm or _G_V10.AutoFarmFree or _G_V10.FarmAll or _G_V10.AutoFarmRaid or _G_V10.AutoCoordMob or _G_V10.AutoWorldBoss or _G_V10.AutoNormalBoss or _G_V10.AutoFarmBossRaid
+        local isNormalFarming = _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm or _G_V10.AutoFarmFree or _G_V10.FarmAll or _G_V10.AutoFarmRaid or _G_V10.AutoCoordBoss or _G_V10.AutoNormalBoss or _G_V10.AutoFarmBossRaid or _G_V10.AutoCoordMob
         local isFarmingAction = isNormalFarming or (_G_V10.AutoSea and _G_V10.IsFightingSea)
         
         if isFarmingAction and not _G_V10.FreeFly then
@@ -1807,28 +1811,28 @@ task.spawn(function()
                     end
                 end
             else
-                -- V42 FIX: HOVER LÊN ĐỘ CAO +40 ĐỂ TRÁNH TRÔI XUYÊN ĐẤT KHI CHỜ QUÁI
-                if targetWaitPos then
+                -- BẢN V42 CHUẨN: LÊN ĐỘ CAO +40 (HOVER AN TOÀN TUYỆT ĐỐI) KHI CHỜ QUÁI / RAID PATROL
+                local distToRaidMap = (HRP.Position - Vector3.new(-123, 114, 407)).Magnitude
+                if _G_V10.AutoFarmRaid and distToRaidMap < 3000 then
+                    -- PATROL RAID ƯU TIÊN SỐ 1 NẾU TRONG MAP
+                    if raidPatrolState == "Wait_C1" then
+                        local c1_safe = C1.Position + Vector3.new(0, 40, 0)
+                        if (HRP.Position - c1_safe).Magnitude > 15 then HRP.CFrame = CFrame.new(c1_safe) end
+                        if os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC1) then raidPatrolState = "Wait_C2"; raidPatrolTimer = os.clock() end
+                    elseif raidPatrolState == "Wait_C2" then
+                        local c2_safe = C2.Position + Vector3.new(0, 40, 0)
+                        if (HRP.Position - c2_safe).Magnitude > 15 then HRP.CFrame = CFrame.new(c2_safe) end
+                        if os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC2) then raidPatrolState = "Wait_C3"; raidPatrolTimer = os.clock() end
+                    elseif raidPatrolState == "Wait_C3" then
+                        local c3_safe = C3.Position + Vector3.new(0, 40, 0)
+                        if (HRP.Position - c3_safe).Magnitude > 15 then HRP.CFrame = CFrame.new(c3_safe) end
+                        if os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC3) then raidPatrolState = "Wait_C1"; raidPatrolTimer = os.clock() end
+                    end
+                elseif targetWaitPos then
+                    -- HOVER CHỜ QUÁI TỌA ĐỘ BÌNH THƯỜNG
                     local safeWaitPos = targetWaitPos + Vector3.new(0, 40, 0) 
                     if (HRP.Position - safeWaitPos).Magnitude > 50 then HRP.CFrame = CFrame.new(safeWaitPos) 
                     else HRP.CFrame = CFrame.new(safeWaitPos) end
-                elseif _G_V10.AutoFarmRaid then
-                    local distToRaidMap = (HRP.Position - Vector3.new(-123, 114, 407)).Magnitude
-                    if distToRaidMap < 3000 then
-                        if raidPatrolState == "Wait_C1" then
-                            local c1_safe = C1.Position + Vector3.new(0, 40, 0)
-                            if (HRP.Position - c1_safe).Magnitude > 10 then HRP.CFrame = CFrame.new(c1_safe); raidPatrolTimer = os.clock()
-                            elseif os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC1) then raidPatrolState = "Wait_C2"; raidPatrolTimer = os.clock() end
-                        elseif raidPatrolState == "Wait_C2" then
-                            local c2_safe = C2.Position + Vector3.new(0, 40, 0)
-                            if (HRP.Position - c2_safe).Magnitude > 10 then HRP.CFrame = CFrame.new(c2_safe); raidPatrolTimer = os.clock()
-                            elseif os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC2) then raidPatrolState = "Wait_C3"; raidPatrolTimer = os.clock() end
-                        elseif raidPatrolState == "Wait_C3" then
-                            local c3_safe = C3.Position + Vector3.new(0, 40, 0)
-                            if (HRP.Position - c3_safe).Magnitude > 10 then HRP.CFrame = CFrame.new(c3_safe); raidPatrolTimer = os.clock()
-                            elseif os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC3) then raidPatrolState = "Wait_C2"; raidPatrolTimer = os.clock() end
-                        end
-                    end
                 end
             end
         end
