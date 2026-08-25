@@ -1,6 +1,6 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V35 (USER'S PERFECT PHYSICS + RAID FORM FIX)
--- (LẮP LẠI CƠ CHẾ VẬT LÝ GỐC CỦA USER, FIX BOSS RAID DẠNG 2, FULL 100% CODE)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V34 (FINAL MASTERPIECE REBORN)
+-- (TẠO TAB SKILL RIÊNG - THÊM CƠ CHẾ SMART SWAP CHỐNG KẸT SKILL ĐỘC LẬP)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -182,6 +182,7 @@ local CoordDB = {
     }
 }
 
+-- MẢNG ARRAY DATA UI CÓ SẴN
 local ListWorldBoss = {}
 for k, _ in pairs(CoordDB.WorldBosses) do table.insert(ListWorldBoss, k) end
 table.sort(ListWorldBoss)
@@ -194,6 +195,7 @@ local ListNPCs = {}
 for name, data in pairs(CoordDB.NPCs) do table.insert(ListNPCs, string.format("[%s] %s", data.Island, name)) end
 table.sort(ListNPCs)
 
+-- QUÁI CHIA ĐẢO CÓ CẦU VỒNG
 local IslandMobs = {}
 for name, data in pairs(CoordDB.Mobs) do
     if not IslandMobs[data.Island] then IslandMobs[data.Island] = {} end
@@ -234,11 +236,17 @@ local QuestListNames = {}; for i, v in ipairs(QuestDB) do table.insert(QuestList
 local DefaultConfig = {
     AutoFarmFree = false, FarmAll = false, SelectedMonsters = {}, ExcludedMobs = {"dummy", "test dmg", "testdmg"},
     AutoFarmLevel = false, ManualQuestFarm = false, SelectedManualQuest = nil, CurrentTargetMob = nil,
-    AutoEquip = false, AutoClick = false, AutoSkill = false, AutoRepeatQuest = false,
+    AutoEquip = false, AutoClick = false, AutoRepeatQuest = false,
+    
+    -- CƠ CHẾ SMART SWAP FIX
     SmartSwapFix = true,
+    
+    -- KỸ NĂNG
+    AutoSkill = false,
     Skill_Z = false, Skill_X = false, Skill_C = false, Skill_V = false, Skill_F = false,
     AutoHaki = false, AutoKen = false, SelectedWeapon = nil, SelectedFruit = nil,
     AttackPosition = "Trên Đầu", AttackDistance = 15, FlySpeed = 250,
+    
     PrimaryWeapon = nil, HoldTime1 = 3, W1_Z = false, W1_X = false, W1_C = false, W1_V = false, W1_B = false, W1_F = false,
     SecondaryWeapon = nil, HoldTime2 = 0.5, W2_Z = false, W2_X = false, W2_C = false, W2_V = false, W2_B = false, W2_F = false,
     AutoSwapWeapon = false, SkillSpamDelay = 0.1, AutoSea = false, HuntSeaMonster = true, HuntGhost = true, AutoSitBoat = true, 
@@ -247,14 +255,20 @@ local DefaultConfig = {
     AutoBuyWorldRaid = false, WorldRaidLocation = "Out (Ngoài Map)", AutoBuyRaid = false, AutoStartRaid = false, AutoJoinGame = false, AutoFarmRaid = false, AutoSunBattery = false,
     AutoTeleEntrance = false, AutoTeleReRaid = false, RaidEntranceDelay = 2, RaidReRaidDelay = 2, RaidBuyTeleportDelay = 2, RaidWaitC1 = "10", RaidWaitC2 = "10", RaidWaitC3 = "15",
     
+    -- BOSS RAID THÔNG MINH
     AutoFarmBossRaid = false, SelectedRaidBosses = {}, AlwaysSpinPzozo = false, PzozoSpinRadius = 30, PzozoSpinSpeed = 3,
     AutoIdlePatrol = false, IdleWait1 = "10", IdleWait2 = "10",
+    
+    -- GLOBAL SAFE HP
     GlobalSafeHP = false, GlobalSafeHP_Min = 30, GlobalSafeHP_Timer = false, GlobalSafeHP_Time = 15, GlobalSafeHP_Spin = true, GlobalDodgeRadius = 50,
+    
     AutoBypassMenu = true, BypassDuration = 10,
     AutoCoordMob = false, SelectedCoordMobs = {}, AutoWorldBoss = false, SelectedWorldBosses = {}, AutoNormalBoss = false, SelectedNormalBosses = {}, BossCheckDelay = 5,
     AutoSpawnMihawk = false, MihawkAmount = "x1", AutoGiveShadow = false, ShadowItem = "Shadow Spirit", ShadowAmount = "x1",
+    
     SelectedIsland = nil, SelectedSpawnPoint = nil, SelectedNPC = nil,
     AutoPatrolIsland = false, SelectedPatrolIslands = {}, PatrolIslandTime = 30, PatrolIslandRadius = 150, PatrolIslandSpeed = 5, PatrolIslandHeight = 0,
+    
     EnableSpeed = false, WalkSpeed = 50, EnableJump = false, JumpPower = 100, InfJump = false, DashNoCD = false, FreeFly = false, FreeFlySpeed = 50, AutoJump = false, Noclip = false, WaterWalk = false,
     AutoSaveConfig = false, AutoLoadConfig = false, SelectedConfig = "DefaultConfig", AutoScanMap = false, EnableBlackScreen = false, AntiAFK = false, ScanMode = "Tất Cả",
     ScannedMonstersList = {}, ScannerData = {Mobs = {}, Bosses = {}, NPCs = {}}
@@ -649,7 +663,7 @@ Pages["⚙️ Cài Đặt Chung"].Btn.BackgroundColor3 = Color3.fromRGB(255, 100
 Pages["⚙️ Cài Đặt Chung"].Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 TabSettings.Visible = true
 
--- --- TAB: SKILLS ---
+-- --- TAB: SKILLS (TẠO MỚI HOÀN TOÀN THEO YÊU CẦU) ---
 local SecSmartFix = CreateSection(TabSkills, "CƠ CHẾ FIX KẸT SKILL (TỪ DEV)", Color3.fromRGB(0, 255, 100))
 CreateToggleSwitch(SecSmartFix, "Bật Smart Swap (Xả phím & Sạch vật lý lúc đổi vũ khí)", "SmartSwapFix")
 
@@ -1005,13 +1019,15 @@ table.insert(_G.YuiConnections, RunService.Stepped:Connect(function()
 end))
 
 -- ==========================================
--- ENGINE CHỐNG RƠI BẤT TỬ (LẤY LẠI CƠ CHẾ GỐC CỦA BẠN - V35)
+-- ENGINE CHỐNG RƠI BẤT TỬ (V28 FIX AN TOÀN)
 -- ==========================================
 local function EnableAntiFall(HRP)
-    if not HRP:FindFirstChild("FarmAntiFall") then
-        local AntiFall = Instance.new("BodyVelocity")
+    local AntiFall = HRP:FindFirstChild("FarmAntiFall")
+    if not AntiFall then
+        AntiFall = Instance.new("BodyVelocity")
         AntiFall.Name = "FarmAntiFall"
-        AntiFall.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        AntiFall.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        AntiFall.P = 9e9
         AntiFall.Velocity = Vector3.new(0, 0, 0)
         AntiFall.Parent = HRP
     end
@@ -1032,18 +1048,24 @@ table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
         
         if isNormalFarming and not _G_V10.FreeFly and not _G_V10.AutoPatrolIsland then
             EnableAntiFall(hrp)
-            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
             if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall.Velocity = Vector3.new(0, 0, 0) end
             
-            -- KHÔNG XÓA ĐỒ CỦA GAME, CHỈ ÉP LỰC CHỐNG RƠI THEO MÃ BẠN CHO TRƯỚC
-            -- KHÔNG ÉP PLATFORMSTAND ĐỂ TRÁNH RƠI XUYÊN ĐẤT KHI SKILL
+            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            hrp.Velocity = Vector3.new(0, 0, 0)
+            
+            if _G_V10.AttackPosition == "Trên Đầu" or _G_V10.AttackPosition == "Dưới Chân" or _G_V10.AttackPosition == "Xoay Tròn" or _G.IsLootingSun then
+                hum.PlatformStand = true
+            else
+                hum.PlatformStand = false
+            end
             
             for _, v in pairs(char:GetDescendants()) do
                 if v:IsA("BasePart") then v.CanCollide = false end
             end
         else
             if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall:Destroy() end
+            if not _G_V10.FreeFly then hum.PlatformStand = false end
         end
     end)
 end))
@@ -1169,7 +1191,7 @@ end
 pcall(MonitorChatForBosses)
 
 -- ==========================================
--- ENGINE: MUA WORLD RAID, MUA RAID THƯỜNG & SPAWN BOSS
+-- ENGINE: MUA WORLD RAID, MUA RAID THƯỜNG & SPAWN BOSS (TỐC ĐỘ BÀN THỜ 0.3s)
 -- ==========================================
 task.spawn(function()
     while task.wait(0.3) do
@@ -1409,7 +1431,7 @@ table.insert(_G.YuiConnections, UIS.JumpRequest:Connect(function()
 end))
 
 -- ==========================================
--- MAIN COMBAT ENGINE (FIX RAID BOSS DẠNG 2 BẰNG STRING.FIND)
+-- MAIN COMBAT ENGINE (CHỐNG KẸT SKILL SMART SWAP VÀ TÌM QUÁI)
 -- ==========================================
 local currentSwapState = 1
 local lastSwapTime = os.clock()
@@ -1432,19 +1454,18 @@ local function isValidMobByDatabase(mob)
     return true
 end
 
--- V35 FIX: Tìm kiếm linh hoạt với string.find (Giúp bắt được Pzozo hoặc Seluna dạng 2)
 local function DirectFind(name)
     local targetName = string.lower(name)
     for _, folderName in ipairs({"Monster", "Enemies", "NPC", "NPCs"}) do
         local folder = workspace:FindFirstChild(folderName)
         if folder then
             for _, v in ipairs(folder:GetDescendants()) do
-                if string.find(string.lower(v.Name), targetName) and isValidMobByDatabase(v) then return v end
+                if string.lower(v.Name) == targetName and isValidMobByDatabase(v) then return v end
             end
         end
     end
     for _, v in ipairs(workspace:GetChildren()) do
-        if v:IsA("Model") and string.find(string.lower(v.Name), targetName) and isValidMobByDatabase(v) then return v end
+        if v:IsA("Model") and string.lower(v.Name) == targetName and isValidMobByDatabase(v) then return v end
     end
     return nil
 end
@@ -1685,18 +1706,19 @@ task.spawn(function()
                 end
             else isGlobalDodging = false end
 
-            -- ================= HÀNH ĐỘNG CỦA NHÂN VẬT & SMART SWAP V35 =================
+            -- ================= HÀNH ĐỘNG CỦA NHÂN VẬT & SMART SWAP V34 =================
             if targetMobInstance or (_G_V10.AutoSea and _G_V10.IsFightingSea) then
                 raidPatrolState = "Wait_C1"; raidPatrolTimer = os.clock()
                 
                 local forcePzozoSpin = false
-                if targetMobInstance and string.find(string.lower(targetMobInstance.Name), "pzozolove112") and _G_V10.AlwaysSpinPzozo then forcePzozoSpin = true end
+                if targetMobInstance and string.lower(targetMobInstance.Name) == "pzozolove112" and _G_V10.AlwaysSpinPzozo then forcePzozoSpin = true end
 
                 -- CHỈ XẢ SKILL VŨ KHÍ NẾU KHÔNG PHẢI LÀ PZOZO SPIN VÀ KHÔNG NÉ
                 if not isGlobalDodging and not forcePzozoSpin then
                     if _G_V10.AutoSwapWeapon and _G_V10.PrimaryWeapon and _G_V10.SecondaryWeapon then
                         if currentSwapState == 1 then
                             if os.clock() - lastSwapTime >= _G_V10.HoldTime1 then 
+                                -- BẮT ĐẦU ĐỔI TỪ VK 1 SANG VK 2 (Áp dụng Smart Swap Fix)
                                 if _G_V10.SmartSwapFix then
                                     for _, k in ipairs({"Z","X","C","V","B","F"}) do VIM:SendKeyEvent(false, Enum.KeyCode[k], false, game) end
                                     task.wait(0.3)
@@ -1711,6 +1733,7 @@ task.spawn(function()
                             end
                         elseif currentSwapState == 2 then
                             if os.clock() - lastSwapTime >= _G_V10.HoldTime2 then 
+                                -- BẮT ĐẦU ĐỔI TỪ VK 2 SANG VK 1 (Áp dụng Smart Swap Fix)
                                 if _G_V10.SmartSwapFix then
                                     for _, k in ipairs({"Z","X","C","V","B","F"}) do VIM:SendKeyEvent(false, Enum.KeyCode[k], false, game) end
                                     task.wait(0.3)
@@ -1771,20 +1794,25 @@ task.spawn(function()
                     end
                 end
             else
+                -- HOVER LÊN ĐỘ CAO +40 ĐỂ AN TOÀN TRÁNH TRÔI XUYÊN ĐẤT
                 if targetWaitPos then
-                    if (HRP.Position - targetWaitPos).Magnitude > 50 then HRP.CFrame = CFrame.new(targetWaitPos) 
-                    else HRP.CFrame = CFrame.new(targetWaitPos) end
+                    local safeWaitPos = targetWaitPos + Vector3.new(0, 40, 0) 
+                    if (HRP.Position - safeWaitPos).Magnitude > 50 then HRP.CFrame = CFrame.new(safeWaitPos) 
+                    else HRP.CFrame = CFrame.new(safeWaitPos) end
                 elseif _G_V10.AutoFarmRaid then
                     local distToRaidMap = (HRP.Position - Vector3.new(-123, 114, 407)).Magnitude
                     if distToRaidMap < 3000 then
                         if raidPatrolState == "Wait_C1" then
-                            if (HRP.Position - C1.Position).Magnitude > 10 then HRP.CFrame = C1; raidPatrolTimer = os.clock()
+                            local c1_safe = C1.Position + Vector3.new(0, 40, 0)
+                            if (HRP.Position - c1_safe).Magnitude > 10 then HRP.CFrame = CFrame.new(c1_safe); raidPatrolTimer = os.clock()
                             elseif os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC1) then raidPatrolState = "Wait_C2"; raidPatrolTimer = os.clock() end
                         elseif raidPatrolState == "Wait_C2" then
-                            if (HRP.Position - C2.Position).Magnitude > 10 then HRP.CFrame = C2; raidPatrolTimer = os.clock()
+                            local c2_safe = C2.Position + Vector3.new(0, 40, 0)
+                            if (HRP.Position - c2_safe).Magnitude > 10 then HRP.CFrame = CFrame.new(c2_safe); raidPatrolTimer = os.clock()
                             elseif os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC2) then raidPatrolState = "Wait_C3"; raidPatrolTimer = os.clock() end
                         elseif raidPatrolState == "Wait_C3" then
-                            if (HRP.Position - C3.Position).Magnitude > 10 then HRP.CFrame = C3; raidPatrolTimer = os.clock()
+                            local c3_safe = C3.Position + Vector3.new(0, 40, 0)
+                            if (HRP.Position - c3_safe).Magnitude > 10 then HRP.CFrame = CFrame.new(c3_safe); raidPatrolTimer = os.clock()
                             elseif os.clock() - raidPatrolTimer >= tonumber(_G_V10.RaidWaitC3) then raidPatrolState = "Wait_C2"; raidPatrolTimer = os.clock() end
                         end
                     end
