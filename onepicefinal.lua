@@ -1,6 +1,6 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V22 (FINAL MASTERPIECE REBORN)
--- (FIX SCANNER NOTE, DEDICATED POS NOTE, WEAPON SKILLS, INDEPENDENT GLOBAL SKILLS)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V23 (PERFECT AUTO SEA EVENT)
+-- (FIX AUTO BUY GALLEON $1k, ANTI-SINK BOAT TELEPORT, ZONE 1-4, KEEP 100% OLD FEATURES)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -20,10 +20,6 @@ _G.YuiConnections = {}
 
 local SafeParent = pcall(gethui) and gethui() or LocalPlayer:WaitForChild("PlayerGui")
 if SafeParent:FindFirstChild("YuiHub_UI") then SafeParent["YuiHub_UI"]:Destroy() end
-
--- Khai báo biến Máy Quét Toàn Cục để không bị lỗi Nil
-local ScanLogFrame = nil
-local playerPosBox = nil
 
 -- ==========================================
 -- 📚 DATABASE FULL TỪ USER
@@ -45,6 +41,12 @@ local CoordDB = {
         ["Galactic Overseer"] = {Level = 0, Pos = Vector3.new(-20370, 383, 280), Island = "Marineford"},
         ["Infernal Admiral"] = {Level = 0, Pos = Vector3.new(-20328, 274, 500), Island = "Marineford"},
         ["Glacier Admiral"] = {Level = 0, Pos = Vector3.new(-20402, 274, 436), Island = "Marineford"}
+    },
+    SeaZones = {
+        ["Zone 1"] = Vector3.new(-19800, 86, 16940),
+        ["Zone 2"] = Vector3.new(-22385, 120, 19843),
+        ["Zone 3"] = Vector3.new(-25180, 117, 22588),
+        ["Zone 4"] = Vector3.new(-35042, 29, 31786)
     },
     Mobs = {
         ["Elf [Lv.1300]"] = {Level=1300, Pos=Vector3.new(1212, 49, 5998), Island="Rovaniemi Town"},
@@ -238,7 +240,7 @@ local DefaultConfig = {
     PrimaryWeapon = nil, HoldTime1 = 3, W1_Z = false, W1_X = false, W1_C = false, W1_V = false, W1_B = false, W1_F = false,
     SecondaryWeapon = nil, HoldTime2 = 0.5, W2_Z = false, W2_X = false, W2_C = false, W2_V = false, W2_B = false, W2_F = false,
     AutoSwapWeapon = false, SkillSpamDelay = 0.1, AutoSea = false, HuntSeaMonster = true, HuntGhost = true, AutoSitBoat = true, 
-    SeaZone = Vector3.new(-15610, 39, 37071), IsFightingSea = false, ArrivedAtZone = false,
+    SeaZone = Vector3.new(-15610, 39, 37071), SelectedSeaZone = "Zone 1", IsFightingSea = false, ArrivedAtZone = false,
     
     AutoBuyWorldRaid = false, WorldRaidLocation = "Out (Ngoài Map)", AutoBuyRaid = false, AutoStartRaid = false, AutoJoinGame = false, AutoFarmRaid = false, AutoSunBattery = false,
     AutoTeleEntrance = false, AutoTeleReRaid = false, RaidEntranceDelay = 2, RaidReRaidDelay = 2, RaidBuyTeleportDelay = 2, RaidWaitC1 = "10", RaidWaitC2 = "10", RaidWaitC3 = "15",
@@ -270,7 +272,7 @@ local ConfigFolder = "YuiHub_Configs"
 local MasterFile = ConfigFolder .. "/MasterSettings.json"
 if isfolder and not isfolder(ConfigFolder) then makefolder(ConfigFolder) end
 
--- HÀM MÁY QUÉT ĐƯỢC CHUYỂN LÊN TRÊN ĐỂ KHÔNG BỊ LỖI NIL
+local ScanLogFrame
 local function RenderScannerLog()
     if not ScanLogFrame then return end
     for _, v in pairs(ScanLogFrame:GetChildren()) do if v:IsA("Frame") or v:IsA("TextLabel") then v:Destroy() end end
@@ -455,7 +457,7 @@ MinBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- HÀM TẠO UI COMPONENTS (DẠNG BOX)
+-- HÀM TẠO UI COMPONENTS
 -- ==========================================
 local Pages = {}
 local function CreateTab(name)
@@ -772,7 +774,7 @@ CreateToggleSwitch(SecRaidBuy, "Tự Động Bấm Play/Join Game", "AutoJoinGam
 local SecRaidBoss = CreateSection(TabRaidHub, "FARM BOSS RAID (Seluna & pzozolove)", Color3.fromRGB(255, 50, 200))
 CreateDropdown(SecRaidBoss, "Chọn Boss Raid Cần Đánh", {"Seluna", "pzozolove112"}, "SelectedRaidBosses", true, true)
 CreateToggleSwitch(SecRaidBoss, "Bật Auto Farm Boss Raid", "AutoFarmBossRaid")
-CreateToggleSwitch(SecRaidBoss, "Luôn Xoay Tròn Khi Đánh pzozolove112 (Không đánh)", "AlwaysSpinPzozo")
+CreateToggleSwitch(SecRaidBoss, "Luôn Xoay Tròn Quanh pzozolove112 (Không đánh)", "AlwaysSpinPzozo")
 CreateSlider(SecRaidBoss, "Bán Kính Xoay Pzozo", 10, 1000, "PzozoSpinRadius")
 CreateSlider(SecRaidBoss, "Tốc Độ Xoay Pzozo", 1, 20, "PzozoSpinSpeed")
 
@@ -809,6 +811,7 @@ CreateDropdown(SecBossShadow, "Chọn Số Lượng Give", {"x1", "x5", "x10"}, 
 local LblSeaInfo = Instance.new("TextLabel", TabSeaEvent)
 LblSeaInfo.Size = UDim2.new(1, 0, 0, 20); LblSeaInfo.BackgroundTransparency = 1; LblSeaInfo.TextColor3 = Color3.fromRGB(0, 255, 200); LblSeaInfo.Font = Enum.Font.Gotham; LblSeaInfo.TextSize = 13; LblSeaInfo.TextXAlignment = Enum.TextXAlignment.Left; LblSeaInfo.Text = "Trạng thái Biển: Đang rảnh..."
 CreateToggleSwitch(TabSeaEvent, "Bật Auto Sea Event", "AutoSea")
+CreateDropdown(TabSeaEvent, "Chọn Vùng Biển (Sea Zone)", {"Zone 1", "Zone 2", "Zone 3", "Zone 4"}, "SelectedSeaZone", false)
 CreateToggleSwitch(TabSeaEvent, "Săn Sea Monster (Bay Vòng Tròn)", "HuntSeaMonster")
 CreateToggleSwitch(TabSeaEvent, "Săn Thuyền Ma (The Starving Ghost)", "HuntGhost")
 CreateToggleSwitch(TabSeaEvent, "Tự Động Ngồi Lái Thuyền", "AutoSitBoat")
@@ -837,7 +840,7 @@ CreateButton(SecIslandSelect, "🔄 Cập nhật Điểm Hồi Sinh", function()
     table.sort(sp); DropSpawnPoints(sp)
 end)
 
-local SecNPC = CreateSection(TabIsland, "DỊCH CHUYỂN ĐẾN NPC", Color3.fromRGB(255, 200, 50))
+local SecNPC = CreateSection(TabIsland, "DỊCH CHUYỂN ĐẾN NPC TRONG DATA", Color3.fromRGB(255, 200, 50))
 CreateDropdown(SecNPC, "Chọn NPC Cần Tìm", ListNPCs, "SelectedNPC", false)
 
 local function InstantTeleport(targetCFrame)
@@ -1110,7 +1113,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- ENGINE: MUA WORLD RAID, MUA RAID THƯỜNG & SPAWN BOSS (ĐÃ FIX DELAY)
+-- ENGINE: MUA WORLD RAID, MUA RAID THƯỜNG & SPAWN BOSS (ĐÃ FIX DELAY VÀ IN/OUT)
 -- ==========================================
 task.spawn(function()
     while task.wait(0.5) do
@@ -1132,7 +1135,7 @@ task.spawn(function()
                 end
             else
                 local buyBtn = SmartFindButton(talkingGui, "Buy with money") or SmartFindButton(talkingGui, "Buy with Beli") or SmartFindButton(talkingGui, "Buy")
-                if buyBtn then task.wait(1.5); PhysicalClick(buyBtn) end
+                if buyBtn then task.wait(1.5); PhysicalClick(buyBtn); task.wait(1); TapSafeEdge() else TapSafeEdge() end
             end
         end
     end
@@ -1414,7 +1417,7 @@ local function GetMobForCurrentLevel()
 end
 
 -- ==========================================
--- MAIN COMBAT ENGINE (TRẢ LẠI LÕI V1 CHUẨN 100%)
+-- MAIN COMBAT ENGINE (LÕI TÌM QUÁI V1 KHÔNG KẸT LAG)
 -- ==========================================
 local currentSwapState = 1
 local lastSwapTime = os.clock()
@@ -1437,6 +1440,7 @@ local function isValidMobByDatabase(mob)
     return true
 end
 
+-- Hàm tìm kiếm quét sạch chữ Hoa/Thường để bắt Pzozo nhanh nhất
 local function DirectFind(name)
     local targetName = string.lower(name)
     for _, folderName in ipairs({"Monster", "Enemies", "NPC", "NPCs"}) do
@@ -1476,7 +1480,7 @@ task.spawn(function()
         
         if isFarmingAction and not _G_V10.FreeFly then
             
-            -- ================= LỤM SUN BATTERY ĐỘC LẬP =================
+            -- ================= LỤM SUN BATTERY ĐỘC LẬP (MUTEX KHÔNG CHO ĐÁNH QUÁI) =================
             local targetSun = nil
             if _G_V10.AutoSunBattery then
                 local effects = workspace:FindFirstChild("Effects")
@@ -1493,13 +1497,13 @@ task.spawn(function()
                 HRP.CFrame = CFrame.new(sunPos)
                 if HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall.Velocity = Vector3.new(0,0,0) end
                 
-                task.wait(0.5)
+                task.wait(0.5) -- Chờ đứng im chống giật rồi nhặt
                 local click = targetSun:FindFirstChild("FruitClick") or targetSun:FindFirstChildWhichIsA("ProximityPrompt", true)
                 if click then
                     if click:IsA("ProximityPrompt") then fireproximityprompt(click)
                     elseif click:IsA("ClickDetector") then fireclickdetector(click) end
                 end
-                continue 
+                continue -- SKIP MỌI HÀNH ĐỘNG COMBAT
             else
                 _G.IsLootingSun = false
             end
@@ -1509,7 +1513,7 @@ task.spawn(function()
             local shortestDist = math.huge
             local targetWaitPos = nil
             
-            -- ================= LỌC TÌM MỤC TIÊU =================
+            -- ================= LỌC TÌM MỤC TIÊU (THEO ƯU TIÊN) =================
             if not (_G_V10.AutoSea and _G_V10.IsFightingSea) then
                 
                 -- TẦNG 1: WORLD BOSS
@@ -1580,7 +1584,7 @@ task.spawn(function()
                     end
                 end
                 
-                -- TẦNG 3: QUÁI TỌA ĐỘ 
+                -- TẦNG 3: QUÁI TỌA ĐỘ (ƯU TIÊN TUYỆT ĐỐI THEO THỨ TỰ LỰA CHỌN)
                 if not targetMobInstance and not targetWaitPos and _G_V10.AutoCoordMob and #_G_V10.SelectedCoordMobs > 0 then
                     local bestMob = nil; local firstWaitPos = nil; local bestMobName = ""
                     for _, selMobStr in ipairs(_G_V10.SelectedCoordMobs) do
@@ -1672,7 +1676,7 @@ task.spawn(function()
                 end
             end
 
-            -- ================= GLOBAL SAFE HP LÝ TƯỞNG =================
+            -- ================= GLOBAL SAFE HP LÝ TƯỞNG (NÉ DƯỚI ĐẤT) =================
             local hpPct = (Hum.Health / Hum.MaxHealth) * 100
             if _G_V10.GlobalSafeHP and targetMobInstance then
                 local triggerDodge = false
@@ -1696,7 +1700,7 @@ task.spawn(function()
                 local forcePzozoSpin = false
                 if targetMobInstance and string.lower(targetMobInstance.Name) == "pzozolove112" and _G_V10.AlwaysSpinPzozo then forcePzozoSpin = true end
 
-                -- CHỈ XẢ SKILL VŨ KHÍ NẾU KHÔNG PHẢI LÀ PZOZO SPIN VÀ KHÔNG NÉ
+                -- CHỈ CẦM VŨ KHÍ NẾU KHÔNG PHẢI LÀ PZOZO SPIN VÀ KHÔNG NÉ
                 if not isGlobalDodging and not forcePzozoSpin then
                     if _G_V10.AutoSwapWeapon and _G_V10.PrimaryWeapon and _G_V10.SecondaryWeapon then
                         if currentSwapState == 1 then
@@ -1713,14 +1717,6 @@ task.spawn(function()
                     if _G_V10.AutoClick then
                         local equippedTool = char:FindFirstChildWhichIsA("Tool"); if equippedTool then equippedTool:Activate() end
                     end
-                    
-                    if os.clock() - lastSkillSpamTime >= _G_V10.SkillSpamDelay then
-                        lastSkillSpamTime = os.clock()
-                        if _G_V10.AutoSwapWeapon then
-                            local prefix = (currentSwapState == 1) and "W1_" or "W2_"
-                            if _G_V10[prefix.."Z"] then ForceUseSkill("Z") end; if _G_V10[prefix.."X"] then ForceUseSkill("X") end; if _G_V10[prefix.."C"] then ForceUseSkill("C") end; if _G_V10[prefix.."V"] then ForceUseSkill("V") end; if _G_V10[prefix.."B"] then ForceUseSkill("B") end; if _G_V10[prefix.."F"] then ForceUseSkill("F") end
-                        end
-                    end
                 end
                 
                 if targetMobInstance then
@@ -1731,7 +1727,7 @@ task.spawn(function()
                         local dodgeOffset = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
                         HRP.CFrame = CFrame.new(mobPos + dodgeOffset, mobPos)
                     elseif forcePzozoSpin then
-                        -- LƯỢN VÒNG QUANH PZOZO (KHÔNG ĐÁNH)
+                        -- LƯỢN VÒNG QUANH PZOZO (KHÔNG CẦM VŨ KHÍ)
                         local angle = tick() * tonumber(_G_V10.PzozoSpinSpeed)
                         local radius = tonumber(_G_V10.PzozoSpinRadius)
                         local mobPos = targetMobInstance.HumanoidRootPart.Position
@@ -1740,6 +1736,7 @@ task.spawn(function()
                     else
                         local mobPos = targetMobInstance.HumanoidRootPart.Position
                         
+                        -- FIX NẰM NGANG BẸP SONG SONG MẶT ĐẤT
                         if _G_V10.AttackPosition == "Trên Đầu" then 
                             HRP.CFrame = CFrame.new(mobPos + Vector3.new(0, _G_V10.AttackDistance, 0)) * CFrame.Angles(math.rad(-90), 0, 0)
                         elseif _G_V10.AttackPosition == "Dưới Chân" then 
