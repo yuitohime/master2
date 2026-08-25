@@ -1,6 +1,6 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V43 (V34 CORE - NORMAL HEIGHT FIXED)
--- (TRẢ LẠI TỌA ĐỘ CHỜ VÀ RAID VỀ MẶT ĐẤT - GIỮ NGUYÊN 100% CHỨC NĂNG V34/V42)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V43.1 (FULL MERGE - NO CUT)
+-- (TRẢ LẠI TỌA ĐỘ CHỜ VÀ RAID VỀ MẶT ĐẤT - FIXED ANTI FALL SINKING)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -1010,7 +1010,7 @@ table.insert(_G.YuiConnections, RunService.Stepped:Connect(function()
 end))
 
 -- ==========================================
--- ENGINE CHỐNG RƠI BẤT TỬ (VẬT LÝ GỐC HOÀN HẢO TỪ V34)
+-- ENGINE CHỐNG RƠI BẤT TỬ (VẬT LÝ GỐC HOÀN HẢO TỪ V34 & BẢN 2 - BỎ PLATFORMSTAND)
 -- ==========================================
 local function EnableAntiFall(HRP)
     local AntiFall = HRP:FindFirstChild("FarmAntiFall")
@@ -1044,11 +1044,8 @@ table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
             hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
             hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
             
-            if _G_V10.AttackPosition == "Trên Đầu" or _G_V10.AttackPosition == "Dưới Chân" or _G_V10.AttackPosition == "Xoay Tròn" or _G.IsLootingSun then
-                hum.PlatformStand = true
-            else
-                hum.PlatformStand = false
-            end
+            -- FIX TỪ BẢN 2: ÉP PLATFORMSTAND THÀNH FALSE ĐỂ KHÔNG CHÌM DƯỚI ĐẤT
+            hum.PlatformStand = false
             
             for _, v in pairs(char:GetDescendants()) do
                 if v:IsA("BasePart") then v.CanCollide = false end
@@ -1457,7 +1454,7 @@ table.insert(_G.YuiConnections, UIS.JumpRequest:Connect(function()
 end))
 
 -- ==========================================
--- MAIN COMBAT ENGINE (TÌM QUÁI BẰNG STRING.FIND LỌC BOSS DẠNG 2)
+-- MAIN COMBAT ENGINE (TÌM QUÁI BẰNG STRING.FIND LỌC BOSS DẠNG 2 XỊN)
 -- ==========================================
 local currentSwapState = 1
 local lastSwapTime = os.clock()
@@ -1471,7 +1468,6 @@ local function isValidMobByDatabase(mob)
     return true
 end
 
--- V43 FIX: HÀM QUÉT BOSS LINH HOẠT VỚI STRING.FIND (BẮT CẢ DẠNG AWAKENED)
 local function DirectFind(name)
     local targetName = string.lower(name)
     local cleanTarget = string.match(targetName, "^(.-)%s*%[") or targetName
@@ -1499,6 +1495,21 @@ local function DirectFind(name)
         end
     end
     return nil
+end
+
+local function GetPlayerLevel()
+    local lvl = 1
+    pcall(function()
+        if LocalPlayer:FindFirstChild("leaderstats") and LocalPlayer.leaderstats:FindFirstChild("Level") then lvl = tonumber(LocalPlayer.leaderstats.Level.Value)
+        elseif LocalPlayer:FindFirstChild("Data") and LocalPlayer.Data:FindFirstChild("Level") then lvl = tonumber(LocalPlayer.Data.Level.Value) end
+    end)
+    return lvl or 1
+end
+
+local function GetMobForCurrentLevel()
+    local myLevel = GetPlayerLevel(); local targetMob = QuestDB[1].MobName; local targetQuest = QuestDB[1].QuestName
+    for i = 1, #QuestDB do if myLevel >= QuestDB[i].Level then targetMob = QuestDB[i].MobName; targetQuest = QuestDB[i].QuestName end end
+    return targetMob, targetQuest
 end
 
 task.spawn(function()
@@ -1574,7 +1585,7 @@ task.spawn(function()
                     else
                         local delay = math.max(0.5, tonumber(_G_V10.BossCheckDelay) or 5)
                         if os.clock() - lastWorldBossCheckTime >= delay then
-                            if _G.CheckWorldBossIdx > #_G_V10.SelectedWorldBosses then _G.CheckWorldBossIdx = 1 end
+                            if not _G.CheckWorldBossIdx or _G.CheckWorldBossIdx > #_G_V10.SelectedWorldBosses then _G.CheckWorldBossIdx = 1 end
                             local bossToCheck = _G_V10.SelectedWorldBosses[_G.CheckWorldBossIdx]
                             local dbInfo = CoordDB.WorldBosses[bossToCheck]
                             if dbInfo then
@@ -1607,7 +1618,7 @@ task.spawn(function()
                     else
                         local delay = math.max(0.5, tonumber(_G_V10.BossCheckDelay) or 5)
                         if os.clock() - lastNormalBossCheckTime >= delay then
-                            if _G.CheckNormalBossIdx > #_G_V10.SelectedNormalBosses then _G.CheckNormalBossIdx = 1 end
+                            if not _G.CheckNormalBossIdx or _G.CheckNormalBossIdx > #_G_V10.SelectedNormalBosses then _G.CheckNormalBossIdx = 1 end
                             local bossToCheck = _G_V10.SelectedNormalBosses[_G.CheckNormalBossIdx]
                             local dbInfo = CoordDB.NormalBosses[bossToCheck]
                             if dbInfo then
@@ -1630,14 +1641,18 @@ task.spawn(function()
                 
                 -- TẦNG 3: QUÁI TỌA ĐỘ 
                 if not targetMobInstance and not targetWaitPos and _G_V10.AutoCoordMob and #_G_V10.SelectedCoordMobs > 0 then
-                    local bestMob = nil; local firstWaitPos = nil; local bestMobName = ""
+                    local bestMob = nil; local maxLvlFound = -1; local firstWaitPos = nil; local bestMobName = ""
                     for _, selMobStr in ipairs(_G_V10.SelectedCoordMobs) do
                         local realName = selMobStr:match("%] (.*)$") or selMobStr:match("%] (.*)") or selMobStr:gsub("^%[.-%]%s+", "")
                         realName = realName:match("^%s*(.-)%s*$")
                         
                         local found = DirectFind(realName)
                         if found then
-                            bestMob = found; bestMobName = realName; break
+                            local dbInfo = CoordDB.Mobs[realName]
+                            local lvl = dbInfo and dbInfo.Level or 0
+                            if lvl > maxLvlFound then
+                                maxLvlFound = lvl; bestMob = found; bestMobName = realName
+                            end
                         else
                             if not firstWaitPos then
                                 local dbInfo = CoordDB.Mobs[realName]
@@ -1646,8 +1661,13 @@ task.spawn(function()
                         end
                     end
                     
-                    if bestMob then targetMobInstance = bestMob; LblCoordInfo.Text = "Tọa độ: Đang dọn " .. bestMobName
-                    else if firstWaitPos then targetWaitPos = firstWaitPos; LblCoordInfo.Text = "Tọa độ: Chờ Quái ra..." end end
+                    if bestMob then 
+                        targetMobInstance = bestMob
+                        LblCoordInfo.Text = "Tọa độ: Đang dọn " .. bestMobName .. " (Lv " .. maxLvlFound .. ")"
+                    elseif firstWaitPos then 
+                        targetWaitPos = firstWaitPos
+                        LblCoordInfo.Text = "Tọa độ: Chờ Quái ra..." 
+                    end
                 end
 
                 -- TẦNG 4: BOSS RAID SELUNA / PZOZOLOVE CÙNG IDLE PATROL
@@ -1824,7 +1844,7 @@ task.spawn(function()
                     end
                 end
             else
-                -- V43 FIX: TRẢ VỀ TỌA ĐỘ GỐC CHUẨN (KHÔNG CỘNG +40 MÉT) ĐỂ VÀO ĐƯỢC ỐNG RAID VÀ CHẠM MẶT ĐẤT
+                -- V43 FIX TỪ BẢN 2: TRẢ VỀ TỌA ĐỘ GỐC CHUẨN ĐỂ VÀO ĐƯỢC ỐNG RAID VÀ CHẠM MẶT ĐẤT
                 local distToRaidMap = (HRP.Position - Vector3.new(-123, 114, 407)).Magnitude
                 if _G_V10.AutoFarmRaid and distToRaidMap < 3000 then
                     if raidPatrolState == "Wait_C1" then
