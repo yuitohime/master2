@@ -1,6 +1,6 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V34 (FINAL MASTERPIECE REBORN)
--- (TẠO TAB SKILL RIÊNG - THÊM CƠ CHẾ SMART SWAP CHỐNG KẸT SKILL ĐỘC LẬP)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V33 (NO PLATFORM BUG, NO SINK, NO STUTTER)
+-- (XÓA BỎ LỖI BAY LÊN TRỜI - FIX TRÔI ĐẤT AN TOÀN - GIỮ NGUYÊN 100% CẤU TRÚC)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -182,7 +182,7 @@ local CoordDB = {
     }
 }
 
--- MẢNG ARRAY DATA UI CÓ SẴN
+-- MẢNG ARRAY DATA UI
 local ListWorldBoss = {}
 for k, _ in pairs(CoordDB.WorldBosses) do table.insert(ListWorldBoss, k) end
 table.sort(ListWorldBoss)
@@ -195,7 +195,7 @@ local ListNPCs = {}
 for name, data in pairs(CoordDB.NPCs) do table.insert(ListNPCs, string.format("[%s] %s", data.Island, name)) end
 table.sort(ListNPCs)
 
--- QUÁI CHIA ĐẢO CÓ CẦU VỒNG
+-- QUÁI CHIA ĐẢO
 local IslandMobs = {}
 for name, data in pairs(CoordDB.Mobs) do
     if not IslandMobs[data.Island] then IslandMobs[data.Island] = {} end
@@ -236,17 +236,10 @@ local QuestListNames = {}; for i, v in ipairs(QuestDB) do table.insert(QuestList
 local DefaultConfig = {
     AutoFarmFree = false, FarmAll = false, SelectedMonsters = {}, ExcludedMobs = {"dummy", "test dmg", "testdmg"},
     AutoFarmLevel = false, ManualQuestFarm = false, SelectedManualQuest = nil, CurrentTargetMob = nil,
-    AutoEquip = false, AutoClick = false, AutoRepeatQuest = false,
-    
-    -- CƠ CHẾ SMART SWAP FIX
-    SmartSwapFix = true,
-    
-    -- KỸ NĂNG
-    AutoSkill = false,
+    AutoEquip = false, AutoClick = false, AutoSkill = false, AutoRepeatQuest = false,
     Skill_Z = false, Skill_X = false, Skill_C = false, Skill_V = false, Skill_F = false,
     AutoHaki = false, AutoKen = false, SelectedWeapon = nil, SelectedFruit = nil,
     AttackPosition = "Trên Đầu", AttackDistance = 15, FlySpeed = 250,
-    
     PrimaryWeapon = nil, HoldTime1 = 3, W1_Z = false, W1_X = false, W1_C = false, W1_V = false, W1_B = false, W1_F = false,
     SecondaryWeapon = nil, HoldTime2 = 0.5, W2_Z = false, W2_X = false, W2_C = false, W2_V = false, W2_B = false, W2_F = false,
     AutoSwapWeapon = false, SkillSpamDelay = 0.1, AutoSea = false, HuntSeaMonster = true, HuntGhost = true, AutoSitBoat = true, 
@@ -255,7 +248,7 @@ local DefaultConfig = {
     AutoBuyWorldRaid = false, WorldRaidLocation = "Out (Ngoài Map)", AutoBuyRaid = false, AutoStartRaid = false, AutoJoinGame = false, AutoFarmRaid = false, AutoSunBattery = false,
     AutoTeleEntrance = false, AutoTeleReRaid = false, RaidEntranceDelay = 2, RaidReRaidDelay = 2, RaidBuyTeleportDelay = 2, RaidWaitC1 = "10", RaidWaitC2 = "10", RaidWaitC3 = "15",
     
-    -- BOSS RAID THÔNG MINH
+    -- BOSS RAID
     AutoFarmBossRaid = false, SelectedRaidBosses = {}, AlwaysSpinPzozo = false, PzozoSpinRadius = 30, PzozoSpinSpeed = 3,
     AutoIdlePatrol = false, IdleWait1 = "10", IdleWait2 = "10",
     
@@ -647,8 +640,7 @@ end
 -- ==========================================
 -- XÂY DỰNG TABS ĐẦY ĐỦ 
 -- ==========================================
-local TabSettings = CreateTab("⚙️ Cài Đặt Chung")
-local TabSkills = CreateTab("✨ Kỹ Năng (Skills)")
+local TabSettings = CreateTab("⚙️ Cài Đặt Chung & Skill")
 local TabMainFarm = CreateTab("⚔️ Main Farm (All in 1)")
 local TabRaidHub = CreateTab("🏰 Raid Hub (Boss/Sun)")
 local TabBoss = CreateTab("👹 Boss & Spawn")
@@ -659,30 +651,9 @@ local TabServer = CreateTab("🌐 Server System")
 local TabScanner = CreateTab("📝 Note & Scan Map")
 local TabConfig = CreateTab("💾 Config (Save/Load)")
 
-Pages["⚙️ Cài Đặt Chung"].Btn.BackgroundColor3 = Color3.fromRGB(255, 100, 200)
-Pages["⚙️ Cài Đặt Chung"].Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Pages["⚙️ Cài Đặt Chung & Skill"].Btn.BackgroundColor3 = Color3.fromRGB(255, 100, 200)
+Pages["⚙️ Cài Đặt Chung & Skill"].Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 TabSettings.Visible = true
-
--- --- TAB: SKILLS (TẠO MỚI HOÀN TOÀN THEO YÊU CẦU) ---
-local SecSmartFix = CreateSection(TabSkills, "CƠ CHẾ FIX KẸT SKILL (TỪ DEV)", Color3.fromRGB(0, 255, 100))
-CreateToggleSwitch(SecSmartFix, "Bật Smart Swap (Xả phím & Sạch vật lý lúc đổi vũ khí)", "SmartSwapFix")
-
-local SecGlobalSkill = CreateSection(TabSkills, "AUTO SKILL CHUNG (GLOBAL)", Color3.fromRGB(255, 100, 50))
-CreateToggleSwitch(SecGlobalSkill, "Kích Hoạt Auto Skill Global", "AutoSkill")
-local globGrid = Instance.new("Frame", SecGlobalSkill); globGrid.Size = UDim2.new(1, 0, 0, 25); globGrid.BackgroundTransparency = 1; local globLay = Instance.new("UIListLayout", globGrid); globLay.FillDirection = Enum.FillDirection.Horizontal; globLay.Padding = UDim.new(0, 5)
-for _, key in ipairs({"Z","X","C","V","F"}) do
-    local Btn = Instance.new("TextButton", globGrid); Btn.Size = UDim2.new(0, 40, 0, 22); Btn.Text = key; Btn.TextColor3 = Color3.fromRGB(255, 255, 255); Btn.Font = Enum.Font.GothamBold; Btn.TextSize = 12; Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 4)
-    local function UpdateVisuals() Btn.BackgroundColor3 = _G_V10["Skill_"..key] and Color3.fromRGB(255, 100, 200) or Color3.fromRGB(80, 80, 80) end
-    _G_UI_Updaters["Skill_"..key] = UpdateVisuals
-    Btn.MouseButton1Click:Connect(function() _G_V10["Skill_"..key] = not _G_V10["Skill_"..key]; UpdateVisuals(); AutoSaveTrigger() end)
-    UpdateVisuals()
-end
-
-local SecW1Skill = CreateSection(TabSkills, "SKILL VŨ KHÍ 1", Color3.fromRGB(0, 200, 255))
-CreateSkillGrid(SecW1Skill, "Chọn Skill:", "W1_")
-
-local SecW2Skill = CreateSection(TabSkills, "SKILL VŨ KHÍ 2", Color3.fromRGB(0, 200, 255))
-CreateSkillGrid(SecW2Skill, "Chọn Skill:", "W2_")
 
 -- --- TAB: SETTINGS ---
 local TwoColFrame = Instance.new("Frame", TabSettings)
@@ -706,17 +677,21 @@ CreateSlider(SecSafeHP, "Đánh Xong Lại Né (s)", 5, 60, "GlobalSafeHP_Time")
 CreateToggleSwitch(SecSafeHP, "Xoay Tròn Né Chiêu Dưới Đất", "GlobalSafeHP_Spin")
 CreateSlider(SecSafeHP, "Bán Kính Xoay", 10, 100, "GlobalDodgeRadius")
 
-local SecHaki = CreateSection(LeftCol, "HAKI & KEN", Color3.fromRGB(255, 100, 50))
+local SecHaki = CreateSection(LeftCol, "HAKI & SKILL GLOBAL", Color3.fromRGB(255, 100, 50))
 CreateToggleSwitch(SecHaki, "🔥 Bật Tự Động Haki", "AutoHaki")
 CreateToggleSwitch(SecHaki, "👁️ Bật Tự Động Ken", "AutoKen")
+CreateToggleSwitch(SecHaki, "Kích Hoạt Auto Skill Global", "AutoSkill")
+CreateToggleSwitch(SecHaki, "Phím Z", "Skill_Z"); CreateToggleSwitch(SecHaki, "Phím X", "Skill_X"); CreateToggleSwitch(SecHaki, "Phím C", "Skill_C"); CreateToggleSwitch(SecHaki, "Phím V", "Skill_V"); CreateToggleSwitch(SecHaki, "Phím F", "Skill_F")
 
 local SecWepAuto = CreateSection(RightCol, "ĐỔI VŨ KHÍ SIÊU TỐC", Color3.fromRGB(0, 200, 255))
 CreateToggleSwitch(SecWepAuto, "Bật Auto Đổi VK (1 <-> 2)", "AutoSwapWeapon")
 CreateSlider(SecWepAuto, "Min Delay Xả Skill (Giây)", 0.1, 5, "SkillSpamDelay")
 local DropPriWeapon = CreateDropdown(SecWepAuto, "Vũ Khí 1", {}, "PrimaryWeapon", false)
 CreateSlider(SecWepAuto, "Time Cầm VK 1 (s)", 0.1, 10, "HoldTime1")
+CreateSkillGrid(SecWepAuto, "Skill VK 1:", "W1_")
 local DropSecWeapon = CreateDropdown(SecWepAuto, "Vũ Khí 2", {}, "SecondaryWeapon", false)
 CreateSlider(SecWepAuto, "Time Cầm VK 2 (s)", 0.1, 10, "HoldTime2")
+CreateSkillGrid(SecWepAuto, "Skill VK 2:", "W2_")
 
 local SecWepFix = CreateSection(RightCol, "CẦM 1 VŨ KHÍ CỐ ĐỊNH", Color3.fromRGB(255, 200, 50))
 local DropWeapons = CreateDropdown(SecWepFix, "Chọn Vũ Khí", {}, "SelectedWeapon", false)
@@ -1019,7 +994,7 @@ table.insert(_G.YuiConnections, RunService.Stepped:Connect(function()
 end))
 
 -- ==========================================
--- ENGINE CHỐNG RƠI BẤT TỬ (V28 FIX AN TOÀN)
+-- ENGINE CHỐNG RƠI BẤT TỬ (V33) - PCALL VÀ TRIỆT TIÊU VẬN TỐC
 -- ==========================================
 local function EnableAntiFall(HRP)
     local AntiFall = HRP:FindFirstChild("FarmAntiFall")
@@ -1050,10 +1025,19 @@ table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
             EnableAntiFall(hrp)
             if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall.Velocity = Vector3.new(0, 0, 0) end
             
+            -- ÉP CỨNG NHÂN VẬT, TRỊ DỨT ĐIỂM TRÔI
             hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
             hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-            hrp.Velocity = Vector3.new(0, 0, 0)
             
+            -- VÔ HIỆU HÓA LỰC ĐẨY CỦA GAME (KHÔNG XÓA ĐỂ TRÁNH CRASH)
+            for _, v in pairs(hrp:GetChildren()) do
+                if v:IsA("BodyVelocity") and v.Name ~= "FarmAntiFall" and v.Name ~= "V10_FreeFlyBV" then
+                    v.MaxForce = Vector3.new(0, 0, 0)
+                    v.Velocity = Vector3.new(0, 0, 0)
+                end
+            end
+
+            -- NẰM NGANG BẸP
             if _G_V10.AttackPosition == "Trên Đầu" or _G_V10.AttackPosition == "Dưới Chân" or _G_V10.AttackPosition == "Xoay Tròn" or _G.IsLootingSun then
                 hum.PlatformStand = true
             else
@@ -1431,7 +1415,7 @@ table.insert(_G.YuiConnections, UIS.JumpRequest:Connect(function()
 end))
 
 -- ==========================================
--- MAIN COMBAT ENGINE (CHỐNG KẸT SKILL SMART SWAP VÀ TÌM QUÁI)
+-- MAIN COMBAT ENGINE (TÌM QUÁI V1 NHANH NHẤT)
 -- ==========================================
 local currentSwapState = 1
 local lastSwapTime = os.clock()
@@ -1481,7 +1465,6 @@ task.spawn(function()
         local Hum = char:FindFirstChild("Humanoid")
         
         if not HRP or not Hum or Hum.Health <= 0 then 
-            if HRP and HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall:Destroy() end
             lastWorldBossCheckTime = os.clock(); lastNormalBossCheckTime = os.clock()
             _G.WorldBossWaitStarted = nil; _G.NormalBossWaitStarted = nil
             _G.IsLootingSun = false
@@ -1508,9 +1491,8 @@ task.spawn(function()
                 LblCoordInfo.Text = "Raid: Đang lụm Sun Battery!"
                 local sunPos = targetSun:IsA("Model") and targetSun:GetPivot().Position or targetSun.Position
                 HRP.CFrame = CFrame.new(sunPos)
-                if HRP:FindFirstChild("FarmAntiFall") then HRP.FarmAntiFall.Velocity = Vector3.new(0,0,0) end
                 
-                task.wait(0.5) 
+                task.wait(0.2) 
                 local click = targetSun:FindFirstChild("FruitClick") or targetSun:FindFirstChildWhichIsA("ProximityPrompt", true)
                 if click then
                     if click:IsA("ProximityPrompt") then fireproximityprompt(click)
@@ -1706,7 +1688,7 @@ task.spawn(function()
                 end
             else isGlobalDodging = false end
 
-            -- ================= HÀNH ĐỘNG CỦA NHÂN VẬT & SMART SWAP V34 =================
+            -- ================= HÀNH ĐỘNG CỦA NHÂN VẬT =================
             if targetMobInstance or (_G_V10.AutoSea and _G_V10.IsFightingSea) then
                 raidPatrolState = "Wait_C1"; raidPatrolTimer = os.clock()
                 
@@ -1717,35 +1699,11 @@ task.spawn(function()
                 if not isGlobalDodging and not forcePzozoSpin then
                     if _G_V10.AutoSwapWeapon and _G_V10.PrimaryWeapon and _G_V10.SecondaryWeapon then
                         if currentSwapState == 1 then
-                            if os.clock() - lastSwapTime >= _G_V10.HoldTime1 then 
-                                -- BẮT ĐẦU ĐỔI TỪ VK 1 SANG VK 2 (Áp dụng Smart Swap Fix)
-                                if _G_V10.SmartSwapFix then
-                                    for _, k in ipairs({"Z","X","C","V","B","F"}) do VIM:SendKeyEvent(false, Enum.KeyCode[k], false, game) end
-                                    task.wait(0.3)
-                                    pcall(function() HRP.Velocity = Vector3.new(0,0,0); HRP.AssemblyLinearVelocity = Vector3.new(0,0,0) end)
-                                end
-                                local wp = LocalPlayer.Backpack:FindFirstChild(_G_V10.SecondaryWeapon)
-                                if wp then Hum:EquipTool(wp) end
-                                currentSwapState = 2; lastSwapTime = os.clock() 
-                            else
-                                local wp = LocalPlayer.Backpack:FindFirstChild(_G_V10.PrimaryWeapon)
-                                if wp and not char:FindFirstChild(_G_V10.PrimaryWeapon) then Hum:EquipTool(wp) end
-                            end
+                            local wp = LocalPlayer.Backpack:FindFirstChild(_G_V10.PrimaryWeapon); if wp then Hum:EquipTool(wp) end
+                            if os.clock() - lastSwapTime >= _G_V10.HoldTime1 then currentSwapState = 2; lastSwapTime = os.clock() end
                         elseif currentSwapState == 2 then
-                            if os.clock() - lastSwapTime >= _G_V10.HoldTime2 then 
-                                -- BẮT ĐẦU ĐỔI TỪ VK 2 SANG VK 1 (Áp dụng Smart Swap Fix)
-                                if _G_V10.SmartSwapFix then
-                                    for _, k in ipairs({"Z","X","C","V","B","F"}) do VIM:SendKeyEvent(false, Enum.KeyCode[k], false, game) end
-                                    task.wait(0.3)
-                                    pcall(function() HRP.Velocity = Vector3.new(0,0,0); HRP.AssemblyLinearVelocity = Vector3.new(0,0,0) end)
-                                end
-                                local wp = LocalPlayer.Backpack:FindFirstChild(_G_V10.PrimaryWeapon)
-                                if wp then Hum:EquipTool(wp) end
-                                currentSwapState = 1; lastSwapTime = os.clock() 
-                            else
-                                local wp = LocalPlayer.Backpack:FindFirstChild(_G_V10.SecondaryWeapon)
-                                if wp and not char:FindFirstChild(_G_V10.SecondaryWeapon) then Hum:EquipTool(wp) end
-                            end
+                            local wp = LocalPlayer.Backpack:FindFirstChild(_G_V10.SecondaryWeapon); if wp then Hum:EquipTool(wp) end
+                            if os.clock() - lastSwapTime >= _G_V10.HoldTime2 then currentSwapState = 1; lastSwapTime = os.clock() end
                         end
                     elseif _G_V10.AutoEquip and _G_V10.SelectedWeapon then
                         local wp = LocalPlayer.Backpack:FindFirstChild(_G_V10.SelectedWeapon); if wp then Hum:EquipTool(wp) end
@@ -1794,7 +1752,7 @@ task.spawn(function()
                     end
                 end
             else
-                -- HOVER LÊN ĐỘ CAO +40 ĐỂ AN TOÀN TRÁNH TRÔI XUYÊN ĐẤT
+                -- NÂNG ĐỘ CAO +40 ĐỂ TRÁNH TRÔI XUYÊN ĐẤT XUỐNG BIỂN KHI HẾT QUÁI
                 if targetWaitPos then
                     local safeWaitPos = targetWaitPos + Vector3.new(0, 40, 0) 
                     if (HRP.Position - safeWaitPos).Magnitude > 50 then HRP.CFrame = CFrame.new(safeWaitPos) 
