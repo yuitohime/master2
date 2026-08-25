@@ -1867,7 +1867,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- ENGINE: SEA EVENT ĐỘC LẬP
+-- ENGINE: SEA EVENT ĐỘC LẬP (BẢN HOÀN HẢO ĐÃ FIX VẬT LÝ VÀ CHỐNG SPAM)
 -- ==========================================
 local function GetTargetSeaEvent()
     local monsterFolder = workspace:FindFirstChild("Monster")
@@ -1883,40 +1883,76 @@ local function GetTargetSeaEvent()
 end
 
 local wasAutoSeaOn = false
+local isDrivingW = false -- BIẾN CỰC KỲ QUAN TRỌNG ĐỂ FIX LỖI GIẬT/ĐỨNG THUYỀN
+
 task.spawn(function()
-    while task.wait() do 
+    while task.wait(0.1) do 
         if _G.YuiKillAllLoops then break end
         if not _G_V10.AutoSea then 
-            if wasAutoSeaOn then VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game); wasAutoSeaOn = false end
-            _G_V10.ArrivedAtZone = false; continue 
-        else wasAutoSeaOn = true end
+            if wasAutoSeaOn then 
+                VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game)
+                wasAutoSeaOn = false 
+                isDrivingW = false
+            end
+            _G_V10.ArrivedAtZone = false
+            continue 
+        else 
+            wasAutoSeaOn = true 
+        end
         
-        local char = LocalPlayer.Character; local HRP = char and char:FindFirstChild("HumanoidRootPart"); local Hum = char and char:FindFirstChild("Humanoid")
+        local char = LocalPlayer.Character
+        local HRP = char and char:FindFirstChild("HumanoidRootPart")
+        local Hum = char and char:FindFirstChild("Humanoid")
+        
         if not char or not HRP or not Hum or Hum.Health <= 0 then continue end
 
         local targetMonster = GetTargetSeaEvent()
-        local myBoatName = LocalPlayer.Name .. "Boat"; local boatFolder = workspace:FindFirstChild("Boats"); local myBoat = boatFolder and boatFolder:FindFirstChild(myBoatName)
+        local myBoatName = LocalPlayer.Name .. "Boat"
+        local boatFolder = workspace:FindFirstChild("Boats")
+        local myBoat = boatFolder and boatFolder:FindFirstChild(myBoatName)
 
         if targetMonster then
-            _G_V10.IsFightingSea = true; VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game); if Hum.Sit then Hum.Sit = false end
+            _G_V10.IsFightingSea = true
+            
+            if isDrivingW then
+                VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game)
+                isDrivingW = false
+            end
+            
+            if Hum.Sit then Hum.Sit = false end
+            
             if targetMonster.Name == "Sea Monster" then
-                local radius = 25; local angle = tick() * 2
+                local radius = 25
+                local angle = tick() * 2
                 local rootPos = targetMonster.HumanoidRootPart.Position
                 HRP.CFrame = CFrame.new(rootPos + Vector3.new(math.cos(angle) * radius, 20, math.sin(angle) * radius), rootPos)
             else
                 HRP.CFrame = targetMonster.HumanoidRootPart.CFrame * CFrame.new(0, 20, 0) * CFrame.Angles(math.rad(-90),0,0)
             end
         else
-            if _G_V10.IsFightingSea then _G_V10.IsFightingSea = false; VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game) end
+            if _G_V10.IsFightingSea then 
+                _G_V10.IsFightingSea = false
+                if isDrivingW then
+                    VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game) 
+                    isDrivingW = false
+                end
+            end
             
-            -- AUTO BUY GALLEON NẾU MẤT THUYỀN
             if not myBoat then
                 _G_V10.ArrivedAtZone = false
+                
+                if isDrivingW then
+                    VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game)
+                    isDrivingW = false
+                end
+                
                 local shopPos = Vector3.new(-16021, 58, 11133)
+                
                 if (HRP.Position - shopPos).Magnitude > 20 then
                     HRP.CFrame = CFrame.new(shopPos)
                     task.wait(1)
                 end
+                
                 local spawner = workspace:FindFirstChild("NPC") and workspace.NPC:FindFirstChild("BoatSpawner")
                 if spawner then
                     if (HRP.Position - spawner:GetPivot().Position).Magnitude < 30 then
@@ -1925,7 +1961,11 @@ task.spawn(function()
                         local talkingGui = LocalPlayer.PlayerGui:FindFirstChild("Talking")
                         if talkingGui then
                             local btn = SmartFindButton(talkingGui, "Galleon") or SmartFindButton(talkingGui, "Galleon $1K")
-                            if btn then PhysicalClick(btn); task.wait(0.5); TapSafeEdge() end
+                            if btn then 
+                                PhysicalClick(btn)
+                                task.wait(0.5)
+                                TapSafeEdge()
+                            end
                         end
                     end
                 end
@@ -1934,31 +1974,40 @@ task.spawn(function()
                 if seat then
                     local selZone = _G_V10.SelectedSeaZone or "Zone 1"
                     local targetZone = CoordDB.SeaZones[selZone] or Vector3.new(-19800, 86, 16940)
-                    local safeZone = targetZone + Vector3.new(0, 30, 0)
 
                     if not _G_V10.ArrivedAtZone or (seat.Position - targetZone).Magnitude > 2000 then
                         if Hum.Sit then Hum.Sit = false; task.wait(0.2) end
+                        
                         if myBoat:IsA("Model") and myBoat.PrimaryPart then 
-                            myBoat:PivotTo(CFrame.new(safeZone)) 
+                            myBoat:PivotTo(CFrame.new(targetZone)) 
                         else 
-                            seat.CFrame = CFrame.new(safeZone) 
+                            seat.CFrame = CFrame.new(targetZone) 
                         end
                         task.wait(0.5)
                         
                         if _G_V10.AutoSitBoat then 
-                            HRP.CFrame = seat.CFrame + Vector3.new(0, 5, 0)
+                            HRP.CFrame = seat.CFrame + Vector3.new(0, 3, 0)
                             task.wait(0.2)
                             seat:Sit(Hum) 
                         end
                         _G_V10.ArrivedAtZone = true 
                     else
                         if _G_V10.AutoSitBoat and not Hum.Sit then 
-                            HRP.CFrame = seat.CFrame + Vector3.new(0, 5, 0)
+                            HRP.CFrame = seat.CFrame + Vector3.new(0, 3, 0)
                             task.wait(0.2)
                             seat:Sit(Hum) 
                         end
+                        
                         if Hum.Sit then
-                            VIM:SendKeyEvent(true, Enum.KeyCode.W, false, game)
+                            if not isDrivingW then
+                                VIM:SendKeyEvent(true, Enum.KeyCode.W, false, game)
+                                isDrivingW = true
+                            end
+                        else
+                            if isDrivingW then
+                                VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game)
+                                isDrivingW = false
+                            end
                         end
                     end
                 end
