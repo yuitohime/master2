@@ -1,6 +1,6 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V32 (FINAL PERFECT PHYSICS)
--- (XÓA BỎ ÉP VẬT LÝ GÂY LỖI, THÊM THẢM TÀNG HÌNH CHỐNG RƠI, GIỮ NGUYÊN 100% MENU)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V33 (NO PLATFORM BUG, NO SINK, NO STUTTER)
+-- (XÓA BỎ LỖI BAY LÊN TRỜI - FIX TRÔI ĐẤT AN TOÀN - GIỮ NGUYÊN 100% CẤU TRÚC)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -182,7 +182,7 @@ local CoordDB = {
     }
 }
 
--- MẢNG ARRAY DATA UI CÓ SẴN
+-- MẢNG ARRAY DATA UI
 local ListWorldBoss = {}
 for k, _ in pairs(CoordDB.WorldBosses) do table.insert(ListWorldBoss, k) end
 table.sort(ListWorldBoss)
@@ -195,7 +195,7 @@ local ListNPCs = {}
 for name, data in pairs(CoordDB.NPCs) do table.insert(ListNPCs, string.format("[%s] %s", data.Island, name)) end
 table.sort(ListNPCs)
 
--- QUÁI CHIA ĐẢO CÓ CẦU VỒNG
+-- QUÁI CHIA ĐẢO
 local IslandMobs = {}
 for name, data in pairs(CoordDB.Mobs) do
     if not IslandMobs[data.Island] then IslandMobs[data.Island] = {} end
@@ -248,7 +248,7 @@ local DefaultConfig = {
     AutoBuyWorldRaid = false, WorldRaidLocation = "Out (Ngoài Map)", AutoBuyRaid = false, AutoStartRaid = false, AutoJoinGame = false, AutoFarmRaid = false, AutoSunBattery = false,
     AutoTeleEntrance = false, AutoTeleReRaid = false, RaidEntranceDelay = 2, RaidReRaidDelay = 2, RaidBuyTeleportDelay = 2, RaidWaitC1 = "10", RaidWaitC2 = "10", RaidWaitC3 = "15",
     
-    -- BOSS RAID THÔNG MINH
+    -- BOSS RAID
     AutoFarmBossRaid = false, SelectedRaidBosses = {}, AlwaysSpinPzozo = false, PzozoSpinRadius = 30, PzozoSpinSpeed = 3,
     AutoIdlePatrol = false, IdleWait1 = "10", IdleWait2 = "10",
     
@@ -674,7 +674,7 @@ CreateToggleSwitch(SecSafeHP, "Bật Safe Máu", "GlobalSafeHP")
 CreateSlider(SecSafeHP, "Né khi HP dưới (%)", 10, 90, "GlobalSafeHP_Min")
 CreateToggleSwitch(SecSafeHP, "Né Theo Thời Gian", "GlobalSafeHP_Timer")
 CreateSlider(SecSafeHP, "Đánh Xong Lại Né (s)", 5, 60, "GlobalSafeHP_Time")
-CreateToggleSwitch(SecSafeHP, "Xoay Tròn Né Chiêu", "GlobalSafeHP_Spin")
+CreateToggleSwitch(SecSafeHP, "Xoay Tròn Né Chiêu Dưới Đất", "GlobalSafeHP_Spin")
 CreateSlider(SecSafeHP, "Bán Kính Xoay", 10, 100, "GlobalDodgeRadius")
 
 local SecHaki = CreateSection(LeftCol, "HAKI & SKILL GLOBAL", Color3.fromRGB(255, 100, 50))
@@ -724,6 +724,7 @@ local function StopAllFarm()
             char.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
             char.HumanoidRootPart.AssemblyLinearVelocity = Vector3.new(0,0,0)
         end)
+        if char.HumanoidRootPart:FindFirstChild("FarmAntiFall") then char.HumanoidRootPart.FarmAntiFall:Destroy() end
         if char:FindFirstChild("Humanoid") then char.Humanoid.PlatformStand = false end
     end
 end
@@ -993,7 +994,68 @@ table.insert(_G.YuiConnections, RunService.Stepped:Connect(function()
 end))
 
 -- ==========================================
--- LÕI BẤM VẬT LÝ & REMOTE SKILL
+-- ENGINE CHỐNG RƠI BẤT TỬ (V33) - PCALL VÀ TRIỆT TIÊU VẬN TỐC
+-- ==========================================
+local function EnableAntiFall(HRP)
+    local AntiFall = HRP:FindFirstChild("FarmAntiFall")
+    if not AntiFall then
+        AntiFall = Instance.new("BodyVelocity")
+        AntiFall.Name = "FarmAntiFall"
+        AntiFall.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        AntiFall.P = 9e9
+        AntiFall.Velocity = Vector3.new(0, 0, 0)
+        AntiFall.Parent = HRP
+    end
+end
+
+_G.IsLootingSun = false
+
+table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
+    if _G.YuiKillAllLoops then return end
+    pcall(function() 
+        local char = LocalPlayer.Character
+        if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local hum = char:FindFirstChild("Humanoid")
+        if not hrp or not hum then return end
+
+        local isNormalFarming = _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm or _G_V10.AutoFarmFree or _G_V10.FarmAll or _G_V10.AutoFarmRaid or _G_V10.AutoCoordMob or _G_V10.AutoWorldBoss or _G_V10.AutoNormalBoss or _G_V10.AutoFarmBossRaid
+        
+        if isNormalFarming and not _G_V10.FreeFly and not _G_V10.AutoPatrolIsland then
+            EnableAntiFall(hrp)
+            if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall.Velocity = Vector3.new(0, 0, 0) end
+            
+            -- ÉP CỨNG NHÂN VẬT, TRỊ DỨT ĐIỂM TRÔI
+            hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            
+            -- VÔ HIỆU HÓA LỰC ĐẨY CỦA GAME (KHÔNG XÓA ĐỂ TRÁNH CRASH)
+            for _, v in pairs(hrp:GetChildren()) do
+                if v:IsA("BodyVelocity") and v.Name ~= "FarmAntiFall" and v.Name ~= "V10_FreeFlyBV" then
+                    v.MaxForce = Vector3.new(0, 0, 0)
+                    v.Velocity = Vector3.new(0, 0, 0)
+                end
+            end
+
+            -- NẰM NGANG BẸP
+            if _G_V10.AttackPosition == "Trên Đầu" or _G_V10.AttackPosition == "Dưới Chân" or _G_V10.AttackPosition == "Xoay Tròn" or _G.IsLootingSun then
+                hum.PlatformStand = true
+            else
+                hum.PlatformStand = false
+            end
+            
+            for _, v in pairs(char:GetDescendants()) do
+                if v:IsA("BasePart") then v.CanCollide = false end
+            end
+        else
+            if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall:Destroy() end
+            if not _G_V10.FreeFly then hum.PlatformStand = false end
+        end
+    end)
+end))
+
+-- ==========================================
+-- LÕI BẤM VẬT LÝ & REMOTE SKILL CẢI TIẾN
 -- ==========================================
 local function PhysicalClick(guiObj)
     if _G.YuiKillAllLoops then return end
@@ -1113,7 +1175,7 @@ end
 pcall(MonitorChatForBosses)
 
 -- ==========================================
--- ENGINE: AUTO MUA VÉ RAID & SPAWN BOSS
+-- ENGINE: MUA WORLD RAID, MUA RAID THƯỜNG & SPAWN BOSS (TỐC ĐỘ BÀN THỜ 0.3s)
 -- ==========================================
 task.spawn(function()
     while task.wait(0.3) do
@@ -1297,52 +1359,8 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- ENGINE LÕI: THẢM TÀNG HÌNH CHỐNG RƠI (XÓA BỎ ÉP VẬT LÝ)
+-- LÕI JUMP & ANTI-CHEAT
 -- ==========================================
-local farmPlatform = workspace:FindFirstChild("Yui_FarmPlatform")
-if not farmPlatform then
-    farmPlatform = Instance.new("Part")
-    farmPlatform.Name = "Yui_FarmPlatform"
-    farmPlatform.Size = Vector3.new(500, 2, 500)
-    farmPlatform.Anchored = true
-    farmPlatform.CanCollide = true
-    farmPlatform.Transparency = 1
-    farmPlatform.Parent = workspace
-end
-
-table.insert(_G.YuiConnections, RunService.Stepped:Connect(function()
-    if _G.YuiKillAllLoops then 
-        if farmPlatform then farmPlatform:Destroy() end
-        return 
-    end
-    pcall(function()
-        local char = LocalPlayer.Character
-        if not char then return end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        local hum = char:FindFirstChild("Humanoid")
-        if not hrp or not hum then return end
-
-        local isNormalFarming = _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm or _G_V10.AutoFarmFree or _G_V10.FarmAll or _G_V10.AutoFarmRaid or _G_V10.AutoCoordMob or _G_V10.AutoWorldBoss or _G_V10.AutoNormalBoss or _G_V10.AutoFarmBossRaid
-        
-        if isNormalFarming and not _G_V10.FreeFly and not _G_V10.AutoPatrolIsland then
-            hum.PlatformStand = false 
-            
-            -- Lót thảm khổng lồ 500x500 dưới gót chân bạn
-            farmPlatform.CFrame = hrp.CFrame * CFrame.new(0, -3.6, 0)
-            
-            -- Xóa các BodyVelocity ép rơi để khôi phục vật lý tự nhiên
-            if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall:Destroy() end
-            
-            -- ÉP KHÔNG VA CHẠM KHI FARM ĐỂ KHÔNG BỊ VƯỚNG QUÁI
-            for _, v in pairs(char:GetDescendants()) do
-                if v:IsA("BasePart") then v.CanCollide = false end
-            end
-        else
-            farmPlatform.CFrame = CFrame.new(0, 99999, 0)
-        end
-    end)
-end))
-
 task.spawn(function()
     while task.wait(1) do
         if _G.YuiKillAllLoops then break end
@@ -1389,8 +1407,15 @@ task.spawn(function()
     end
 end)
 
+table.insert(_G.YuiConnections, UIS.JumpRequest:Connect(function()
+    if _G.YuiKillAllLoops then return end
+    if _G_V10.InfJump and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+    end
+end))
+
 -- ==========================================
--- MAIN COMBAT ENGINE (MƯỢT NHẤT - TRẢ LẠI LÕI V1)
+-- MAIN COMBAT ENGINE (TÌM QUÁI V1 NHANH NHẤT)
 -- ==========================================
 local currentSwapState = 1
 local lastSwapTime = os.clock()
@@ -1465,11 +1490,9 @@ task.spawn(function()
                 _G.IsLootingSun = true
                 LblCoordInfo.Text = "Raid: Đang lụm Sun Battery!"
                 local sunPos = targetSun:IsA("Model") and targetSun:GetPivot().Position or targetSun.Position
-                
-                -- Đứng yên mượt mà nhặt Sun (khóa trục Y để không rớt xuống)
                 HRP.CFrame = CFrame.new(sunPos)
-                task.wait(0.2) 
                 
+                task.wait(0.2) 
                 local click = targetSun:FindFirstChild("FruitClick") or targetSun:FindFirstChildWhichIsA("ProximityPrompt", true)
                 if click then
                     if click:IsA("ProximityPrompt") then fireproximityprompt(click)
@@ -1700,43 +1723,40 @@ task.spawn(function()
                 end
                 
                 if targetMobInstance then
-                    local hrpTargetPos
-                    local mobPos = targetMobInstance.HumanoidRootPart.Position
-                    
                     if isGlobalDodging then
                         local angle = tick() * 3
                         local radius = tonumber(_G_V10.GlobalDodgeRadius) or 50
+                        local mobPos = targetMobInstance.HumanoidRootPart.Position
                         local dodgeOffset = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
-                        hrpTargetPos = mobPos + dodgeOffset
+                        HRP.CFrame = CFrame.new(mobPos + dodgeOffset, mobPos)
                     elseif forcePzozoSpin then
                         local angle = tick() * tonumber(_G_V10.PzozoSpinSpeed)
                         local radius = tonumber(_G_V10.PzozoSpinRadius)
+                        local mobPos = targetMobInstance.HumanoidRootPart.Position
                         local dodgeOffset = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
-                        hrpTargetPos = mobPos + dodgeOffset
+                        HRP.CFrame = CFrame.new(mobPos + dodgeOffset, mobPos)
                     else
+                        local mobPos = targetMobInstance.HumanoidRootPart.Position
                         if _G_V10.AttackPosition == "Trên Đầu" then 
-                            hrpTargetPos = mobPos + Vector3.new(0, _G_V10.AttackDistance, 0)
+                            HRP.CFrame = CFrame.new(mobPos + Vector3.new(0, _G_V10.AttackDistance, 0)) * CFrame.Angles(math.rad(-90), 0, 0)
                         elseif _G_V10.AttackPosition == "Dưới Chân" then 
-                            hrpTargetPos = mobPos + Vector3.new(0, -_G_V10.AttackDistance, 0)
+                            HRP.CFrame = CFrame.new(mobPos + Vector3.new(0, -_G_V10.AttackDistance, 0)) * CFrame.Angles(math.rad(90), 0, 0)
                         elseif _G_V10.AttackPosition == "Xoay Tròn" then
                             local angle = tick() * 3
                             local radius = _G_V10.AttackDistance
                             local offset = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
-                            hrpTargetPos = mobPos + offset
+                            HRP.CFrame = CFrame.new(mobPos + offset, mobPos)
                         else
-                            hrpTargetPos = (targetMobInstance.HumanoidRootPart.CFrame * CFrame.new(0, 0, _G_V10.AttackDistance)).Position
+                            HRP.CFrame = targetMobInstance.HumanoidRootPart.CFrame * CFrame.new(0, 0, _G_V10.AttackDistance)
                         end
                     end
-                    
-                    -- KHÓA ĐỨNG THẲNG LƯNG CHỐNG GIẬT (LOOK AT QUÁI NHƯNG GIỮ NGUYÊN TRỤC Y)
-                    local lookAtPos = Vector3.new(mobPos.X, hrpTargetPos.Y, mobPos.Z)
-                    HRP.CFrame = CFrame.new(hrpTargetPos, lookAtPos)
                 end
             else
                 -- NÂNG ĐỘ CAO +40 ĐỂ TRÁNH TRÔI XUYÊN ĐẤT XUỐNG BIỂN KHI HẾT QUÁI
                 if targetWaitPos then
                     local safeWaitPos = targetWaitPos + Vector3.new(0, 40, 0) 
-                    HRP.CFrame = CFrame.new(safeWaitPos)
+                    if (HRP.Position - safeWaitPos).Magnitude > 50 then HRP.CFrame = CFrame.new(safeWaitPos) 
+                    else HRP.CFrame = CFrame.new(safeWaitPos) end
                 elseif _G_V10.AutoFarmRaid then
                     local distToRaidMap = (HRP.Position - Vector3.new(-123, 114, 407)).Magnitude
                     if distToRaidMap < 3000 then
