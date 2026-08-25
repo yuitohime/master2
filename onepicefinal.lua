@@ -1,6 +1,6 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V26 (ANTI-STUTTER & ANTI-FALL FIX)
--- (FIX LỖI NHÂN VẬT BỊ RƠI XUYÊN ĐẤT, RỚT NƯỚC, BỊ GIẬT GIẬT KHI FARM)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V28 (ANTI-SINK, ZERO-STUTTER, PERFECT PHYSICS)
+-- (TRỊ DỨT ĐIỂM LỖI RƠI XUYÊN ĐẤT, TRÔI XUỐNG NƯỚC KHI DÙNG SKILL, HOVER CHỜ QUÁI)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -20,6 +20,9 @@ _G.YuiConnections = {}
 
 local SafeParent = pcall(gethui) and gethui() or LocalPlayer:WaitForChild("PlayerGui")
 if SafeParent:FindFirstChild("YuiHub_UI") then SafeParent["YuiHub_UI"]:Destroy() end
+
+local ScanLogFrame = nil
+local playerPosBox = nil
 
 -- ==========================================
 -- 📚 DATABASE FULL TỪ USER
@@ -1115,7 +1118,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- ENGINE: MUA WORLD RAID, MUA RAID THƯỜNG & SPAWN BOSS (ĐÃ FIX DELAY VÀ IN/OUT)
+-- ENGINE: MUA WORLD RAID, MUA RAID THƯỜNG & SPAWN BOSS
 -- ==========================================
 task.spawn(function()
     while task.wait(0.5) do
@@ -1300,7 +1303,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- ENGINE: LÕI JUMP & ANTI-FALL CHỐNG NHẤP NHỔM VÀ FIX RƠI ĐẤT
+-- ENGINE: LÕI CHỐNG NHẤP NHỔM & RƠI KHI SKILL
 -- ==========================================
 task.spawn(function()
     while task.wait(1) do
@@ -1357,7 +1360,9 @@ end))
 
 local function EnableAntiFall(HRP)
     if not HRP:FindFirstChild("FarmAntiFall") then
-        local AntiFall = Instance.new("BodyVelocity"); AntiFall.Name = "FarmAntiFall"; AntiFall.MaxForce = Vector3.new(9e9, 9e9, 9e9); AntiFall.P = 9e9; AntiFall.Velocity = Vector3.new(0, 0, 0); AntiFall.Parent = HRP
+        local AntiFall = Instance.new("BodyVelocity"); AntiFall.Name = "FarmAntiFall"
+        AntiFall.MaxForce = Vector3.new(math.huge, math.huge, math.huge); AntiFall.P = 9e9
+        AntiFall.Velocity = Vector3.new(0, 0, 0); AntiFall.Parent = HRP
     end
 end
 
@@ -1374,9 +1379,16 @@ table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
             EnableAntiFall(hrp)
             if hrp:FindFirstChild("FarmAntiFall") then hrp.FarmAntiFall.Velocity = Vector3.new(0, 0, 0) end
             
-            -- FIX LỖI RƠI XUYÊN ĐẤT / XUỐNG NƯỚC BỊ GIẬT
-            hrp.Velocity = Vector3.new(0, 0, 0)
-            hrp.RotVelocity = Vector3.new(0, 0, 0)
+            -- LÕI VẬT LÝ V28: KHÓA CHẶT VẬN TỐC, XÓA LỰC ĐẨY CỦA SKILL
+            pcall(function()
+                hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+            end)
+            for _, v in pairs(hrp:GetChildren()) do
+                if (v:IsA("BodyVelocity") or v:IsA("BodyPosition") or v:IsA("BodyGyro") or v:IsA("BodyForce") or v:IsA("AlignPosition")) and v.Name ~= "FarmAntiFall" and v.Name ~= "V10_FreeFlyBV" then
+                    v:Destroy()
+                end
+            end
             
             -- ÉP NẰM NGANG BẸP HOẶC KHI LỤM SUN
             if _G_V10.AttackPosition == "Trên Đầu" or _G_V10.AttackPosition == "Dưới Chân" or _G_V10.AttackPosition == "Xoay Tròn" or _G.IsLootingSun then
@@ -1393,7 +1405,7 @@ table.insert(_G.YuiConnections, RunService.RenderStepped:Connect(function()
         if _G_V10.FreeFly then
             hum.PlatformStand = true
             if not hrp:FindFirstChild("V10_FreeFlyBV") then
-                local bv = Instance.new("BodyVelocity", hrp); bv.Name = "V10_FreeFlyBV"; bv.MaxForce = Vector3.new(9e9, 9e9, 9e9); bv.P = 9e9
+                local bv = Instance.new("BodyVelocity", hrp); bv.Name = "V10_FreeFlyBV"; bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
             end
             local cam = workspace.CurrentCamera
             local moveDir = hum.MoveDirection
@@ -1423,7 +1435,7 @@ local function GetMobForCurrentLevel()
 end
 
 -- ==========================================
--- MAIN COMBAT ENGINE (LÕI TÌM QUÁI V1 KHÔNG KẸT LAG)
+-- MAIN COMBAT ENGINE (LÕI TÌM QUÁI MƯỢT NHẤT & HOVER SAFE)
 -- ==========================================
 local currentSwapState = 1
 local lastSwapTime = os.clock()
@@ -1589,7 +1601,7 @@ task.spawn(function()
                     end
                 end
                 
-                -- TẦNG 3: QUÁI TỌA ĐỘ 
+                -- TẦNG 3: QUÁI TỌA ĐỘ
                 if not targetMobInstance and not targetWaitPos and _G_V10.AutoCoordMob and #_G_V10.SelectedCoordMobs > 0 then
                     local bestMob = nil; local firstWaitPos = nil; local bestMobName = ""
                     for _, selMobStr in ipairs(_G_V10.SelectedCoordMobs) do
@@ -1637,7 +1649,7 @@ task.spawn(function()
                     end
                 end
 
-                -- TẦNG 5: FARM TÙY CHỌN / CÀN QUÉT MAP / LEVEL / RAID THƯỜNG
+                -- TẦNG 5: FARM TÙY CHỌN / CÀN QUÉT MAP / LEVEL
                 if not targetMobInstance and not targetWaitPos then
                     if _G_V10.AutoFarmLevel then
                         local mob, qName = GetMobForCurrentLevel(); _G_V10.CurrentTargetMob = {mob}; LblInfo.Text = "Farm Level: " .. qName
@@ -1737,19 +1749,16 @@ task.spawn(function()
                         local angle = tick() * 3
                         local radius = tonumber(_G_V10.GlobalDodgeRadius) or 50
                         local mobPos = targetMobInstance.HumanoidRootPart.Position
-                        local dodgeOffset = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+                        local dodgeOffset = Vector3.new(math.cos(angle) * radius, 20, math.sin(angle) * radius)
                         HRP.CFrame = CFrame.new(mobPos + dodgeOffset, mobPos)
                     elseif forcePzozoSpin then
-                        -- LƯỢN VÒNG QUANH PZOZO (KHÔNG ĐÁNH)
                         local angle = tick() * tonumber(_G_V10.PzozoSpinSpeed)
                         local radius = tonumber(_G_V10.PzozoSpinRadius)
                         local mobPos = targetMobInstance.HumanoidRootPart.Position
-                        local dodgeOffset = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+                        local dodgeOffset = Vector3.new(math.cos(angle) * radius, 20, math.sin(angle) * radius)
                         HRP.CFrame = CFrame.new(mobPos + dodgeOffset, mobPos)
                     else
                         local mobPos = targetMobInstance.HumanoidRootPart.Position
-                        
-                        -- NẰM NGANG BẸP SONG SONG MẶT ĐẤT
                         if _G_V10.AttackPosition == "Trên Đầu" then 
                             HRP.CFrame = CFrame.new(mobPos + Vector3.new(0, _G_V10.AttackDistance, 0)) * CFrame.Angles(math.rad(-90), 0, 0)
                         elseif _G_V10.AttackPosition == "Dưới Chân" then 
@@ -1757,7 +1766,7 @@ task.spawn(function()
                         elseif _G_V10.AttackPosition == "Xoay Tròn" then
                             local angle = tick() * 3
                             local radius = _G_V10.AttackDistance
-                            local offset = Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+                            local offset = Vector3.new(math.cos(angle) * radius, 20, math.sin(angle) * radius)
                             HRP.CFrame = CFrame.new(mobPos + offset, mobPos)
                         else
                             HRP.CFrame = targetMobInstance.HumanoidRootPart.CFrame * CFrame.new(0, 0, _G_V10.AttackDistance)
@@ -1765,9 +1774,11 @@ task.spawn(function()
                     end
                 end
             else
+                -- BẢN FIX: KHÔNG CÓ QUÁI CHỜ Ở ĐỘ CAO +40 ĐỂ TRÁNH TRÔI XUYÊN ĐẤT
                 if targetWaitPos then
-                    if (HRP.Position - targetWaitPos).Magnitude > 50 then HRP.CFrame = CFrame.new(targetWaitPos) 
-                    else HRP.CFrame = CFrame.new(targetWaitPos) end
+                    local safeWaitPos = targetWaitPos + Vector3.new(0, 40, 0)
+                    if (HRP.Position - safeWaitPos).Magnitude > 50 then HRP.CFrame = CFrame.new(safeWaitPos) 
+                    else HRP.CFrame = CFrame.new(safeWaitPos) end
                 elseif _G_V10.AutoFarmRaid then
                     local distToRaidMap = (HRP.Position - Vector3.new(-123, 114, 407)).Magnitude
                     if distToRaidMap < 3000 then
@@ -1789,7 +1800,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- ENGINE: SEA EVENT (FIX TỰ MUA THUYỀN VÀ KHÔNG BỊ CHÌM)
+-- ENGINE: SEA EVENT ĐỘC LẬP
 -- ==========================================
 local function GetTargetSeaEvent()
     local monsterFolder = workspace:FindFirstChild("Monster")
@@ -1831,7 +1842,6 @@ task.spawn(function()
         else
             if _G_V10.IsFightingSea then _G_V10.IsFightingSea = false; VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game) end
             
-            -- AUTO BUY GALLEON NẾU MẤT THUYỀN
             if not myBoat then
                 _G_V10.ArrivedAtZone = false
                 local shopPos = Vector3.new(-16021, 58, 11133)
@@ -1858,7 +1868,6 @@ task.spawn(function()
                     local targetZone = CoordDB.SeaZones[selZone] or Vector3.new(-19800, 86, 16940)
                     local safeZone = targetZone + Vector3.new(0, 30, 0)
 
-                    -- BÊ THUYỀN RA ZONE RỒI MỚI NGỒI CHẠY
                     if not _G_V10.ArrivedAtZone or (seat.Position - targetZone).Magnitude > 2000 then
                         if Hum.Sit then Hum.Sit = false; task.wait(0.2) end
                         if myBoat:IsA("Model") and myBoat.PrimaryPart then 
