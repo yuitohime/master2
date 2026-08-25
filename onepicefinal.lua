@@ -1,6 +1,6 @@
 -- ==========================================
--- 🌸 YUIHUB - THE ULTIMATE SCRIPT V23 (PERFECT AUTO SEA EVENT)
--- (FIX AUTO BUY GALLEON $1k, ANTI-SINK BOAT TELEPORT, ZONE 1-4, KEEP 100% OLD FEATURES)
+-- 🌸 YUIHUB - THE ULTIMATE SCRIPT V24 (THE MASTERPIECE)
+-- (FIX WEAPON SKILL SPAM, PERFECT AUTO SEA: AUTO BUY GALLEON, ANTI-SINK ZONE TELEPORT)
 -- ==========================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -636,7 +636,7 @@ local function CreateTextBox(parent, placeholder, callback)
 end
 
 -- ==========================================
--- XÂY DỰNG TABS ĐẦY ĐỦ
+-- XÂY DỰNG TABS
 -- ==========================================
 local TabSettings = CreateTab("⚙️ Cài Đặt Chung & Skill")
 local TabMainFarm = CreateTab("⚔️ Main Farm (All in 1)")
@@ -985,7 +985,7 @@ table.insert(_G.YuiConnections, RunService.Stepped:Connect(function()
 end))
 
 -- ==========================================
--- LÕI BẤM VẬT LÝ & REMOTE SKILL
+-- LÕI BẤM VẬT LÝ & REMOTE SKILL CẢI TIẾN (CHẮC CHẮN HOẠT ĐỘNG)
 -- ==========================================
 local function PhysicalClick(guiObj)
     if _G.YuiKillAllLoops then return end
@@ -1024,53 +1024,23 @@ local function PressKey(key)
 end
 
 local function ForceUseSkill(key)
+    PressKey(key) -- Ép bấm nút thật bằng VIM (Fix lỗi không xả skill)
     local char = LocalPlayer.Character
     if not char then return end
     local tool = char:FindFirstChildOfClass("Tool")
-    if not tool then return end
-    local remote = tool:FindFirstChild(key)
-    if remote then
-        pcall(function()
-            if remote:IsA("RemoteFunction") then remote:InvokeServer(key)
-            elseif remote:IsA("RemoteEvent") then remote:FireServer(key) end
-        end)
-    else PressKey(key) end
-end
-
--- ==========================================
--- ENGINE: AUTO SKILL GLOBAL (CHẠY ĐỘC LẬP)
--- ==========================================
-task.spawn(function()
-    while task.wait(_G_V10.SkillSpamDelay or 0.1) do
-        if _G.YuiKillAllLoops then break end
-        if _G_V10.AutoSkill then
-            if _G_V10.Skill_Z then ForceUseSkill("Z") end
-            if _G_V10.Skill_X then ForceUseSkill("X") end
-            if _G_V10.Skill_C then ForceUseSkill("C") end
-            if _G_V10.Skill_V then ForceUseSkill("V") end
-            if _G_V10.Skill_F then ForceUseSkill("F") end
-        end
-    end
-end)
-
--- ==========================================
--- ENGINE: AUTO REPEAT QUEST (CHẠY ĐỘC LẬP)
--- ==========================================
-task.spawn(function()
-    while task.wait(1) do
-        if _G.YuiKillAllLoops then break end
-        if _G_V10.AutoRepeatQuest or _G_V10.AutoFarmLevel or _G_V10.ManualQuestFarm then
+    if tool then
+        local remote = tool:FindFirstChild(key)
+        if remote then
             pcall(function()
-                for _, v in pairs(game:GetService("ReplicatedStorage"):GetDescendants()) do
-                    if v:IsA("RemoteEvent") and v.Name == "Qu" then v:FireServer("Yes") end
-                end
+                if remote:IsA("RemoteFunction") then remote:InvokeServer(key)
+                elseif remote:IsA("RemoteEvent") then remote:FireServer(key) end
             end)
         end
     end
-end)
+end
 
 -- ==========================================
--- BẮT CHAT SYSTEM CHECK BOSS SPAWN NHANH
+-- ENGINE: BẮT CHAT SYSTEM CHECK BOSS SPAWN NHANH
 -- ==========================================
 local lastWorldBossCheckTime = os.clock()
 local lastNormalBossCheckTime = os.clock()
@@ -1417,7 +1387,7 @@ local function GetMobForCurrentLevel()
 end
 
 -- ==========================================
--- MAIN COMBAT ENGINE (LÕI TÌM QUÁI V1 KHÔNG KẸT LAG)
+-- MAIN COMBAT ENGINE (MƯỢT NHẤT VỚI BỘ LỌC CHUẨN)
 -- ==========================================
 local currentSwapState = 1
 local lastSwapTime = os.clock()
@@ -1440,7 +1410,6 @@ local function isValidMobByDatabase(mob)
     return true
 end
 
--- Hàm tìm kiếm quét sạch chữ Hoa/Thường để bắt Pzozo nhanh nhất
 local function DirectFind(name)
     local targetName = string.lower(name)
     for _, folderName in ipairs({"Monster", "Enemies", "NPC", "NPCs"}) do
@@ -1676,7 +1645,7 @@ task.spawn(function()
                 end
             end
 
-            -- ================= GLOBAL SAFE HP LÝ TƯỞNG (NÉ DƯỚI ĐẤT) =================
+            -- ================= GLOBAL SAFE HP LÝ TƯỞNG =================
             local hpPct = (Hum.Health / Hum.MaxHealth) * 100
             if _G_V10.GlobalSafeHP and targetMobInstance then
                 local triggerDodge = false
@@ -1700,7 +1669,7 @@ task.spawn(function()
                 local forcePzozoSpin = false
                 if targetMobInstance and string.lower(targetMobInstance.Name) == "pzozolove112" and _G_V10.AlwaysSpinPzozo then forcePzozoSpin = true end
 
-                -- CHỈ CẦM VŨ KHÍ NẾU KHÔNG PHẢI LÀ PZOZO SPIN VÀ KHÔNG NÉ
+                -- CHỈ XẢ SKILL VŨ KHÍ NẾU KHÔNG PHẢI LÀ PZOZO SPIN VÀ KHÔNG NÉ
                 if not isGlobalDodging and not forcePzozoSpin then
                     if _G_V10.AutoSwapWeapon and _G_V10.PrimaryWeapon and _G_V10.SecondaryWeapon then
                         if currentSwapState == 1 then
@@ -1716,6 +1685,14 @@ task.spawn(function()
 
                     if _G_V10.AutoClick then
                         local equippedTool = char:FindFirstChildWhichIsA("Tool"); if equippedTool then equippedTool:Activate() end
+                    end
+                    
+                    if os.clock() - lastSkillSpamTime >= _G_V10.SkillSpamDelay then
+                        lastSkillSpamTime = os.clock()
+                        if _G_V10.AutoSwapWeapon then
+                            local prefix = (currentSwapState == 1) and "W1_" or "W2_"
+                            if _G_V10[prefix.."Z"] then ForceUseSkill("Z") end; if _G_V10[prefix.."X"] then ForceUseSkill("X") end; if _G_V10[prefix.."C"] then ForceUseSkill("C") end; if _G_V10[prefix.."V"] then ForceUseSkill("V") end; if _G_V10[prefix.."B"] then ForceUseSkill("B") end; if _G_V10[prefix.."F"] then ForceUseSkill("F") end
+                        end
                     end
                 end
                 
@@ -1776,7 +1753,7 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- ENGINE: SEA EVENT ĐỘC LẬP
+-- ENGINE: SEA EVENT (FIX TỰ MUA THUYỀN VÀ KHÔNG BỊ CHÌM)
 -- ==========================================
 local function GetTargetSeaEvent()
     local monsterFolder = workspace:FindFirstChild("Monster")
@@ -1817,24 +1794,56 @@ task.spawn(function()
             end
         else
             if _G_V10.IsFightingSea then _G_V10.IsFightingSea = false; VIM:SendKeyEvent(false, Enum.KeyCode.W, false, game) end
+            
+            -- FIX: Mất thuyền -> Auto Tele mua Galleon $1K
             if not myBoat then
-                _G_V10.ArrivedAtZone = false;
+                _G_V10.ArrivedAtZone = false
+                local shopPos = Vector3.new(-16021, 58, 11133)
+                if (HRP.Position - shopPos).Magnitude > 20 then
+                    HRP.CFrame = CFrame.new(shopPos)
+                    task.wait(1)
+                end
                 local spawner = workspace:FindFirstChild("NPC") and workspace.NPC:FindFirstChild("BoatSpawner")
-                if spawner and spawner:FindFirstChild("LowerTorso") then
-                    HRP.CFrame = spawner.LowerTorso.CFrame * CFrame.new(0, 0, 4); task.wait(0.5)
-                    pcall(function() ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(workspace.NPC.BoatSpawner, workspace.NPC.BoatSpawner, workspace.NPC.BoatSpawner) end); task.wait(1.5)
+                if spawner then
+                    if (HRP.Position - spawner:GetPivot().Position).Magnitude < 30 then
+                        task.spawn(function() pcall(function() ReplicatedStorage.Assets.Remote.RemoteFunction.Talking:InvokeServer(spawner, spawner, spawner) end) end)
+                        task.wait(0.5)
+                        local talkingGui = LocalPlayer.PlayerGui:FindFirstChild("Talking")
+                        if talkingGui then
+                            local btn = SmartFindButton(talkingGui, "Galleon") or SmartFindButton(talkingGui, "Galleon $1K")
+                            if btn then PhysicalClick(btn); task.wait(0.5); TapSafeEdge() end
+                        end
+                    end
                 end
             else
                 local seat = myBoat:FindFirstChild("VehicleSeat", true)
                 if seat then
                     if not _G_V10.ArrivedAtZone then
                         if Hum.Sit then Hum.Sit = false; task.wait(0.2) end
-                        if myBoat:IsA("Model") and myBoat.PrimaryPart then myBoat:PivotTo(CFrame.new(_G_V10.SeaZone)) else seat.CFrame = CFrame.new(_G_V10.SeaZone) end
-                        task.wait(0.3)
-                        if _G_V10.AutoSitBoat then HRP.CFrame = seat.CFrame + Vector3.new(0, 3, 0); task.wait(0.1); seat:Sit(Hum) end
+                        local selZone = _G_V10.SelectedSeaZone or "Zone 1"
+                        local targetZone = CoordDB.SeaZones[selZone] or Vector3.new(-19800, 86, 16940)
+                        
+                        -- FIX CHỐNG CHÌM: Cho thuyền rơi nhẹ xuống nước (Cộng thêm 30Y)
+                        local safeZone = targetZone + Vector3.new(0, 30, 0)
+                        if myBoat:IsA("Model") and myBoat.PrimaryPart then 
+                            myBoat:PivotTo(CFrame.new(safeZone)) 
+                        else 
+                            seat.CFrame = CFrame.new(safeZone) 
+                        end
+                        task.wait(0.5)
+                        if _G_V10.AutoSitBoat then 
+                            HRP.CFrame = seat.CFrame + Vector3.new(0, 5, 0)
+                            task.wait(0.2)
+                            seat:Sit(Hum) 
+                        end
                         _G_V10.ArrivedAtZone = true 
                     else
-                        if _G_V10.AutoSitBoat and not Hum.Sit then HRP.CFrame = seat.CFrame; task.wait(0.1); seat:Sit(Hum) end
+                        -- Đã ra Zone, nhưng nếu người chơi lỡ chết -> Tele trở lại ghế lái
+                        if _G_V10.AutoSitBoat and not Hum.Sit then 
+                            HRP.CFrame = seat.CFrame + Vector3.new(0, 5, 0)
+                            task.wait(0.2)
+                            seat:Sit(Hum) 
+                        end
                         VIM:SendKeyEvent(true, Enum.KeyCode.W, false, game)
                     end
                 end
